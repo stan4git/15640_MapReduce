@@ -7,6 +7,7 @@ package dfs;
  * 5. dfsScheduler (node picking, file chopping, checkpoint) -- also as stub for client invocation
  * 6. connection mapping
  * 7. registry server
+ * 8. hashmap<node : hashSet<file list>>
  */
 public class NameNode {
 	
