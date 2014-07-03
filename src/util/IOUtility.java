@@ -125,7 +125,6 @@ public class IOUtility {
 			}
 		}
 	}
-	
 
 	/**
 	 * This method is used to write the checkpoint file to the specific file
