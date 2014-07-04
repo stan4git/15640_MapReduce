@@ -8,6 +8,7 @@ package dfs;
  * 6. connection mapping
  * 7. registry server
  * 8. hashmap<node : hashSet<file list>>
+ * 9. file list
  */
 public class NameNode {
 	
