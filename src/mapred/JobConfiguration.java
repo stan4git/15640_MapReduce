@@ -6,6 +6,7 @@ import java.io.Serializable;
  * This class is a bean which was used to record the necessary parameters 
  * for running the map reduce job. It includes mapper class, reducer class,
  * inputfile, outputfile, inputFormat and outputFormat
+ * 
  * @author menglonghe
  * @author sidilin
  *
