@@ -21,8 +21,6 @@ public class DFSClient {
 		DFSClient client = new DFSClient();
 	}
 	
-	
-	
 	/**
 	 * Get the file list from NameNode
 	 */

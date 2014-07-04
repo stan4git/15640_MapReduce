@@ -1,6 +1,7 @@
 package dfs;
 
 import java.rmi.Naming;
+import java.rmi.registry.Registry;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,15 +13,23 @@ import util.FileStatus;
  * 2. node status monitoring (heart beat, RMI call)
  * 3. load replica number from configuration file
  * 4. hashmap<file name : hashmap<chunk num : hashset<node list>>>
- * 5. dfsScheduler (node picking, file chopping, checkpoint) -- also as stub for client invocation
+ * 5. dfsScheduler (node picking, checkpoint) -- also as stub for client invocation
  * 6. connection mapping
  * 7. registry server
  * 8. hashmap<node : hashSet<file list>>
  * 9. file list
  */
 public class NameNode {
+	private static Registry registryServer;
+	
 	
 	public static void main(String[] args) {
+		NameNode nameNode = new NameNode();
+		nameNode.init();
+		
+	}
+	
+	private void init() {
 		
 	}
 	
@@ -40,21 +49,15 @@ public class NameNode {
 		return null;
 	}
 	
-	/**
-	 * 
-	 * @param input 
-	 * @param output 
-	 */
-	public ConcurrentHashMap<Integer, Integer> assignFileChunk(String input, String output) {
+	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList() {
 		return null;
 	}
 	
-	public ConcurrentHashMap<Integer, Integer> getFileChunkList(String file) {
+	public ConcurrentHashMap<Integer, Integer> getChunkDistributionList() {
 		return null;
 	}
 	
-	private void removeFile(String file) {
+	public void monitorDataNode() {
 		
 	}
-	
 }

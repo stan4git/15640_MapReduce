@@ -7,6 +7,29 @@ package dfs;
  * 5. copy from next datanode
  * 6. check point
  */
-public class NodeMonitor {
+public class NodeMonitor implements Runnable {
+	private NameNode mainClass;
+	
+	public NodeMonitor(NameNode mainClassInstance) {
+		this.mainClass = mainClassInstance;
+	}
+	
+	
+	public void checkNodeStatus() {
+		
+	}
+	
+	public void ensureReplica() {
+		
+	}
 
+	private void removeNode() {
+		
+	}
+	
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+		
+	}
 }
