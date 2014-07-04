@@ -7,5 +7,5 @@ package dfs;
  * 5. makeCopy for RMI call
  */
 public class DataNode {
-
+	
 }
