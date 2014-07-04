@@ -1,10 +1,18 @@
 package mapred;
+
+import java.io.Serializable;
+
 /**
- * 1.input file
- * 2.output file
- * 3. 
+ * This class is a bean which was used to record the necessary parameters 
+ * for running the map reduce job. It includes mapper class, reducer class,
+ * inputfile, outputfile, inputFormat and outputFormat
+ * @author menglonghe
+ * @author sidilin
+ *
  */
-public class JobConfiguration {
+public class JobConfiguration implements Serializable{
+
+	private static final long serialVersionUID = 3646892553272150095L;
 	private Class<?> mapperClass;
 	private Class<?> reducerClass;
 	
