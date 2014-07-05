@@ -20,7 +20,7 @@ import java.lang.reflect.Field;
  * @author menglonghe
  * @author sidilin
  */
-public class IOUtility {
+public class IOUtil {
 	/**
 	 * This method is used to write the contents into the specific file
 	 * 

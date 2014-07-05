@@ -25,7 +25,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import util.FileStatus;
-import util.IOUtility;
+import util.IOUtil;
 
 /**
  * 1. put file to dfs.
@@ -73,7 +73,7 @@ public class DFSClient {
 	public static void main(String[] args) {
 		DFSClient client = new DFSClient();
 		System.out.println("Loading configuration data...");
-		IOUtility.readConf("conf/dfs.conf", client);
+		IOUtil.readConf("conf/dfs.conf", client);
 		System.out.println("Configuration data loaded successfully...");
 		
 		System.out.println("For more information, please use: \"help\"");
@@ -96,6 +96,7 @@ public class DFSClient {
 				}
 			}
 		}
+
 	}
 	
 	/**
