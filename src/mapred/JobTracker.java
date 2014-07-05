@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
 import util.IOUtil;
 import util.JobStatus;
 import format.KVPair;
@@ -20,11 +21,8 @@ import format.KVPair;
  * 2. 
  */
 public class JobTracker extends UnicastRemoteObject implements JobTrackerInterface {
-	
-	/**
-	 * @throws RemoteException
-	 */
-	
+
+	private static final long serialVersionUID = 9023603070698668607L;
 	private static JobScheduler jobScheduler = null;
 	
 	private static Integer jobTrackerPort = 1234;
@@ -133,6 +131,24 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		}
+	}
+
+	@Override
+	public JobStatus checkJobStatus(Integer jobId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public double checkMapper(Integer jobId) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public double checkReducer(Integer jobId) {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 
 }
