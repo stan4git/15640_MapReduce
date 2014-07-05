@@ -14,8 +14,8 @@ public class KVPair implements Serializable{
 
 	private static final long serialVersionUID = -104757529176551147L;
 	
-	public Object key;
-	public Object value;
+	private Object key;
+	private Object value;
 	
 	/**
 	 * The default constructor
@@ -35,5 +35,23 @@ public class KVPair implements Serializable{
 		KVPair kvPair = (KVPair)object;
 		return key.equals(kvPair.key) && value.equals(kvPair.value);
 	}
+
+	public Object getKey() {
+		return key;
+	}
+
+	public void setKey(Object key) {
+		this.key = key;
+	}
+
+	public Object getValue() {
+		return value;
+	}
+
+	public void setValue(Object value) {
+		this.value = value;
+	}
+	
+	
 
 }
