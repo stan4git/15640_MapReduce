@@ -12,7 +12,7 @@ import java.util.Hashtable;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
-import util.IOUtility;
+import util.IOUtil;
 
 /**
  * 1. put file to dfs.
@@ -44,7 +44,7 @@ public class DFSClient {
 	
 	public static void main(String[] args) {
 		DFSClient client = new DFSClient();
-		IOUtility.readConf("conf/dfs.conf", client);
+		IOUtil.readConf("conf/dfs.conf", client);
 		System.out.println(client.dataNodeIP);
 	}
 	
