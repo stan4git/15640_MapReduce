@@ -1,9 +1,18 @@
 package dfs;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+
+import util.IOUtility;
 
 /**
  * 1. put file to dfs.
@@ -16,9 +25,27 @@ import java.util.concurrent.ConcurrentHashMap;
  * 8. get file
  */
 public class DFSClient {
+	private int maxChunkSlot;
+	private int maxChunkSize;
+	private String nameNodeIP;
+	private int nameNodeRegPort;
+	private int nameNodePort;
+	private String nameNodeService;
+	private String dataNodeIP;
+	private int dataNodeRegPort;
+	private int dataNodePort;
+	private String dataNodeService;
+	private int replicaNum;
+	private int heartbeatCheckThreshold;
+	private int heartbeatInterval;
+	private String dataNodePath;
+	private String checkPointPath;
+	private int chunkTranferRetryThreshold;
 	
 	public static void main(String[] args) {
 		DFSClient client = new DFSClient();
+		IOUtility.readConf("conf/dfs.conf", client);
+		System.out.println(client.dataNodeIP);
 	}
 	
 	/**
