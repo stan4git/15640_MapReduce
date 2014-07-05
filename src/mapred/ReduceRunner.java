@@ -70,7 +70,7 @@ public class ReduceRunner {
 					Registry registry = LocateRegistry.getRegistry(node, taskTrackerRegPort);
 					TaskTrackerInterface taskTracker = (TaskTrackerInterface) registry.lookup(taskTrackServiceName);
 					String sortedContent = taskTracker.getPartitionContent(jobID, partitionNo);
-					String outputPath = jobID + "-mapper-partition-" + partitionNo;
+					String outputPath = jobID + "-node-" + node + "-partition-" + partitionNo;
 					pathsForPartition.add(outputPath);
 					IOUtil.writeBinary(sortedContent.getBytes("UTF-8"), outputPath);
 					
@@ -93,7 +93,7 @@ public class ReduceRunner {
 			String formattedOutput = outputFormat.formatOutput(outputCollector);
 			byte[] outputForDFS = formattedOutput.getBytes("UTF-8");
 			
-//			Upload the outputfile into DFS !
+//			Upload the output file into DFS !
 
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();

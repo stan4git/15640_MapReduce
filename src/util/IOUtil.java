@@ -32,6 +32,17 @@ public class IOUtil {
 	 *            String the file name
 	 */
 	public static void writeToFile(String content, String filename) {
+		int index = filename.length() - 1;
+		while(index >= 0 && filename.charAt(index) != '/') {
+			index--;
+		}
+		String dir = filename.substring(0, index);
+		
+		File fileDir = new File(dir);
+		if(!fileDir.exists()) {
+			System.out.println("create dir: " + dir);
+			fileDir.mkdirs();
+		}
 		File file = new File(filename);
 		if (!file.exists()) {
 			try {
@@ -66,6 +77,18 @@ public class IOUtil {
 	 *            String it is the file name you want to write
 	 */
 	public static void writeBinary(byte[] content, String filename) {
+		int index = filename.length() - 1;
+		while(index >= 0 && filename.charAt(index) != '/') {
+			index--;
+		}
+		String dir = filename.substring(0, index);
+		
+		File fileDir = new File(dir);
+		if(!fileDir.exists()) {
+			System.out.println("create dir: " + dir);
+			fileDir.mkdirs();
+		}
+		
 		File file = new File(filename);
 		if (!file.exists()) {
 			try {
@@ -100,6 +123,18 @@ public class IOUtil {
 	 *            String the file name you need to write
 	 */
 	public static void writeObject(Object obj, String filename) {
+		int index = filename.length() - 1;
+		while(index >= 0 && filename.charAt(index) != '/') {
+			index--;
+		}
+		String dir = filename.substring(0, index);
+		
+		File fileDir = new File(dir);
+		if(!fileDir.exists()) {
+			System.out.println("create dir: " + dir);
+			fileDir.mkdirs();
+		}
+		
 		File file = new File(filename);
 		if (!file.exists()) {
 			try {
@@ -245,6 +280,8 @@ public class IOUtil {
 					field.set(obj, temp[1]);
 				} else if (field.getType().equals(Integer.class)) {
 					field.set(obj, Integer.parseInt(temp[1]));
+				} else if (field.getType().equals(Double.class)) {
+					field.set(obj, Double.parseDouble(temp[1]));
 				}
 			} catch (NoSuchFieldException e) {
 				e.printStackTrace();

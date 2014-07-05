@@ -35,6 +35,10 @@ public class KVPair implements Serializable{
 		KVPair kvPair = (KVPair)object;
 		return key.equals(kvPair.key) && value.equals(kvPair.value);
 	}
+	
+	public int hashCode () {
+		return (key.toString() + value.toString()).hashCode();
+	}
 
 	public Object getKey() {
 		return key;
