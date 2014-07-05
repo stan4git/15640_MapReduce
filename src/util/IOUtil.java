@@ -244,6 +244,8 @@ public class IOUtil {
 					field.set(obj, temp[1]);
 				} else if (field.getType().equals(Integer.class)) {
 					field.set(obj, Integer.parseInt(temp[1]));
+				} else if (field.getType().equals(Double.class)) {
+					field.set(obj, Double.parseDouble(temp[1]));
 				}
 			} catch (NoSuchFieldException e) {
 				e.printStackTrace();
