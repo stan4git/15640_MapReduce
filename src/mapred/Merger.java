@@ -27,20 +27,19 @@ import format.OutputCollector;
 */
 public class Merger {
 	
-	public static String merge (HashSet<String> paths) {
-		
-		StringBuffer res = new StringBuffer();
-		
+	private static ArrayList<KVPair> mergeHelper (HashSet<String> paths) {
+		ArrayList<KVPair> res = new ArrayList<KVPair>();
+				
 		SortedSet<KVPair> sortedRes = new TreeSet<KVPair>(new OrderByKey());
 		HashMap<KVPair, Integer> count = new HashMap<KVPair, Integer>();
 		
 		FileInputStream fis = null;
 		InputStreamReader isr = null;
 		BufferedReader br = null;
-		
-		for(String path : paths) {
 			
-			try {
+		try {
+				
+			for(String path : paths) {
 				
 				fis = new FileInputStream(path);
 				isr = new InputStreamReader(fis);
@@ -54,14 +53,14 @@ public class Merger {
 					String key = curLine.split(" ")[0];
 					String value = curLine.split(" ")[1];
 					KVPair kv = new KVPair(key, value);
-					if(sortedRes.contains(kv)) {
+					if(count.containsKey(kv)) {
 						count.put(kv, count.get(kv) + 1);
 					} else {
 						sortedRes.add(kv);
 						count.put(kv, 1);
 					}
-					
 				}
+			}
 		
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
@@ -76,22 +75,31 @@ public class Merger {
 					e.printStackTrace();
 				}
 			}
-		}
-		
+
+		System.out.println(count.size());
 		Iterator<KVPair> iterator = sortedRes.iterator();
 		
 		while(iterator.hasNext()) {
 			KVPair kvPair = iterator.next();
-			String key = (String)kvPair.getKey();
-			String value = (String)kvPair.getValue();
 			
 			if(count.get(kvPair) == 1) {
-				res.append(key + " " + value + " " + "\n");
+				res.add(kvPair);
 			} else {
-				for(int i = 0 ; i < count.get(kvPair); i++) {
-					res.append(key + " " + value + " " + "\n");
+				for(int i = 0; i < count.get(kvPair); i++) {
+					res.add(kvPair);
 				}
 			}
+		}
+		
+		return res;
+		
+	}
+	public static String merge (HashSet<String> paths) {
+		
+		StringBuffer res = new StringBuffer();
+		ArrayList<KVPair> mergeRes = mergeHelper(paths);
+		for(KVPair kv : mergeRes) {
+			res.append(kv.getKey().toString() + " " + kv.getValue().toString() + "\n");
 		}
 		
 		return res.toString();
@@ -101,66 +109,19 @@ public class Merger {
 	public static ArrayList<KVPair> combineValues (HashSet<String> paths) {
 		
 		ArrayList<KVPair> res = new ArrayList<KVPair> ();
+		ArrayList<KVPair> mergeRes = mergeHelper(paths);
 		
-		SortedSet<KVPair> sortedRes = new TreeSet<KVPair>(new OrderByKey());
-		HashMap<KVPair, Integer> count = new HashMap<KVPair, Integer>();
-		
-		FileInputStream fis = null;
-		InputStreamReader isr = null;
-		BufferedReader br = null;
-		
-		for(String path : paths) {
-			
-			try {
-				
-				fis = new FileInputStream(path);
-				isr = new InputStreamReader(fis);
-				br = new BufferedReader(isr); 
-				
-				while(true) {
-					String curLine = br.readLine();
-					if(curLine == null) {
-						break;
-					}
-					String key = curLine.split(" ")[0];
-					String value = curLine.split(" ")[1];
-					KVPair kv = new KVPair(key, value);
-					if(sortedRes.contains(kv)) {
-						count.put(kv, count.get(kv) + 1);
-					} else {
-						sortedRes.add(kv);
-						count.put(kv, 1);
-					}
-					
-				}
-		
-			} catch (FileNotFoundException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			} finally {
-				try {
-					br.close();
-					isr.close();
-					fis.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
+		if(mergeRes.size() == 0) {
+			return res;
 		}
-		
-		Iterator<KVPair> iterator = sortedRes.iterator();
-		KVPair first = iterator.next();
-		if(first == null) {
-			return null;
-		}
+		KVPair first = mergeRes.get(0);
 		String lastKey = (String) first.getKey();
 		String lastValue = (String) first.getValue();
 		ArrayList<String> values = new ArrayList<String>();
 		values.add(lastValue);
 		
-		while(iterator.hasNext()) {
-			KVPair kvPair = iterator.next();
+		for(int i = 1; i < mergeRes.size(); i++) {
+			KVPair kvPair = mergeRes.get(i);
 			String key = (String) kvPair.getKey();
 			String value = (String) kvPair.getValue();
 			if(!key.equals(lastKey)) {
@@ -169,13 +130,7 @@ public class Merger {
 				lastValue = value;
 				values = new ArrayList<String>();
 			} 
-			if(count.get(kvPair) == 1) {
-				values.add(value);
-			} else {
-				for(int i = 0 ; i < count.get(kvPair); i++) {
-					values.add(value);
-				}
-			}
+			values.add(value);
 		}
 		
 		if(values.size() != 0) {
@@ -189,6 +144,9 @@ public class Merger {
 
 		@Override
 		public int compare(KVPair k1, KVPair k2) {
+			if(((String) k1.getKey()).compareTo((String)k2.getKey()) == 0) {
+				return ((String) k1.getValue()).compareTo((String)k2.getValue());
+			}
 			return ((String) k1.getKey()).compareTo((String)k2.getKey());
 		}
 	}
