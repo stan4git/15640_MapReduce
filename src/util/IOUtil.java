@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 
@@ -257,4 +258,11 @@ public class IOUtil {
 			}
 		}
 	}
+	
+	
+	public byte[] readChunk(RandomAccessFile file, long size) {
+		return null;
+	}
+	
+	
 }

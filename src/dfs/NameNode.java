@@ -39,7 +39,8 @@ public class NameNode implements NameNodeInterface {
 	 * Return all the files uploaded to DFS without path.
 	 * @return A map consist of file name and file status.
 	 */
-	public ConcurrentHashMap<String, FileStatus> getFileList() {
+	@Override
+	public ConcurrentHashMap<String, FileStatus> getFullFileStatusList() {
 		return null;
 	}
 
@@ -47,15 +48,20 @@ public class NameNode implements NameNodeInterface {
 	 * Return all the nodes registered in DFS.
 	 * @return A map consist of each node's ip address and file chunks on it.
 	 */
-	public Map<String, Set<String>> getNodeList() {
+	@Override
+	public ConcurrentHashMap<String, HashSet<String>> getFullNodeList() {
 		return null;
 	}
 	
-	public Map<String, Map<Integer, Set<String>>> generateChunkDistributionList() {
+	
+	@Override
+	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFileDistributionTable() {
 		return null;
 	}
-	
-	public ConcurrentHashMap<Integer, Integer> getChunkDistributionList() {
+
+	@Override
+	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(
+			String filename, int chunkAmount) {
 		return null;
 	}
 	
