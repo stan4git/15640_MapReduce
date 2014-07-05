@@ -93,8 +93,8 @@ public class ReduceRunner {
 			String formattedOutput = outputFormat.formatOutput(outputCollector);
 			byte[] outputForDFS = formattedOutput.getBytes("UTF-8");
 			
-			nameNode.getChunkDistributionList();
-			
+//			Upload the outputfile into DFS !
+
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		} catch (InstantiationException e) {
