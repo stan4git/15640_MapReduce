@@ -68,4 +68,11 @@ public class NameNode implements NameNodeInterface {
 	public void monitorDataNode() {
 		
 	}
+
+	@Override
+	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(
+			ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> failureList) {
+		
+		return null;
+	}
 }
