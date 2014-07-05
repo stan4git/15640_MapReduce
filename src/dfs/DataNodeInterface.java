@@ -1,5 +1,7 @@
 package dfs;
 
-public interface DataNodeInterface {
+import java.rmi.Remote;
 
+public interface DataNodeInterface extends Remote {
+	public void uploadChunk();
 }

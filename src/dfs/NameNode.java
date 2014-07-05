@@ -4,6 +4,8 @@ import java.rmi.Naming;
 import java.rmi.registry.Registry;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import util.FileStatus;
@@ -19,7 +21,7 @@ import util.FileStatus;
  * 8. hashmap<node : hashSet<file list>>
  * 9. file list
  */
-public class NameNode {
+public class NameNode implements NameNodeInterface {
 	private static Registry registryServer;
 	
 	
@@ -37,7 +39,7 @@ public class NameNode {
 	 * Return all the files uploaded to DFS without path.
 	 * @return A map consist of file name and file status.
 	 */
-	public ConcurrentHashMap<String, FileStatus> listFile() {
+	public ConcurrentHashMap<String, FileStatus> getFileList() {
 		return null;
 	}
 
@@ -45,11 +47,11 @@ public class NameNode {
 	 * Return all the nodes registered in DFS.
 	 * @return A map consist of each node's ip address and file chunks on it.
 	 */
-	public ConcurrentHashMap<String, HashSet<String>> listNode() {
+	public Map<String, Set<String>> getNodeList() {
 		return null;
 	}
 	
-	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList() {
+	public Map<String, Map<Integer, Set<String>>> generateChunkDistributionList() {
 		return null;
 	}
 	
