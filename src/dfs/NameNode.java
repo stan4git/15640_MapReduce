@@ -75,4 +75,11 @@ public class NameNode implements NameNodeInterface {
 		
 		return null;
 	}
+
+	@Override
+	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFileDistributionTable(
+			String filename) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -264,9 +265,43 @@ public class IOUtil {
 		byte tmp = -1;
 		byte[] chunk = new byte[size];
 		int index = 0;
+		file.seek(startPosition);
+		
 		while (index != size && (tmp = file.readByte()) != -1) {
 			chunk[index++] = tmp;
 		}
 		return chunk;
+	}
+	
+	public static void writeChunk(byte[] chunk, String output) throws IOException {
+		File file = new File(output);
+		if (!file.exists()) {
+			try {
+				file.createNewFile();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		FileWriter fos = null;
+		try {
+			fos = new FileWriter(file);
+			fos.append(new String(chunk));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				fos.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	public static void deleteFile(String filePath) {
+		File file = new File(filePath);
+		file.delete();
+		return;
 	}
 }

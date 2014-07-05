@@ -13,6 +13,7 @@ public interface NameNodeInterface extends Remote {
 	public ConcurrentHashMap<String, FileStatus> getFullFileStatusList();
 	public ConcurrentHashMap<String, HashSet<String>> getFullNodeList();
 	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFileDistributionTable();
+	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFileDistributionTable(String filename);
 	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(String filename, int chunkAmount);
 	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> failureList);
 }

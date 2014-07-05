@@ -1,4 +1,7 @@
 package dfs;
+
+import java.rmi.RemoteException;
+
 /**
  * 1. heart beat (RMI)
  * 2. Setup registry 
@@ -6,6 +9,11 @@ package dfs;
  * 4. available chunk slot
  * 5. makeCopy for RMI call
  */
-public class DataNode {
+public class DataNode implements DataNodeInterface {
+
+	@Override
+	public void uploadChunk(String filename, byte[] chunk)
+			throws RemoteException {
+	}
 	
 }
