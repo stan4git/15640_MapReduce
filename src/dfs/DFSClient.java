@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import util.FileStatus;
 import util.IOUtil;
+import util.StringHandling;
 
 /**
  * 1. put file to dfs.
@@ -54,13 +55,16 @@ public class DFSClient {
 	private String dataNodePath;
 	private String checkPointPath;
 	private int chunkTranferRetryThreshold;
-	private Registry registry;
+	private Registry nameNodeRegistry;
 	private NameNodeInterface nameNode;
+	private ConcurrentHashMap<String, DataNodeInterface> dataNodeList;
+	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> dispatchList;
+	
 	
 	public DFSClient() {
 		try {
-			this.registry = LocateRegistry.getRegistry(nameNodeIP, nameNodeRegPort);
-			this.nameNode = (NameNodeInterface) registry.lookup(nameNodeService);
+			this.nameNodeRegistry = LocateRegistry.getRegistry(nameNodeIP, nameNodeRegPort);
+			this.nameNode = (NameNodeInterface) nameNodeRegistry.lookup(nameNodeService);
 			System.out.println("Connected to name node.");
 		} catch (RemoteException e) {
 			e.printStackTrace();
@@ -103,9 +107,8 @@ public class DFSClient {
 	 * Get the file list from NameNode
 	 */
 	private void getFileList() {
-		Map<String, FileStatus> list = this.nameNode.getFileList();
+		Map<String, FileStatus> list = this.nameNode.getFullFileStatusList();
 		System.out.println("Fetching file list from remote server...");
-		
 		System.out.println("Files on DFS are:");
 		System.out.println("=======================Start of list=======================");
 		for (Entry<String, FileStatus> row : list.entrySet()) {
@@ -119,12 +122,11 @@ public class DFSClient {
 	 * Get the node list from NameNode
 	 */
 	private void getNodeList() {
-		Map<String, Set<String>> list = this.nameNode.getNodeList();
+		ConcurrentHashMap<String, HashSet<String>> list = this.nameNode.getFullNodeList();
 		System.out.println("Fetching data node list from remote server...");
-		
 		System.out.println("Data nodes in DFS are:");
 		System.out.println("=======================Start of list=======================");
-		for (Entry<String, Set<String>> row : list.entrySet()) {
+		for (Entry<String, HashSet<String>> row : list.entrySet()) {
 			System.out.print(row.getKey() + "	" + row.getValue().toString());
 		}
 		System.out.println("=======================End of list=======================");
@@ -137,17 +139,20 @@ public class DFSClient {
 	 * @param input String The path of input file.
 	 * @param output String The path of output on DFS.
 	 */
-	private void putFile(String filename) {
-		ArrayList<Long> split = calculateFileSplit(filename);
-		Map<Integer, Set<String>> distributionList = this.nameNode.generateChunkDistributionList().get(filename);
-		if (distributionList != null) {
-			for (Entry<Integer, Set<String>> chunk : distributionList.entrySet()) {
-				
-			}
+	private void putFile(String filePath) {
+		String filename = StringHandling.getFileNameFromPath(filePath);
+		ArrayList<Long> split = calculateFileSplit(filePath);
+		
+		//get dispatching list from name node
+		dispatchList = this.nameNode.generateChunkDistributionList(filename, split.size());
+		if (dispatchList != null && dispatchList.size() > 0) {
+			dispatchChunks(filePath, dispatchList, split);
+			dispatchList = null;
+			System.out.println(filePath + " has been sucessfully uploaded to DFS.");
 		} else {
-			System.out.println("File distribution error. Please try again.");
-			return;
+			System.out.println("File dispatch error. Please try again.");
 		}
+		return;
 	}
 	
 	
@@ -183,12 +188,45 @@ public class DFSClient {
 	 * Dispatch file chunks to data nodes per name node's instruction. The Client is responsible
 	 * for guaranteeing the succeed of transfer. Whenever a chunk is successfully transfered, 
 	 * the client should receive an acknowledge from the data node. In the case when failures happened,
-	 * the client will first try to re-send the file chunk. After 3 retry, the client will send back 
+	 * the client will first try to re-send the file chunk. After retried three times, the client will send back 
 	 * the rest of the list to name node for re-allocation and try to dispatch again.
 	 * @param dispatchList A list provided by NameNode towards dispatching file chunks.
 	 */
-	private void dispatchChunks(ConcurrentHashMap<Integer, Hashtable<Integer, Integer>> dispatchList) {
+	private void dispatchChunks(String filePath, ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>  distributionList, ArrayList<Long> split) {
+		String filename = StringHandling.getFileNameFromPath(filePath);
 		
+		
+		while (distributionList.get(filename).size() > 0) {
+			for (Entry<Integer, HashSet<String>> chunk : distributionList.get(filename).entrySet()) {
+				int chunkNum = chunk.getKey();
+				
+				//obtain the chuck to be sent
+				
+				
+				for (String dataNode : chunk.getValue()) {
+					int retryThreshold = this.chunkTranferRetryThreshold;	//limit the times of retry
+					
+					//Setup remote services of data nodes
+					DataNodeInterface node = dataNodeList.get(dataNode);
+					if (node == null) {
+						try {
+							Registry dataNodeRegistry = LocateRegistry.getRegistry(dataNode, dataNodeRegPort);
+							node = (DataNodeInterface) dataNodeRegistry.lookup(dataNodeService);
+							dataNodeList.put(dataNode, node);
+						} catch (RemoteException e) {
+							e.printStackTrace();
+							System.out.println("Exception occurs when connecting to "+ dataNode);
+						} catch (NotBoundException e) {
+							e.printStackTrace();
+							System.out.println("Service \"" + dataNodeService + "\" is not provided by " + dataNode);
+						}
+					}
+					
+					//start transferring chunk
+					node.uploadChunk(filename, chunkNum, content);
+				}
+			}
+			
+		}
 	}
-	
 }

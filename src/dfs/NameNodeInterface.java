@@ -10,8 +10,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import util.FileStatus;
 
 public interface NameNodeInterface extends Remote {
-	public Map<String, FileStatus> getFileList();
-	public Map<String, Set<String>> getNodeList();
-	public Map<Integer, Integer> getChunkDistributionList();
-	public Map<String, Map<Integer, Set<String>>> generateChunkDistributionList();
+	public ConcurrentHashMap<String, FileStatus> getFullFileStatusList();
+	public ConcurrentHashMap<String, HashSet<String>> getFullNodeList();
+	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFileDistributionTable();
+	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(String filename, int chunkAmount);
 }
