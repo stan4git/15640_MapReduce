@@ -3,11 +3,13 @@ package dfs;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.RandomAccessFile;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.Remote;
@@ -38,7 +40,7 @@ import util.StringHandling;
  * 7. call other datanode's heart beat
  * 8. get file
  */
-public class DFSClient {
+public class DFSClient implements DFSClientInterface {
 	private int maxChunkSlot;
 	private int maxChunkSize;
 	private String nameNodeIP;
@@ -55,6 +57,7 @@ public class DFSClient {
 	private String dataNodePath;
 	private String checkPointPath;
 	private int chunkTranferRetryThreshold;
+	private int ACK_TIMEOUT;
 	private Registry nameNodeRegistry;
 	private NameNodeInterface nameNode;
 	private ConcurrentHashMap<String, DataNodeInterface> dataNodeList;
@@ -146,7 +149,7 @@ public class DFSClient {
 		//get dispatching list from name node
 		dispatchList = this.nameNode.generateChunkDistributionList(filename, split.size());
 		if (dispatchList != null && dispatchList.size() > 0) {
-			dispatchChunks(filePath, dispatchList, split);
+			dispatchChunks(filePath, split);
 			dispatchList = null;
 			System.out.println(filePath + " has been sucessfully uploaded to DFS.");
 		} else {
@@ -192,18 +195,41 @@ public class DFSClient {
 	 * the rest of the list to name node for re-allocation and try to dispatch again.
 	 * @param dispatchList A list provided by NameNode towards dispatching file chunks.
 	 */
-	private void dispatchChunks(String filePath, ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>  distributionList, ArrayList<Long> split) {
+	private void dispatchChunks(String filePath, ArrayList<Long> splitStartPointList) {
 		String filename = StringHandling.getFileNameFromPath(filePath);
+		RandomAccessFile file;
+		byte[] chunk;
 		
 		
-		while (distributionList.get(filename).size() > 0) {
-			for (Entry<Integer, HashSet<String>> chunk : distributionList.get(filename).entrySet()) {
-				int chunkNum = chunk.getKey();
+		try {
+			file = new RandomAccessFile(filePath, "r");
+		} catch (FileNotFoundException e1) {
+			e1.printStackTrace();
+			System.err.println("File not found.");
+			return;
+		}
+		
+		//guaranteed to dispatch all the chunks. if failed, get new dispatch list and dispatch again
+		while (dispatchList.get(filename).size() > 0) {
+			for (Entry<Integer, HashSet<String>> chunkTuple : dispatchList.get(filename).entrySet()) {
+				int chunkNum = chunkTuple.getKey();
+				boolean success = false;
 				
 				//obtain the chuck to be sent
+				try {
+					if (chunkNum == splitStartPointList.size() - 1) {
+						chunk = IOUtil.readChunk(file, splitStartPointList.get(chunkNum), 
+								(int) (file.length() - splitStartPointList.get(chunkNum)));
+					} else {
+						chunk = IOUtil.readChunk(file, splitStartPointList.get(chunkNum), 
+									(int) (splitStartPointList.get(chunkNum + 1) - splitStartPointList.get(chunkNum)));
+					}
+				} catch (IOException e1) {
+					e1.printStackTrace();
+					System.err.println("");
+				}
 				
-				
-				for (String dataNode : chunk.getValue()) {
+				for (String dataNode : chunkTuple.getValue()) {
 					int retryThreshold = this.chunkTranferRetryThreshold;	//limit the times of retry
 					
 					//Setup remote services of data nodes
@@ -222,11 +248,67 @@ public class DFSClient {
 						}
 					}
 					
-					//start transferring chunk
-					node.uploadChunk(filename, chunkNum, content);
+					//start transferring chunk. Retry if fails.
+					while (success || retryThreshold > 0) {
+						try {
+							node.uploadChunk();
+							success = true;
+						
+							//waiting for dataNode acknowledge
+							long timeoutExpiredMs = System.currentTimeMillis() + (this.ACK_TIMEOUT * 1000);
+							while (this.dispatchList.get(filename).get(chunkNum).contains(dataNode)) {
+								if (System.currentTimeMillis() >= timeoutExpiredMs)
+									break;
+								this.wait(1 * 1000);
+							}
+							
+							//check if data node acknowledged received
+							if (this.dispatchList.get(filename).get(chunkNum).contains(dataNode)) {
+								System.out.println("Upload timeout. Retrying for " 
+										+ (this.chunkTranferRetryThreshold - retryThreshold + 1) + " times...");
+								retryThreshold--;
+							}
+						} catch (RemoteException e) {
+							e.printStackTrace();
+							System.out.println("Exception occurs when uploading file. Retrying for " 
+									+ (this.chunkTranferRetryThreshold - retryThreshold + 1) + " times...");
+							retryThreshold--;
+						} catch (InterruptedException e) {
+							System.err.println("Timer error.");
+						}
+					}
+					
+					//print out error message
+					if (retryThreshold == 0) {
+						System.err.print("Upload chunk" + chunkNum + " to " + dataNode + " failed.");
+					}
 				}
 			}
 			
+			//Send back failure list to name node for new dispatching list.
+			if (dispatchList.get(filename).size() == 0) {
+				this.dispatchList = null;
+			} else {
+				this.dispatchList = nameNode.generateChunkDistributionList(this.dispatchList);
+			}
 		}
+	}
+	
+	
+	public void receivedACK(String fromIP, String filename, String chunkNum) {
+		if (this.dispatchList != null) {
+			if (this.dispatchList.contains(filename)) {
+				if (this.dispatchList.get(filename).contains(chunkNum)) {
+					if (this.dispatchList.get(filename).get(chunkNum).contains(fromIP)) {
+						if (this.dispatchList.get(filename).get(chunkNum).size() == 1) 
+							this.dispatchList.get(filename).remove(chunkNum);
+						else
+							this.dispatchList.get(filename).get(chunkNum).remove(fromIP);
+						return;
+					}
+				}
+			}
+		}
+		System.err.println("Dispatch record not found.");
 	}
 }

@@ -262,9 +262,13 @@ public class IOUtil {
 	}
 	
 	
-	public byte[] readChunk(RandomAccessFile file, long size) {
-		return null;
+	public static byte[] readChunk(RandomAccessFile file, long startPosition, int size) throws IOException {
+		byte tmp = -1;
+		byte[] chunk = new byte[size];
+		int index = 0;
+		while (index != size && (tmp = file.readByte()) != -1) {
+			chunk[index++] = tmp;
+		}
+		return chunk;
 	}
-	
-	
 }
