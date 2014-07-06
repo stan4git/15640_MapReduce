@@ -175,6 +175,7 @@ public class NameNode implements NameNodeInterface {
 			String filename = fileTuple.getKey();
 			if (!this.fileDistributionTable.contains(filename)) {
 				fileDistributionTable.put(filename, fileTuple.getValue());
+				fileStatusTable.put(filename, FileStatus.INPROGRESS);
 			} else {
 				for (Entry<Integer, HashSet<String>> chunkTuple : fileTuple.getValue().entrySet()) {
 					int chunkNum = chunkTuple.getKey();
@@ -190,6 +191,15 @@ public class NameNode implements NameNodeInterface {
 		return;
 	}
 
+	public void setFileUploadFinished(String filename) throws RemoteException {
+		if (this.fileStatusTable.contains(filename)) {
+			this.fileStatusTable.put(filename, FileStatus.SUCCESS);
+		} else {
+			throw new RemoteException("File not exist!!");
+		}
+		return;
+	}
+	
 	
 	@Override
 	public void registerDataNode(String dataNodeIP, int availableSlot) {
