@@ -14,6 +14,8 @@ import java.util.Hashtable;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import format.KVPair;
 import util.IOUtil;
@@ -24,6 +26,8 @@ public class TaskTracker extends UnicastRemoteObject implements
 	private static final long serialVersionUID = -897603125687983899L;
 
 	private static JobTrackerInterface jobTracker = null;
+	// Create a thread pool
+	private static ExecutorService executor = Executors.newCachedThreadPool();
 
 	private static final String mapredConf = "conf/mapred.conf";
 	private static final String dfsConf = "conf/dfs.conf";
@@ -106,7 +110,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 			String mapperName = jobTracker.getMapperInfo(jobID).getKey().toString();
 			startMapTask(jobID, chunksAndNodes.size(), jobConf, chunksAndNodes,
 					dataNodeRegPort, dataNodeService, mapperName,
-					partitionFilePath, partitionNums);
+					partitionFilePath, partitionNums,mapperNum);
 		}
 	}
 	
@@ -120,11 +124,11 @@ public class TaskTracker extends UnicastRemoteObject implements
 	public void startMapTask(int jobID, int numOfChunks,
 		JobConfiguration jobConf, ArrayList<KVPair> pairLists, int regPort,
 			String serviceName, String classname, String partitionPath,
-			int numPartitions) {
+			int numPartitions, int mapperNum) {
 		MapRunner mapRunner = new MapRunner(jobID, numOfChunks, jobConf,
 				pairLists, regPort, serviceName, classname, partitionPath,
-				numPartitions);
-		mapRunner.start();
+				numPartitions,mapperNum);
+		executor.execute(mapRunner);
 	}
 
 	public void registerReduceTask(int jobID, int partitionNo, HashSet<String> nodesWithPartitions) {
