@@ -17,23 +17,27 @@ import java.util.HashSet;
  */
 public class TaskThread implements Runnable {
 	
-	private boolean isMapTask;
-	private int jobID;
-	private int partitionNo;
-	private HashSet<String> nodesWithPartitions;
 	private String curNode;
+	private int jobID;
 	private JobConfiguration jobConf;
 	private HashMap<Integer,String> chunkSets;
+	private boolean isMapTask;
+	private int partitionNo;
+	private HashSet<String> nodesWithPartitions;
+	
 	private TaskTrackerInterface taskTracker;
 	private static Integer taskTrackerRegPort;
 	private static String taskTrackServiceName;
 	
-	public TaskThread (String node, int jobID, JobConfiguration jobConf,HashMap<Integer,String> chunkSets, Boolean isMapTask) {
+	public TaskThread (String node, int jobID, JobConfiguration jobConf,
+			HashMap<Integer,String> chunkSets, Boolean isMapTask, int partitionNo, HashSet<String> nodesWithPartitions) {
 		this.curNode = node;
 		this.jobID = jobID;
 		this.jobConf = jobConf;
 		this.chunkSets = chunkSets;
 		this.isMapTask = isMapTask;
+		this.partitionNo = partitionNo;
+		this.nodesWithPartitions = nodesWithPartitions;
 	}
 
 	@Override
@@ -41,7 +45,6 @@ public class TaskThread implements Runnable {
 		try {
 			Registry registry = LocateRegistry.getRegistry(curNode,taskTrackerRegPort);
 			taskTracker = (TaskTrackerInterface) registry.lookup(taskTrackServiceName);
-			
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		} catch (NotBoundException e) {

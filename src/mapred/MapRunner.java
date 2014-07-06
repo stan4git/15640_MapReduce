@@ -53,6 +53,7 @@ public class MapRunner implements Runnable{
 			mapClass = (Class<Mapper>) Class.forName(classname);
 			Constructor<Mapper> constructors = mapClass.getConstructor();
 			mapper = constructors.newInstance();
+			
 			// step2: Get the chunks data, format them using the LineFormat 
 			// and filling these into OutputCollector
 			String contents[] = new String[numOfChunks];
@@ -87,13 +88,5 @@ public class MapRunner implements Runnable{
 			e.printStackTrace();
 		}
 		
-	}
-
-	public Mapper getMapper() {
-		return mapper;
-	}
-
-	public void setMapper(Mapper mapper) {
-		this.mapper = mapper;
 	}
 }

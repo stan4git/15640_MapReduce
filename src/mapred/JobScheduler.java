@@ -83,14 +83,29 @@ public class JobScheduler {
 			
 			// step3: compare the two different nodes
 			
-			double localNodePoint = (maxTaskPerNode - JobTracker.node_totalTasks.get(bestLocalNode)) * localWeight;
-			double globalNodePoint = (maxTaskPerNode - JobTracker.node_totalTasks.get(bestGlobalNode)) * globalWeight;
-			String finalNode = localNodePoint >= globalNodePoint ? bestLocalNode : bestGlobalNode;
+			if(bestLocalNode == null && bestGlobalNode == null) {
+				return null;
+			}
+			
+			String finalNode = null;
+			if(bestLocalNode != null && bestGlobalNode != null) {
+				double localNodePoint = (maxTaskPerNode - JobTracker.node_totalTasks.get(bestLocalNode)) * localWeight;
+				double globalNodePoint = (maxTaskPerNode - JobTracker.node_totalTasks.get(bestGlobalNode)) * globalWeight;
+				finalNode = localNodePoint >= globalNodePoint ? bestLocalNode : bestGlobalNode;
+			}
+			
+			if(bestLocalNode == null || bestGlobalNode == null) {
+				finalNode = bestLocalNode == null ? bestGlobalNode : bestLocalNode;
+			}
 			
 			// step4 : organize the return info
-			//JobTracker.node_totalTasks.put(finalNode, JobTracker.jobID_totalMapTasks.get(finalNode) + 1);
-			
-			HashMap<Integer,String> chunkAndSourceNode = new HashMap<Integer,String>();
+			// JobTracker.node_totalTasks.put(finalNode, JobTracker.jobID_totalMapTasks.get(finalNode) + 1);
+			HashMap<Integer,String> chunkAndSourceNode = null;
+			if(!res.containsKey(finalNode)) {
+				chunkAndSourceNode = new HashMap<Integer,String>();
+			} else {
+				chunkAndSourceNode = res.get(finalNode);
+			}
 			chunkAndSourceNode.put(chunkNum, bestLocalNode);
 			res.put(finalNode, chunkAndSourceNode);
 		}
@@ -102,12 +117,18 @@ public class JobScheduler {
 			return null;
 		}
 		String lightestNode = null;
+		int minWorkLoad = maxTaskPerNode + 1;
 		for(String node : nodes) {
 			int num = JobTracker.node_totalTasks.get(node);
 			if(lightestNode == null || num < JobTracker.node_totalTasks.get(lightestNode)) {
 				lightestNode = node;
+				minWorkLoad = num;
 			}
 		}
+		if(minWorkLoad == maxTaskPerNode + 1) {
+			return null;
+		}
+
 		return lightestNode;
 	}
 	

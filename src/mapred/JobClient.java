@@ -72,7 +72,7 @@ public class JobClient {
 		
 		// Failure handling
 		if(res.equals("INPUTNOTFOUND")){
-			System.out.println("The input file cannot be found in the DFS!");
+			System.err.println("The input file cannot be found in the DFS!");
 			System.exit(-1);
 		}
 		

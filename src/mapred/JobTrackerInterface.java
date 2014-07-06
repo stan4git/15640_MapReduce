@@ -1,6 +1,8 @@
 package mapred;
 
 import java.rmi.Remote;
+import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 import util.JobStatus;
 import format.KVPair;
@@ -11,7 +13,7 @@ public interface JobTrackerInterface extends Remote {
 
 	public void localizeJob (KVPair mapper, KVPair reducer, Integer jobID);
 	
-	public void terminateJob(Integer jobId);
+	public void terminateJob(int jobID);
 
 	public JobStatus checkJobStatus(Integer jobId);
 
@@ -25,6 +27,6 @@ public interface JobTrackerInterface extends Remote {
 
 	public void startReducePhase (int jobID);
 
-	public void responseToHeartBeat(String node, int totalMap, int unfinishedMap, int totalReduce, int unfinishedReduce);
+	public void responseToHeartBeat(String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus);
 
 }

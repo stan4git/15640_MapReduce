@@ -53,12 +53,9 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	
 	// jobID -> All map tasks, jobID -> unfinished Map Tasks
 	// jobID -> All reduce Tasks, jobID -> unfinished reduce tasks
-	public static ConcurrentHashMap<Integer, Integer> jobID_totalMapTasks = new ConcurrentHashMap<Integer, Integer>();
-	public static ConcurrentHashMap<Integer, Integer> jobID_unfinishedMapTasks = new ConcurrentHashMap<Integer, Integer>();
-	public static ConcurrentHashMap<Integer, Integer> jobID_totalReduceTasks = new ConcurrentHashMap<Integer, Integer>();
-	public static ConcurrentHashMap<Integer, Integer> jobID_unfinishedReduceTasks = new ConcurrentHashMap<Integer, Integer>();
+	public static ConcurrentHashMap<Integer, HashMap<String, TaskStatusInfo>> jobID_node_taskStatus = new ConcurrentHashMap<Integer, HashMap<String, TaskStatusInfo>>();
 	
-	// Associate Node with its tasks
+	// node -> status
 	public static HashMap<String, Boolean> node_status;
 	public static ConcurrentHashMap<String, Integer> node_totalTasks = new ConcurrentHashMap<String, Integer>();
 	
@@ -107,8 +104,14 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		
 		// step 5: Send work to node 
 		for (String node : nodeToChunks.keySet()) {
+			if(jobID_node_taskStatus.get(jobID).get(node) == null) {
+				HashMap<String, TaskStatusInfo> taskNodeStatus = new HashMap<String, TaskStatusInfo>();
+				taskNodeStatus.put(node, new TaskStatusInfo());
+				jobID_node_taskStatus.put(jobID, taskNodeStatus);
+			}
+			
 			System.out.println("choose node: " + node + " to run one or more Mapper tasks!");
-			TaskThread mapTask = new TaskThread(node,jobID,jobConf,nodeToChunks.get(node),true);
+			TaskThread mapTask = new TaskThread(node,jobID,jobConf,nodeToChunks.get(node),true,0,null);
 			executor.execute(mapTask);
 		}
 		return jobID.toString();
@@ -152,7 +155,8 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			return;
 		}
 		for(int i = 0; i < numOfPartitions; i++) {
-			TaskThread reduceTask = new TaskThread(chosenReduceNodes.get(i), jobID, null, null, false);	
+			// TODO Auto-generated method stub
+			TaskThread reduceTask = new TaskThread(chosenReduceNodes.get(i), jobID, null, null, false, i, null);	
 			executor.execute(reduceTask);
 		}
 	}
@@ -172,29 +176,11 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	}
 	
 	@Override
-	public void terminateJob(Integer jobID) {
-		
-		jobID_totalMapTasks.remove(jobID);
-		jobID_unfinishedMapTasks.remove(jobID);
-		jobID_totalReduceTasks.remove(jobID);
-		jobID_unfinishedReduceTasks.remove(jobID);
+	public void terminateJob(int jobID) {
+		jobID_node_taskStatus.remove(jobID);
 		jobID_mapTasks.remove(jobID);
-		
-		
-	}
-	
-	
-	
-	public void initSlaveNodes (String slaveListPath) {
-		try {
-			String content = new String(IOUtil.readFile(slaveListPath),"UTF-8");
-			String[] lines = content.split("\n");
-			for(int i = 0; i < lines.length; i++) {
-				node_totalTasks.put(lines[i],0);
-			}
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
+		jobID_mapRedName.remove(jobID);
+		jobID_mapRedPath.remove(jobID);
 	}
 
 	@Override
@@ -212,8 +198,14 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	
 	@Override
 	public double getMapperProgress (Integer jobID) {
-		int totalMapTasks = jobID_totalMapTasks.get(jobID);
-		int unfinishedMapTasks = jobID_unfinishedMapTasks.get(jobID);
+		int totalMapTasks = 0;
+		int unfinishedMapTasks = 0;
+		
+		for(String node : jobID_node_taskStatus.get(jobID).keySet()) {
+			totalMapTasks += jobID_node_taskStatus.get(jobID).get(node).getTotalMapTasks();
+			unfinishedMapTasks += jobID_node_taskStatus.get(jobID).get(node).getUnfinishedMapTasks();
+		}
+		
 		return 1 - (double)unfinishedMapTasks / (double)totalMapTasks;
 	}
 
@@ -226,14 +218,42 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	
 	@Override
 	public double getReducerProgress (Integer jobID) {
-		int totalReduceTasks = jobID_totalReduceTasks.get(jobID);
-		int unfinishedReduceTasks = jobID_unfinishedReduceTasks.get(jobID);
+		int totalReduceTasks = 0;
+		int unfinishedReduceTasks = 0;
+		
+		for(String node : jobID_node_taskStatus.get(jobID).keySet()) {
+			totalReduceTasks += jobID_node_taskStatus.get(jobID).get(node).getTotalReduceTasks();
+			totalReduceTasks += jobID_node_taskStatus.get(jobID).get(node).getUnfinishedReduceTasks();
+		}
+		
 		return 1 - (double)unfinishedReduceTasks / (double)totalReduceTasks;
 	}
 	
+	
 	@Override
-	public void responseToHeartBeat(String node, int totalMap, int unfinishedMap, int totalReduce, int unfinishedReduce){
+	public void responseToHeartBeat(String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus) {
+		int unfinishedMapTasks = 0;
+		int unfinishedReduceTasks = 0;
 		
+		for(int jobID : jobID_taskStatus.keySet()) {
+			TaskStatusInfo taskStatusInfo = jobID_taskStatus.get(jobID);
+			jobID_node_taskStatus.get(jobID).put(node, taskStatusInfo);
+			unfinishedMapTasks += taskStatusInfo.getUnfinishedMapTasks();
+			unfinishedReduceTasks += taskStatusInfo.getUnfinishedReduceTasks();
+		}
+		node_totalTasks.put(node, unfinishedMapTasks + unfinishedReduceTasks);
+	}
+	
+	private void initSlaveNodes (String slaveListPath) {
+		try {
+			String content = new String(IOUtil.readFile(slaveListPath),"UTF-8");
+			String[] lines = content.split("\n");
+			for(int i = 0; i < lines.length; i++) {
+				node_totalTasks.put(lines[i],0);
+			}
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public static void main (String args[]) {
@@ -244,7 +264,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			IOUtil.readConf(DFSConfPath, jobTracker);
 			IOUtil.readConf(MapReducePath, jobTracker);
 			
-			// 2. Initialize the Slave Node's tasks
+			// 2. Initialize slave nodes
 			jobTracker.initSlaveNodes(SlaveListPath);
 			
 			// 3. Build the RMI Registry Server and bind the service to the registry server

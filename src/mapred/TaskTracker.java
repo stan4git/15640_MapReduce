@@ -39,15 +39,10 @@ public class TaskTracker extends UnicastRemoteObject implements
 	private static Integer taskTrackerRegPort;
 	private static String taskTrackServiceName;
 	private static Integer mapperChunkThreshold;
-
-	public static ConcurrentHashMap<Integer, HashSet<String>> jobID_parFilePath = new ConcurrentHashMap<Integer, HashSet<String>>();
-	public static ConcurrentHashMap<Integer, Integer> jobID_totalMapTasks = new ConcurrentHashMap<Integer, Integer>();
-	public static ConcurrentHashMap<Integer, Integer> jobID_unfinishedMapTasks = new ConcurrentHashMap<Integer, Integer>();
-	public static ConcurrentHashMap<Integer, Integer> jobID_totalReduceTasks = new ConcurrentHashMap<Integer, Integer>();
-	public static ConcurrentHashMap<Integer, Integer> jobID_unfinishedReduceTasks = new ConcurrentHashMap<Integer, Integer>();
 	
-	public static Integer runningMappers = 0;
-	public static Integer runningReducers = 0;
+	public static ConcurrentHashMap<Integer, HashSet<String>> jobID_parFilePath = new ConcurrentHashMap<Integer, HashSet<String>>();
+	public static ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus = new ConcurrentHashMap<Integer, TaskStatusInfo>();
+	public static ConcurrentHashMap<Integer, HashMap<String, ArrayList<Integer>>> jobID_node_mapID = new ConcurrentHashMap<Integer, HashMap<String, ArrayList<Integer>>>();
 	
 	private static String reducerClassName;
 	private static String mapperClassName;
@@ -92,17 +87,23 @@ public class TaskTracker extends UnicastRemoteObject implements
 			pairs.add(pair);
 			count++;
 		}
-		if (count != mapperChunkThreshold) {
+		if (count != 0) {
 			mappers.put(mapNums, pairs);
 			mapNums++;
 		}
 
 		System.out.println("It needs " + mapNums + "mappers!");
-		jobID_unfinishedMapTasks.put(jobID, mapNums);
-		jobID_totalMapTasks.put(jobID, mapNums);
-		synchronized (runningMappers) {
-			runningMappers += mapNums;
+		
+		TaskStatusInfo taskStatusInfo;
+		if(jobID_taskStatus.containsKey(jobID)) {
+			taskStatusInfo = jobID_taskStatus.get(jobID);
+		} else {
+			taskStatusInfo = new TaskStatusInfo();	
 		}
+		taskStatusInfo.setTotalMapTasks(taskStatusInfo.getTotalMapTasks() + mapNums);
+		taskStatusInfo.setUnfinishedMapTasks(taskStatusInfo.getUnfinishedMapTasks() + mapNums);
+		jobID_taskStatus.put(jobID, taskStatusInfo);
+		
 		localizeMapTask(jobID);
 
 		for (Integer mapperNum : mappers.keySet()) {
@@ -164,23 +165,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 
 			@Override
 			public void run() {
-				
-				int totalMapTasks = 0;
-				int unfinishedMapTasks = 0;
-				int totalReduceTasks = 0;
-				int unfinishedReduceTasks = 0;
-				
-				for(int jobID : jobID_totalMapTasks.keySet()) {
-					totalMapTasks = jobID_totalMapTasks.get(jobID);
-					unfinishedMapTasks = jobID_unfinishedMapTasks.get(jobID);
-				}
-				
-				for(int jobID : jobID_totalReduceTasks.keySet()) {
-					totalReduceTasks = jobID_totalReduceTasks.get(jobID);
-					unfinishedReduceTasks = jobID_unfinishedMapTasks.get(jobID);
-				}
-				
-				jobTracker.responseToHeartBeat(node, totalMapTasks, unfinishedMapTasks, totalReduceTasks, unfinishedReduceTasks);
+				jobTracker.responseToHeartBeat(node, jobID_taskStatus);
 			}
 			
 		};
