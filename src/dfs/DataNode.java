@@ -31,7 +31,6 @@ public class DataNode implements DataNodeInterface {
 	private int dataNodePort;
 	private String dataNodeService;
 	private String dataNodePath;
-	private Registry dataNodeRegistry;
 	private Registry nameNodeRegistry;
 	private NameNodeInterface nameNode;
 	private int availableChunkSlot;
@@ -45,6 +44,16 @@ public class DataNode implements DataNodeInterface {
 		IOUtil.readConf("conf/dfs.conf", dataNode);
 		System.out.println("Configuration data loaded successfully...");
 		
+		Registry dataNodeRegistry;
+		try {
+			System.out.println("Configuring server...");
+			dataNodeRegistry = LocateRegistry.createRegistry(dataNode.dataNodeRegPort);
+			dataNodeRegistry.rebind(dataNode.dataNodeService, dataNode);
+		} catch (RemoteException e) {
+			e.printStackTrace();
+			System.err.println("System start failed...");
+			return;
+		}
 		System.out.println("System is running...");
 		while (dataNode.isRunning) {
 			
@@ -58,9 +67,6 @@ public class DataNode implements DataNodeInterface {
 			isRunning = true;
 			this.availableChunkSlot = this.maxChunkSlot;
 			dataNodeList = new Hashtable<String, DataNodeInterface>();
-			dataNodeRegistry = LocateRegistry.createRegistry(this.dataNodeRegPort);
-			dataNodeRegistry.bind(dataNodeService, this);
-			System.out.println("Server has been set up...");
 			
 			this.nameNodeRegistry = LocateRegistry.getRegistry(nameNodeIP, nameNodePort);
 			this.nameNode = (NameNodeInterface) nameNodeRegistry.lookup(nameNodeService);
@@ -69,8 +75,7 @@ public class DataNode implements DataNodeInterface {
 			e.printStackTrace();
 		} catch (NotBoundException e) {
 			e.printStackTrace();
-		} catch (AlreadyBoundException e) {
-		}
+		} 
 	}
 	
 	public void uploadChunk(String filename, byte[] chunk, int chunkNum, String fromIP)

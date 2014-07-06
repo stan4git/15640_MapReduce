@@ -36,6 +36,7 @@ import util.StringHandling;
  */
 public class DFSClient implements DFSClientInterface {
 	private int clientRegPort;
+	private String clientServiceName;
 	private int maxChunkSize;
 	private String nameNodeIP;
 	private int nameNodePort;
@@ -54,8 +55,9 @@ public class DFSClient implements DFSClientInterface {
 		try {
 			
 			clientRegistry = LocateRegistry.createRegistry(this.clientRegPort);
-			clientRegistry.bind(nameNodeService, this);
+			clientRegistry.bind(this.clientServiceName, this);
 			System.out.println("Server has been set up...");
+			
 			this.nameNodeRegistry = LocateRegistry.getRegistry(nameNodeIP, nameNodePort);
 			this.nameNode = (NameNodeInterface) nameNodeRegistry.lookup(nameNodeService);
 			System.out.println("Connected to name node...");

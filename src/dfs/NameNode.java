@@ -82,12 +82,11 @@ public class NameNode implements NameNodeInterface {
 		
 		try {
 			this.nameNodeRegistry = LocateRegistry.createRegistry(this.nameNodeRegPort);
-			this.nameNodeRegistry.bind(nameNodeService, this);
+			this.nameNodeRegistry.rebind(nameNodeService, this);
 			System.out.println("Server has been set up...");
 		} catch (RemoteException e) {
 			e.printStackTrace();
-		} catch (AlreadyBoundException e) {
-		}
+		} 
 	}
 	
 	
