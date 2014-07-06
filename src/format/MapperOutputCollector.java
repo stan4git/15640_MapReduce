@@ -1,8 +1,6 @@
 package format;
 
 import java.util.ArrayList;
-import java.util.SortedMap;
-import java.util.TreeMap;
 
 /**
  * This class defines a structure which was used to collect the Mapper and Reducer's 
@@ -15,10 +13,10 @@ import java.util.TreeMap;
  * @author sidilin
  *
  */
-public class OutputCollector {
+public class MapperOutputCollector {
 	
 	// such as <Hello,<1,1,1,1,1>>
-	public SortedMap<Object,ArrayList<Object>> outputCollector = new TreeMap<Object,ArrayList<Object>>();
+	public ArrayList<KVPair> mapperOutputCollector = new ArrayList<KVPair>();
 
 	/**
 	 * This method is used to add single key and value pair into the collector
@@ -26,12 +24,7 @@ public class OutputCollector {
 	 * @param value Object
 	 */
 	public void add(Object key, Object value){
-		if(!outputCollector.containsKey(key)){
-			ArrayList<Object> tempList = new ArrayList<Object>();
-			tempList.add(value);
-			outputCollector.put(key, tempList);
-		} else {
-			outputCollector.get(key).add(value);
-		}
+		KVPair kvPair = new KVPair(key,value);
+		mapperOutputCollector.add(kvPair);
 	}
 }

@@ -14,7 +14,7 @@ import util.IOUtil;
 import dfs.DataNodeInterface;
 import format.InputFormat;
 import format.KVPair;
-import format.OutputCollector;
+import format.MapperOutputCollector;
 
 public class MapRunner implements Runnable{
 	private Mapper mapper;
@@ -58,7 +58,7 @@ public class MapRunner implements Runnable{
 			// and filling these into OutputCollector
 			String contents[] = new String[numOfChunks];
 			int count = 0;
-			OutputCollector outputCollector = new OutputCollector();
+			MapperOutputCollector outputCollector = new MapperOutputCollector();
 			for(KVPair pair : pairLists) {
 				Integer chunkNum = (Integer) pair.getKey();
 				String sourceNodeIP = (String) pair.getValue();
@@ -75,11 +75,11 @@ public class MapRunner implements Runnable{
 				count++;
 			}
 			// step3: partition the OutputCollector
-			StringBuffer[] partitionContents = Partitioner.partition(outputCollector.outputCollector,numPartitions);
+			StringBuffer[] partitionContents = Partitioner.partition(outputCollector.mapperOutputCollector,numPartitions);
 			// step4: write the partition contents to the specific path
 			for(int j = 0; j < numPartitions; j++) {
-				String filename = jobID.toString() + mapperNum.toString() + "partition" + j;
-				IOUtil.writeBinary(partitionContents[j].toString().getBytes("UTF-8"), partitionPath + filename);
+				String filename = partitionPath + jobID.toString() + "/" + mapperNum.toString() + "/partition" + j;
+				IOUtil.writeBinary(partitionContents[j].toString().getBytes("UTF-8"), filename);
 			}
 		} catch (ClassNotFoundException | NoSuchMethodException | SecurityException 
 				| InstantiationException | IllegalAccessException 

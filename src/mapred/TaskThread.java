@@ -8,7 +8,6 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.HashMap;
-import java.util.HashSet;
 
 /**
  * @author menglonghe
@@ -23,14 +22,16 @@ public class TaskThread implements Runnable {
 	private HashMap<Integer,String> chunkSets;
 	private boolean isMapTask;
 	private int partitionNo;
-	private HashSet<String> nodesWithPartitions;
+	private HashMap<Integer, HashMap<String, String>> nodesWithPartitions;
+	private int numOfPartitions;
 	
 	private TaskTrackerInterface taskTracker;
 	private static Integer taskTrackerRegPort;
 	private static String taskTrackServiceName;
 	
 	public TaskThread (String node, int jobID, JobConfiguration jobConf,
-			HashMap<Integer,String> chunkSets, Boolean isMapTask, int partitionNo, HashSet<String> nodesWithPartitions) {
+			HashMap<Integer,String> chunkSets, Boolean isMapTask, int partitionNo, 
+			HashMap<Integer, HashMap<String, String>> nodesWithPartitions, int numOfPartitions) {
 		this.curNode = node;
 		this.jobID = jobID;
 		this.jobConf = jobConf;
@@ -38,6 +39,7 @@ public class TaskThread implements Runnable {
 		this.isMapTask = isMapTask;
 		this.partitionNo = partitionNo;
 		this.nodesWithPartitions = nodesWithPartitions;
+		this.numOfPartitions = numOfPartitions;
 	}
 
 	@Override
@@ -54,7 +56,7 @@ public class TaskThread implements Runnable {
 		if(isMapTask) {
 			taskTracker.registerMapperTask(jobID,jobConf,chunkSets);
 		} else {
-			taskTracker.registerReduceTask(jobID, partitionNo, nodesWithPartitions);
+			taskTracker.registerReduceTask(jobID, partitionNo, nodesWithPartitions, numOfPartitions);
 		}
 	}
 

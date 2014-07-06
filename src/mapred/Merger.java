@@ -93,17 +93,6 @@ public class Merger {
 		return res;
 		
 	}
-	public static String merge (HashSet<String> paths) {
-		
-		StringBuffer res = new StringBuffer();
-		ArrayList<KVPair> mergeRes = mergeHelper(paths);
-		for(KVPair kv : mergeRes) {
-			res.append(kv.getKey().toString() + " " + kv.getValue().toString() + "\n");
-		}
-		
-		return res.toString();
-	}
-	
 	
 	public static ArrayList<KVPair> combineValues (HashSet<String> paths) {
 		

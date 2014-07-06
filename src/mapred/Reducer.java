@@ -5,7 +5,7 @@ package mapred;
 
 import java.util.ArrayList;
 
-import format.OutputCollector;
+import format.ReducerOutputCollector;
 
 /**
  * @author menglonghe
@@ -14,6 +14,6 @@ import format.OutputCollector;
  */
 public interface Reducer {
 
-	public void reduce(String key, ArrayList<String> value, OutputCollector outputCollector); 
+	public void reduce(String key, ArrayList<String> value, ReducerOutputCollector outputCollector); 
 
 }

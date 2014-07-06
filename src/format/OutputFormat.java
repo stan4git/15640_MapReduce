@@ -21,7 +21,7 @@ public class OutputFormat {
 	 *            this is a OutputCollector object
 	 * @return String
 	 */
-	public String formatOutput(OutputCollector collector) {
+	public String formatOutput(ReducerOutputCollector collector) {
 		StringBuffer sb = new StringBuffer("");
 		SortedMap<Object, ArrayList<Object>> outputMap = collector.outputCollector;
 		for (Object key : outputMap.keySet()) {

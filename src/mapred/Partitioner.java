@@ -2,7 +2,8 @@ package mapred;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.SortedMap;
+
+import format.KVPair;
 
 /**
  * 1. take buffer as input, partition data into different partition (partition
@@ -11,7 +12,7 @@ import java.util.SortedMap;
 public class Partitioner {
 
 	public static StringBuffer[] partition(
-			SortedMap<Object, ArrayList<Object>> collection,
+			ArrayList<KVPair> collection,
 			Integer partitionNum) {
 
 		HashMap<Object, Object> hashcodes = new HashMap<Object, Object>();
@@ -23,18 +24,16 @@ public class Partitioner {
 			partitions[i] = new StringBuffer("");
 		}
 
-		for (Object key : collection.keySet()) {
-			hashcodes.put(key, (key.toString().hashCode()) % partitionNum);
+		for (KVPair kvPair : collection) {
+			hashcodes.put(kvPair.getKey(), (kvPair.getValue().toString().hashCode()) % partitionNum);
 		}
 
-		for (Object key : collection.keySet()) {
-			int index = (int) hashcodes.get(key);
-			for (Object value : collection.get(key)) {
-				partitions[index].append(key);
-				partitions[index].append(" ");
-				partitions[index].append(value);
-				partitions[index].append("\n");
-			}
+		for (KVPair kvPair : collection) {
+			int index = (int) hashcodes.get(kvPair.getKey());
+			partitions[index].append(kvPair.getKey());
+			partitions[index].append(" ");
+			partitions[index].append(kvPair.getValue());
+			partitions[index].append("\n");
 		}
 		return partitions;
 	}

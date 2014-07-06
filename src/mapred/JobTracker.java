@@ -45,6 +45,9 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	// The path for uploading the programmer's Mapper and Reducer
 	private static String jobUploadPath;
 	
+	// The number of partitions	
+	private static Integer partitionNums;
+	
 	// Create a thread pool
 	private static ExecutorService executor = Executors.newCachedThreadPool();
 	
@@ -111,7 +114,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			}
 			
 			System.out.println("choose node: " + node + " to run one or more Mapper tasks!");
-			TaskThread mapTask = new TaskThread(node,jobID,jobConf,nodeToChunks.get(node),true,0,null);
+			TaskThread mapTask = new TaskThread(node,jobID,jobConf,nodeToChunks.get(node),true,0,null,0);
 			executor.execute(mapTask);
 		}
 		return jobID.toString();
@@ -148,7 +151,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	@Override
 	public void startReducePhase (int jobID) {
 		System.out.println("Start reduce job !!");
-		int numOfPartitions = 0;
+		int numOfPartitions = partitionNums;
 		ArrayList<String> chosenReduceNodes = jobScheduler.pickBestNodesForReduce(numOfPartitions);
 		if(chosenReduceNodes == null) {
 			System.out.println("System is busy, the job fails");
@@ -156,7 +159,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		}
 		for(int i = 0; i < numOfPartitions; i++) {
 			// TODO Auto-generated method stub
-			TaskThread reduceTask = new TaskThread(chosenReduceNodes.get(i), jobID, null, null, false, i, null);	
+			TaskThread reduceTask = new TaskThread(chosenReduceNodes.get(i), jobID, null, null, false, i, null,partitionNums);	
 			executor.execute(reduceTask);
 		}
 	}
