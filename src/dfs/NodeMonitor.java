@@ -1,4 +1,9 @@
 package dfs;
+
+import java.util.Map.Entry;
+
+import util.*;
+
 /**
  * 1. check heart beat of dataNode
  * 2. check replica amount
@@ -8,28 +13,38 @@ package dfs;
  * 6. check point
  */
 public class NodeMonitor implements Runnable {
-	private NameNode mainClass;
+	private NameNode nameNodeInstance;
+	private boolean isRunning;
 	
-	public NodeMonitor(NameNode mainClassInstance) {
-		this.mainClass = mainClassInstance;
+	public NodeMonitor(NameNode nameNodeInstance) {
+		this.nameNodeInstance = nameNodeInstance;
 	}
 	
 	
 	public void checkNodeStatus() {
-		
+		for (Entry<String, NodeStatus> nodeStatus : nameNodeInstance.getDataNodeStatusList().entrySet()) {
+			
+		}
 	}
 	
 	public void ensureReplica() {
 		
 	}
 
-	private void removeNode() {
+	private void removeDeadNode() {
 		
 	}
 	
+	
+	private void terminate() {
+		this.isRunning = false;
+	}
 	@Override
 	public void run() {
-		// TODO Auto-generated method stub
-		
+		while (isRunning) {
+			checkNodeStatus();
+			ensureReplica();
+			removeDeadNode();
+		}
 	}
 }

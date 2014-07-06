@@ -49,7 +49,7 @@ public class NameNode implements NameNodeInterface {
 	private int ackTimeout;
 	private Registry nameNodeRegistry;
 	private NameNodeInterface nameNode;
-	private ConcurrentHashMap<String, Integer> dataNodeList;
+	private ConcurrentHashMap<String, Integer> dataNodeAvailableSlotList;
 	private ConcurrentHashMap<String, NodeStatus> dataNodeStatusList;
 	private ConcurrentHashMap<String, FileStatus> fileStatusTable;
 	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistributionTable;
@@ -61,10 +61,15 @@ public class NameNode implements NameNodeInterface {
 	
 	
 	public NameNode() {
-		dataNodeList = new ConcurrentHashMap<String, Integer>();
-		dataNodeStatusList = new ConcurrentHashMap<String, NodeStatus>();
+		dataNodeAvailableSlotList = new ConcurrentHashMap<String, Integer>();
+		setDataNodeStatusList(new ConcurrentHashMap<String, NodeStatus>());
 		fileStatusTable = new ConcurrentHashMap<String, FileStatus>();
 		fileDistributionTable = new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
+		
+		NodeMonitor nodeMonitor = new NodeMonitor(this);
+		Thread monitoring = new Thread(nodeMonitor);
+		monitoring.start();
+		System.out.println("Start monitoring name node server...");
 		
 		try {
 			this.nameNodeRegistry = LocateRegistry.createRegistry(this.nameNodeRegPort);
@@ -82,7 +87,7 @@ public class NameNode implements NameNodeInterface {
 	 * @return A map consist of file name and file status.
 	 */
 	@Override
-	public ConcurrentHashMap<String, FileStatus> getFullFileStatusTable() {
+	public ConcurrentHashMap<String, FileStatus> getFileStatusTable() {
 		return this.fileStatusTable;
 	}
 
@@ -92,13 +97,13 @@ public class NameNode implements NameNodeInterface {
 	 * @return A map consist of each node's ip address and file chunks on it.
 	 */
 	@Override
-	public ConcurrentHashMap<String, Integer> getFullDataNodeList() {
-		return this.dataNodeList;
+	public ConcurrentHashMap<String, Integer> getDataNodeAvailableSlotList() {
+		return this.dataNodeAvailableSlotList;
 	}
 	
 	
 	@Override
-	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFullFileDistributionTable() {
+	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFileDistributionTable() {
 		return this.fileDistributionTable;
 	}
 
@@ -127,7 +132,7 @@ public class NameNode implements NameNodeInterface {
 	public String getMostAvailableSlotDataNode() {
 		String minLoadDataNode = null;
 		int maxAvailableSlots = Integer.MIN_VALUE;
-		for (Entry<String, Integer> dataNode : this.dataNodeList.entrySet()) {
+		for (Entry<String, Integer> dataNode : this.dataNodeAvailableSlotList.entrySet()) {
 			if (dataNode.getValue() > maxAvailableSlots) {
 				minLoadDataNode = dataNode.getKey();
 				maxAvailableSlots = dataNode.getValue();
@@ -188,7 +193,7 @@ public class NameNode implements NameNodeInterface {
 	
 	@Override
 	public void registerDataNode(String dataNodeIP, int availableSlot) {
-		this.dataNodeList.put(dataNodeIP, availableSlot);
+		this.dataNodeAvailableSlotList.put(dataNodeIP, availableSlot);
 		System.out.println(dataNodeIP + " has been added to data node list...");
 	}
 
@@ -196,7 +201,7 @@ public class NameNode implements NameNodeInterface {
 	@Override
 	public HashSet<String> getHealthyNodes() {
 		HashSet<String> returnList = new HashSet<String>();
-		for (Entry<String, NodeStatus> node : this.dataNodeStatusList.entrySet()) {
+		for (Entry<String, NodeStatus> node : this.getDataNodeStatusList().entrySet()) {
 			if (node.getValue() == NodeStatus.HEALTHY) {
 				returnList.add(node.getKey());
 			}
@@ -205,8 +210,35 @@ public class NameNode implements NameNodeInterface {
 	}
 
 
-	@Override
-	public ConcurrentHashMap<String, NodeStatus> getFullDataNodeStatus() {
-		return this.dataNodeStatusList;
+	public ConcurrentHashMap<String, NodeStatus> getDataNodeStatusList() {
+		return dataNodeStatusList;
 	}
+
+	public void setDataNodeAvailableSlotList(
+			ConcurrentHashMap<String, Integer> dataNodeAvailableSlotList) {
+		this.dataNodeAvailableSlotList = dataNodeAvailableSlotList;
+	}
+
+
+	public void setDataNodeStatusList(
+			ConcurrentHashMap<String, NodeStatus> dataNodeStatusList) {
+		this.dataNodeStatusList = dataNodeStatusList;
+	}
+
+
+	public void setFileStatusTable(
+			ConcurrentHashMap<String, FileStatus> fileStatusTable) {
+		this.fileStatusTable = fileStatusTable;
+	}
+
+
+	public void setFileDistributionTable(
+			ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistributionTable) {
+		this.fileDistributionTable = fileDistributionTable;
+	}
+
+	public boolean fileExist(String filename) {
+		return this.fileDistributionTable.contains(filename);
+	}
+
 }

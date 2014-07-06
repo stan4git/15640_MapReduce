@@ -11,10 +11,10 @@ import util.NodeStatus;
 import util.FileStatus;
 
 public interface NameNodeInterface extends Remote {
-	public ConcurrentHashMap<String, FileStatus> getFullFileStatusTable();
-	public ConcurrentHashMap<String, Integer> getFullDataNodeList();
-	public ConcurrentHashMap<String, NodeStatus> getFullDataNodeStatus();
-	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFullFileDistributionTable();
+	public ConcurrentHashMap<String, FileStatus> getFileStatusTable();
+	public ConcurrentHashMap<String, Integer> getDataNodeAvailableSlotList();
+	public ConcurrentHashMap<String, NodeStatus> getDataNodeStatusList();
+	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFileDistributionTable();
 	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFileDistributionTable(String filename);
 	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(String filename, int chunkAmount);
 	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> failureList);
@@ -23,4 +23,5 @@ public interface NameNodeInterface extends Remote {
 	public void registerDataNode(String dataNodeIP, int availableSlot);
 	
 	public HashSet<String> getHealthyNodes();
+	public boolean fileExist(String filename);
 }

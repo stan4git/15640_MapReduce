@@ -101,7 +101,7 @@ public class DFSClient implements DFSClientInterface {
 	 * Get the file list from NameNode
 	 */
 	private void getFileList() {
-		Map<String, FileStatus> list = this.nameNode.getFullFileStatusTable();
+		Map<String, FileStatus> list = this.nameNode.getFileStatusTable();
 		System.out.println("Fetching file list from remote server...");
 		System.out.println("Files on DFS are:");
 		System.out.println("=======================Start of list=======================");
@@ -116,7 +116,7 @@ public class DFSClient implements DFSClientInterface {
 	 * Get the node list from NameNode
 	 */
 	private void getNodeList() {
-		ConcurrentHashMap<String, Integer> list = this.nameNode.getFullDataNodeList();
+		ConcurrentHashMap<String, Integer> list = this.nameNode.getDataNodeAvailableSlotList();
 		System.out.println("Fetching data node list from remote server...");
 		System.out.println("Data nodes in DFS are:");
 		System.out.println("=======================Start of list=======================");
