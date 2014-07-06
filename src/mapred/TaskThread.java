@@ -10,8 +10,6 @@ import java.rmi.registry.Registry;
 import java.util.HashMap;
 import java.util.HashSet;
 
-import util.IOUtil;
-
 /**
  * @author menglonghe
  * @author sidilin
@@ -49,6 +47,7 @@ public class TaskThread implements Runnable {
 		} catch (NotBoundException e) {
 			e.printStackTrace();
 		}
+		
 		if(isMapTask) {
 			taskTracker.registerMapperTask(jobID,jobConf,chunkSets);
 		} else {

@@ -32,22 +32,18 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	private static String MapReducePath = "conf/mapred.conf";
 	private static String SlaveListPath = "conf/slaveList";
 	
-	/*These 3 contains JobTracker's registry IP,registry port, service port and service name*/
+	// These 3 contains JobTracker's registry IP,registry port, service port and service name
 	private static Integer jobTrackerPort;
 	private static Integer jobTrackerRegPort;
 	private static String jobTrackServiceName;
 	
-	/*These 3 contains NameNode's registry IP,registry port and service name*/
+	// These 3 contains NameNode's registry IP,registry port and service name
 	private static String nameNodeIP;
 	private static Integer nameNodeRegPort;
 	private static String nameNodeService;
 	
 	// The path for uploading the programmer's Mapper and Reducer
 	private static String jobUploadPath;
-	// The Mapper's final partition numbers
-	private static Integer partitionNums;
-	// If the chunks reach the mapperChunkThreshold, it will generate a task
-	private static Integer mapperChunkThreshold;
 	
 	// Create a thread pool
 	private static ExecutorService executor = Executors.newCachedThreadPool();
@@ -62,7 +58,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	public static ConcurrentHashMap<Integer, Integer> jobID_totalReduceTasks = new ConcurrentHashMap<Integer, Integer>();
 	public static ConcurrentHashMap<Integer, Integer> jobID_unfinishedReduceTasks = new ConcurrentHashMap<Integer, Integer>();
 	
-	/* Associate Node with its tasks */
+	// Associate Node with its tasks
 	public static HashMap<String, Boolean> node_status;
 	public static ConcurrentHashMap<String, Integer> node_totalTasks = new ConcurrentHashMap<String, Integer>();
 //	public static ConcurrentHashMap<String, Integer> node_mapTasks = new ConcurrentHashMap<String, Integer>();
@@ -74,8 +70,6 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	/* Associate jobID with configuration information */
 	public static ConcurrentHashMap<Integer, KVPair> jobID_mapRedName = new ConcurrentHashMap<Integer, KVPair>();
 	public static ConcurrentHashMap<Integer, KVPair> jobID_mapRedPath = new ConcurrentHashMap<Integer, KVPair>();
-	
-	
 	
 	protected JobTracker() throws RemoteException {
 		super();
@@ -150,7 +144,6 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	
 	@Override
 	public void startReducePhase (int jobID) {
-		
 		System.out.println("Start reduce job !!");
 		int numOfPartitions = 0;
 		ArrayList<String> chosenReduceNodes = jobScheduler.pickBestNodesForReduce(numOfPartitions);
@@ -159,7 +152,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			return;
 		}
 		for(int i = 0; i < numOfPartitions; i++) {
-			TaskThread reduceTask = new TaskThread();	
+			TaskThread reduceTask = new TaskThread(chosenReduceNodes.get(i), jobID, null, null, false);	
 			executor.execute(reduceTask);
 		}
 	}
@@ -222,6 +215,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 
 	@Override
 	public JobStatus checkJobStatus(Integer jobId) {
+		
 		return null;
 	}
 
