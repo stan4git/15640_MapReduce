@@ -10,9 +10,12 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
 import dfs.NameNodeInterface;
 import util.IOUtil;
 import util.JobStatus;
@@ -22,6 +25,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 
 	private static final long serialVersionUID = 9023603070698668607L;
 	private static JobScheduler jobScheduler = new JobScheduler();
+	private static NameNodeInterface nameNode = null;
 	
 	// several configuration files' paths : DFS/map reduce/ slaveList
 	private static String DFSConfPath = "conf/dfs.conf";
@@ -33,16 +37,23 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	private static Integer jobTrackerRegPort;
 	private static String jobTrackServiceName;
 	
+	/*These 3 contains NameNode's registry IP,registry port and service name*/
+	private static String nameNodeIP;
+	private static Integer nameNodeRegPort;
+	private static String nameNodeService;
+	
 	// The path for uploading the programmer's Mapper and Reducer
 	private static String jobUploadPath;
 	// The Mapper's final partition numbers
 	private static Integer partitionNums;
+	// If the chunks reach the mapperChunkThreshold, it will generate a task
+	private static Integer mapperChunkThreshold;
 	
 	// Create a thread pool
 	private static ExecutorService executor = Executors.newCachedThreadPool();
 	
 	// Global Job ID
-	private static volatile Integer jobID = 0;
+	private static volatile Integer globalJobID = 0;
 	
 	// JobId -> All map tasks, JobId -> unfinished Map Tasks, 
 	// JobId -> All reduce Tasks, JobId -> unfinished reduce tasks
@@ -68,26 +79,65 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	
 	protected JobTracker() throws RemoteException {
 		super();
-		jobID = 0;
+		globalJobID = 0;
 	}
 	
 	@Override
 	public String submitJob (JobConfiguration jobConf, KVPair mapper, KVPair reducer) {
-		localizeJob(mapper, reducer);
+		// step1 : find if the input file exists on the DFS system.
+		try {
+			Registry reigstry = LocateRegistry.getRegistry(nameNodeIP, nameNodeRegPort);
+			nameNode = (NameNodeInterface)reigstry.lookup(nameNodeService);
+			if(!nameNode.exists(jobConf.getInputfile())) {
+				return "INPUTNOTFOUND";
+			}
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		} catch (NotBoundException e) {
+			return "FAIL";
+			e.printStackTrace();
+		}
+		// step 2: update the globalJobID
+		Integer jobID = globalJobID;
+		updateGlobalJobID();
 		
-		startReducePhase(jobID);
+		// step 3: Get the working node and chunks from jobScheduler
+		Hashtable<Integer,HashSet<String>> chunkDistribution = nameNode.getFileDistributionTable().get(jobConf.getInputfile());
+		HashMap<String,HashMap<Integer,String>> nodeToChunks = jobScheduler.selectBestNodeToChunks(chunkDistribution);
+		
+		// step 4: copy the programmer's Mapper and Reducer into local directory
+		if(nodeToChunks == null) {
+			return "FAIL";
+		} else {
+			localizeJob(mapper, reducer, jobID);
+		}
+		
+		// step 5: Send work to node 
+		for (String node : nodeToChunks.keySet()) {
+			System.out.println("choose node: " + node + " to run one or more Mapper tasks!");
+			TaskThread mapTask = new TaskThread(node,jobID,jobConf,nodeToChunks.get(node),true);
+			executor.execute(mapTask);
+		}
 		return jobID.toString();
+	}
+
+	public void updateGlobalJobID(){
+		synchronized(globalJobID){
+			globalJobID++;
+		}
 	}
 	
 	@Override
-	public void localizeJob (KVPair mapper, KVPair reducer) { 
+	public void localizeJob (KVPair mapper, KVPair reducer, Integer jobID) { 
 		
 		// KVPair mapper
 		// key: wordCount.wordMapper
 		// value: wordCount/wordMapper.class
-		
-		String mapperPath = jobID + (String)mapper.getKey() + ".class";
-		String reducerPath = jobID + (String)reducer.getKey() + ".class";
+		String[] mappers =  ((String)mapper.getKey()).split(".");
+		String[] reducers = ((String)reducer.getKey()).split(".");
+		//mapperPath:/tmp/upload/wordMapper-0.class
+		String mapperPath = jobUploadPath + mappers[mappers.length - 1] + "-" + jobID +".class";
+		String reducerPath = jobUploadPath + reducers[reducers.length - 1] + "-" + jobID + ".class";
 		
 		IOUtil.writeBinary((byte[])mapper.getValue(), mapperPath);
 		IOUtil.writeBinary((byte[])reducer.getValue(), reducerPath);
@@ -123,7 +173,9 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	
 	@Override
 	public KVPair getMapperInfo(int jobID) {
-		return null;
+		String mapperClassName = (String)jobID_mapRedName.get(jobID).getKey();
+		String mapperClassPath = (String)jobID_mapRedPath.get(jobID).getKey();
+		return new KVPair(mapperClassName, IOUtil.readFile(mapperClassPath));
 	}
 	
 	@Override

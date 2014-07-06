@@ -1,6 +1,7 @@
 package mapred;
 
 import java.rmi.Remote;
+import java.util.HashMap;
 import java.util.HashSet;
 
 public interface TaskTrackerInterface extends Remote {
@@ -9,6 +10,8 @@ public interface TaskTrackerInterface extends Remote {
 
 	public void registerReduceTask(int jobID, int partitionNo,
 			HashSet<String> nodesWithPartitions);
-	
+
+	public void registerMapperTask(int jobID, JobConfiguration jobConf,
+			HashMap<Integer, String> chunkSets);
 
 }
