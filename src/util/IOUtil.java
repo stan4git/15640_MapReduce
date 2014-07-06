@@ -11,6 +11,7 @@ import java.io.ObjectOutputStream;
 import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 
 /**
  * 
@@ -307,11 +308,14 @@ public class IOUtil {
 		while (index != size && (tmp = file.readByte()) != -1) {
 			chunk[index++] = tmp;
 		}
+		
+		file.close();
 		return chunk;
 	}
 	
-	public static void writeChunk(byte[] chunk, String output) throws IOException {
-		File file = new File(output);
+	
+	public static void writeChunk(byte[] chunk, String filePath) throws IOException {
+		File file = new File(filePath);
 		if (!file.exists()) {
 			try {
 				file.createNewFile();
@@ -336,9 +340,50 @@ public class IOUtil {
 		}
 	}
 	
+	
 	public static void deleteFile(String filePath) {
 		File file = new File(filePath);
 		file.delete();
 		return;
+	}
+	
+	
+	public static ArrayList<Long> calculateFileSplit(String filePath, int chunkSize) {
+		RandomAccessFile raFile = null;
+		ArrayList<Long> split = new ArrayList<Long>();
+		try {
+			raFile = new RandomAccessFile(filePath, "r");
+			long currentPointer = 0L;
+			String tmp = null;
+			Long lastPointer = 0L;
+			do {
+				tmp = raFile.readLine();
+				if (tmp != null && tmp.length() > 0) {
+					int increment = tmp.getBytes().length;
+					if (currentPointer - lastPointer + increment <= chunkSize) {
+						currentPointer += increment;
+					} else {
+						split.add(currentPointer);
+						lastPointer = currentPointer;
+						currentPointer += increment;
+					}
+				} else {	//reach the end of file
+					if (currentPointer != lastPointer) {
+						split.add(currentPointer);
+					}
+				}
+			} while (tmp != null);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				raFile.close();
+			} catch (IOException e) {
+				return null;
+			}
+		}
+		return split;
 	}
 }

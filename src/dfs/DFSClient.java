@@ -5,10 +5,14 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.rmi.AlreadyBoundException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.rmi.server.RemoteServer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -31,37 +35,36 @@ import util.StringHandling;
  * 8. get file
  */
 public class DFSClient implements DFSClientInterface {
-	private int maxChunkSlot;
+	private int clientRegPort;
+	private String clientServiceName;
 	private int maxChunkSize;
 	private String nameNodeIP;
-	private int nameNodeRegPort;
 	private int nameNodePort;
 	private String nameNodeService;
-	private int dataNodeRegPort;
 	private int dataNodePort;
 	private String dataNodeService;
-	private int replicaNum;
-	private int heartbeatCheckThreshold;
-	private int heartbeatInterval;
-	private String dataNodePath;
-	private String checkPointPath;
 	private int chunkTranferRetryThreshold;
 	private int ackTimeout;
 	private Registry nameNodeRegistry;
 	private NameNodeInterface nameNode;
 	private ConcurrentHashMap<String, DataNodeInterface> dataNodeList;
 	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> dispatchList;
-	
+	private Registry clientRegistry;
 	
 	public DFSClient() {
 		try {
-			this.nameNodeRegistry = LocateRegistry.getRegistry(nameNodeIP, nameNodeRegPort);
+			
+			clientRegistry = LocateRegistry.createRegistry(this.clientRegPort);
+			clientRegistry.bind(nameNodeService, this);
+			System.out.println("Server has been set up...");
+			this.nameNodeRegistry = LocateRegistry.getRegistry(nameNodeIP, nameNodePort);
 			this.nameNode = (NameNodeInterface) nameNodeRegistry.lookup(nameNodeService);
-			System.out.println("Connected to name node.");
+			System.out.println("Connected to name node...");
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		} catch (NotBoundException e) {
 			e.printStackTrace();
+		} catch (AlreadyBoundException e) {
 		}
 	}
 	
@@ -98,7 +101,7 @@ public class DFSClient implements DFSClientInterface {
 	 * Get the file list from NameNode
 	 */
 	private void getFileList() {
-		Map<String, FileStatus> list = this.nameNode.getFullFileStatusList();
+		Map<String, FileStatus> list = this.nameNode.getFullFileStatusTable();
 		System.out.println("Fetching file list from remote server...");
 		System.out.println("Files on DFS are:");
 		System.out.println("=======================Start of list=======================");
@@ -113,12 +116,12 @@ public class DFSClient implements DFSClientInterface {
 	 * Get the node list from NameNode
 	 */
 	private void getNodeList() {
-		ConcurrentHashMap<String, HashSet<String>> list = this.nameNode.getFullNodeList();
+		ConcurrentHashMap<String, Integer> list = this.nameNode.getFullDataNodeList();
 		System.out.println("Fetching data node list from remote server...");
 		System.out.println("Data nodes in DFS are:");
 		System.out.println("=======================Start of list=======================");
-		for (Entry<String, HashSet<String>> row : list.entrySet()) {
-			System.out.print(row.getKey() + "	" + row.getValue().toString());
+		for (Entry<String, Integer> row : list.entrySet()) {
+			System.out.print(row.getKey() + "	" + row.getValue());
 		}
 		System.out.println("=======================End of list=======================");
 		return;
@@ -133,6 +136,7 @@ public class DFSClient implements DFSClientInterface {
 	private void putFile(String filePath) {
 		String filename = StringHandling.getFileNameFromPath(filePath);
 		ArrayList<Long> split = calculateFileSplit(filePath);
+		
 		
 		//get dispatching list from name node
 		dispatchList = this.nameNode.generateChunkDistributionList(filename, split.size());
@@ -161,7 +165,7 @@ public class DFSClient implements DFSClientInterface {
 					//Setup remote services of data nodes
 					DataNodeInterface dataNode = connectToDataNode(dataNodeIP);
 					try {
-						chunk = dataNode.getFile(filename);
+						chunk = dataNode.getFile(filename, chunkNum);
 						IOUtil.writeBinary(chunk, output);
 						break;
 					} catch (RemoteException e) {
@@ -172,7 +176,6 @@ public class DFSClient implements DFSClientInterface {
 				}
 			}
 		}
-		return;
 	}
 	
 	
@@ -189,10 +192,9 @@ public class DFSClient implements DFSClientInterface {
 				for (String dataNodeIP : chunkTuple.getValue()) {
 					//Setup remote services of data nodes
 					DataNodeInterface dataNode = connectToDataNode(dataNodeIP);
-					
 					try {
-						dataNode.removeFile(filename);
-						
+						dataNode.removeFile(filename, chunkNum);
+						nameNode.removeChunkFromFileDistributionTable(filename, chunkNum, dataNodeIP);
 					} catch (RemoteException e) {
 						System.err.println("Exception occurs when removing files. Please try again.");
 						return;
@@ -208,8 +210,8 @@ public class DFSClient implements DFSClientInterface {
 	 * @param file The path of input file.
 	 * @return A list of offset of input file.
 	 */
-	private ArrayList<Long> calculateFileSplit(String filename) {
-		return null;
+	private ArrayList<Long> calculateFileSplit(String filePath) {
+		return IOUtil.calculateFileSplit(filePath, this.maxChunkSize);
 	}
 	
 	
@@ -221,10 +223,11 @@ public class DFSClient implements DFSClientInterface {
 	 * the rest of the list to name node for re-allocation and try to dispatch again.
 	 * @param dispatchList A list provided by NameNode towards dispatching file chunks.
 	 */
-	private void dispatchChunks(String filePath, ArrayList<Long> splitStartPointList) {
+	private void dispatchChunks(String filePath, ArrayList<Long> splitStartPointOffset) {
 		String filename = StringHandling.getFileNameFromPath(filePath);
 		RandomAccessFile file;
 		byte[] chunk;
+		
 		
 		try {
 			file = new RandomAccessFile(filePath, "r");
@@ -234,6 +237,7 @@ public class DFSClient implements DFSClientInterface {
 			return;
 		}
 		
+		
 		//guaranteed to dispatch all the chunks. if failed, get new dispatch list and dispatch again
 		while (dispatchList.get(filename).size() > 0) {
 			for (Entry<Integer, HashSet<String>> chunkTuple : dispatchList.get(filename).entrySet()) {
@@ -241,12 +245,12 @@ public class DFSClient implements DFSClientInterface {
 				boolean success = false;
 				int chunkSize = 0;
 				
-				//obtain the chuck to be sent
-				try {
-					chunkSize = (chunkNum == splitStartPointList.size() - 1) ?
-							(int) (file.length() - splitStartPointList.get(chunkNum)) : 
-							(int) (splitStartPointList.get(chunkNum + 1) - splitStartPointList.get(chunkNum));
-					chunk = IOUtil.readChunk(file, splitStartPointList.get(chunkNum), chunkSize);
+				
+				try {			//obtain the chuck to be sent
+					chunkSize = (chunkNum == splitStartPointOffset.size() - 1) ?
+							(int) (file.length() - splitStartPointOffset.get(chunkNum)) : 
+							(int) (splitStartPointOffset.get(chunkNum + 1) - splitStartPointOffset.get(chunkNum));
+					chunk = IOUtil.readChunk(file, splitStartPointOffset.get(chunkNum), chunkSize);
 				} catch (IOException e1) {
 					e1.printStackTrace();
 					System.err.println("IO exception occurs when fetching chunk" + chunkNum);
@@ -256,49 +260,42 @@ public class DFSClient implements DFSClientInterface {
 				
 				for (String dataNodeIP : chunkTuple.getValue()) {
 					int retryThreshold = this.chunkTranferRetryThreshold;	//limit the times of retry
+					DataNodeInterface node = connectToDataNode(dataNodeIP);	//Setup remote services of data nodes
 					
-					//Setup remote services of data nodes
-					DataNodeInterface node = connectToDataNode(dataNodeIP);
-					
-					//start transferring chunk. Retry if fails.
-					while (success || retryThreshold > 0) {
+					while (success || retryThreshold > 0) {		//start transferring chunk. Retry if fails.
 						try {
-							node.uploadChunk(filename, chunk);
+							node.uploadChunk(filename, chunk, chunkNum, InetAddress.getLocalHost().getHostAddress());
 							success = true;
-						
-							//waiting for dataNode acknowledge
-							long timeoutExpiredMs = System.currentTimeMillis() + (this.ackTimeout * 1000);
-							while (this.dispatchList.get(filename).get(chunkNum).contains(dataNodeIP)) {
-								if (System.currentTimeMillis() >= timeoutExpiredMs)
-									break;
+							long timeoutExpiredMs = System.currentTimeMillis() + (this.ackTimeout * 1000);	
+							while (this.dispatchList.get(filename).get(chunkNum).contains(dataNodeIP)) {	//waiting for dataNode acknowledge
+								if (System.currentTimeMillis() >= timeoutExpiredMs) break;
 								this.wait(1 * 1000);
 							}
-							
-							//check if data node acknowledged received
-							if (this.dispatchList.get(filename).get(chunkNum).contains(dataNodeIP)) {
-								System.out.println("Upload timeout. Retrying for " 
-										+ (this.chunkTranferRetryThreshold - retryThreshold + 1) + " times...");
+							if (this.dispatchList.get(filename).get(chunkNum).contains(dataNodeIP)) {		//check if data node acknowledged received
 								retryThreshold--;
+								System.out.println("Upload timeout. Retrying for " +
+										(this.chunkTranferRetryThreshold - retryThreshold + 1) + " times...");
 							}
 						} catch (RemoteException e) {
-							e.printStackTrace();
-							System.out.println("Exception occurs when uploading file. Retrying for " 
-									+ (this.chunkTranferRetryThreshold - retryThreshold + 1) + " times...");
 							retryThreshold--;
+							e.printStackTrace();
+							System.out.println("Exception occurs when uploading file. Retrying for " + 
+									(this.chunkTranferRetryThreshold - retryThreshold + 1) + " times...");
 						} catch (InterruptedException e) {
 							System.err.println("Timer error.");
+						} catch (UnknownHostException e) {
+							e.printStackTrace();
 						}
 					}
 					
-					//print out error message
-					if (retryThreshold == 0) {
+					
+					if (retryThreshold == 0) {		//print out error message
 						System.err.print("Upload chunk" + chunkNum + " to " + dataNodeIP + " failed.");
 					}
 				}
 			}
 			
-			//Send back failure list to name node for new dispatching list.
-			if (dispatchList.get(filename).size() == 0) {
+			if (dispatchList.get(filename).size() == 0) {		//Send back failure list to name node for new dispatching list.
 				this.dispatchList = null;
 			} else {
 				this.dispatchList = nameNode.generateChunkDistributionList(this.dispatchList);
@@ -308,11 +305,10 @@ public class DFSClient implements DFSClientInterface {
 	
 	
 	private DataNodeInterface connectToDataNode(String dataNode) {
-		//Setup remote services of data nodes
-		DataNodeInterface node = dataNodeList.get(dataNode);
+		DataNodeInterface node = dataNodeList.get(dataNode);		//Setup remote services of data nodes
 		if (node == null) {
 			try {
-				Registry dataNodeRegistry = LocateRegistry.getRegistry(dataNode, dataNodeRegPort);
+				Registry dataNodeRegistry = LocateRegistry.getRegistry(dataNode, dataNodePort);
 				node = (DataNodeInterface) dataNodeRegistry.lookup(dataNodeService);
 				dataNodeList.put(dataNode, node);
 			} catch (RemoteException e) {
@@ -326,7 +322,8 @@ public class DFSClient implements DFSClientInterface {
 		return node;
 	}
 	
-	public void receivedACK(String fromIP, String filename, String chunkNum) {
+	
+	public void sendACK(String fromIP, String filename, int chunkNum) {
 		if (this.dispatchList != null) {
 			if (this.dispatchList.contains(filename)) {
 				if (this.dispatchList.get(filename).contains(chunkNum)) {

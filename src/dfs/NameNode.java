@@ -1,10 +1,15 @@
 package dfs;
 
+import java.rmi.AlreadyBoundException;
 import java.rmi.Naming;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -22,64 +27,162 @@ import util.FileStatus;
  * 9. file list
  */
 public class NameNode implements NameNodeInterface {
-	private static Registry registryServer;
+	private int clientRegPort;
+	private int clientPort;
+	private String clientServiceName;
+	private int maxChunkSlot;
+	private int maxChunkSize;
+	private String nameNodeIP;
+	private int nameNodeRegPort;
+	private int nameNodePort;
+	private String nameNodeService;
+	private int dataNodeRegPort;
+	private int dataNodePort;
+	private String dataNodeService;
+	private int replicaNum;
+	private int heartbeatCheckThreshold;
+	private int heartbeatInterval;
+	private String dataNodePath;
+	private String checkPointPath;
+	private int chunkTranferRetryThreshold;
+	private int ackTimeout;
+	private Registry nameNodeRegistry;
+	private NameNodeInterface nameNode;
+	private ConcurrentHashMap<String, Integer> dataNodeList;
+	private ConcurrentHashMap<String, FileStatus> fileStatusTable;
+	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistributionTable;
 	
 	
 	public static void main(String[] args) {
 		NameNode nameNode = new NameNode();
-		nameNode.init();
 		
 	}
 	
-	private void init() {
-		
+	
+	public NameNode() {
+		try {
+			this.nameNodeRegistry = LocateRegistry.createRegistry(this.nameNodeRegPort);
+			this.nameNodeRegistry.bind(nameNodeService, this);
+			System.out.println("Server has been set up...");
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		} catch (AlreadyBoundException e) {
+		}
 	}
+	
 	
 	/**
 	 * Return all the files uploaded to DFS without path.
 	 * @return A map consist of file name and file status.
 	 */
 	@Override
-	public ConcurrentHashMap<String, FileStatus> getFullFileStatusList() {
-		return null;
+	public ConcurrentHashMap<String, FileStatus> getFullFileStatusTable() {
+		return this.fileStatusTable;
 	}
 
+	
 	/**
 	 * Return all the nodes registered in DFS.
 	 * @return A map consist of each node's ip address and file chunks on it.
 	 */
 	@Override
-	public ConcurrentHashMap<String, HashSet<String>> getFullNodeList() {
-		return null;
+	public ConcurrentHashMap<String, Integer> getFullDataNodeList() {
+		return this.dataNodeList;
 	}
 	
 	
 	@Override
-	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFileDistributionTable() {
-		return null;
+	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFullFileDistributionTable() {
+		return this.fileDistributionTable;
 	}
 
+	
 	@Override
 	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(
 			String filename, int chunkAmount) {
-		return null;
+		ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> resultTable = 
+				new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
+		Hashtable<Integer, HashSet<String>> chunkDispatchTable = new Hashtable<Integer, HashSet<String>>();
+		for (int currentChunk = 0; currentChunk < chunkAmount; currentChunk++) {
+			if (!chunkDispatchTable.contains(currentChunk)) {
+				HashSet<String> dnl = new HashSet<String>();
+				dnl.add(getMostAvailableSlotDataNode());
+				chunkDispatchTable.put(currentChunk, dnl);
+			} else {
+				chunkDispatchTable.get(currentChunk).add(getMostAvailableSlotDataNode());
+			}
+		}
+		resultTable.put(filename, chunkDispatchTable);
+		System.out.println("Senging out chunk distribution list...");
+		return resultTable;
 	}
 	
-	public void monitorDataNode() {
-		
-	}
 
-	@Override
-	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(
-			ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> failureList) {
-		
-		return null;
+	public String getMostAvailableSlotDataNode() {
+		String minLoadDataNode = null;
+		int maxAvailableSlots = Integer.MIN_VALUE;
+		for (Entry<String, Integer> dataNode : this.dataNodeList.entrySet()) {
+			if (dataNode.getValue() > maxAvailableSlots) {
+				minLoadDataNode = dataNode.getKey();
+				maxAvailableSlots = dataNode.getValue();
+			}
+		}
+		return minLoadDataNode;
 	}
+	
 
 	@Override
 	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFileDistributionTable(
 			String filename) {
-		// TODO Auto-generated method stub
+		return this.fileDistributionTable;
+	}
+
+	
+	@Override
+	public void removeChunkFromFileDistributionTable(String filename, int chunkNum, String dataNodeIP) {
+		this.fileDistributionTable.get(filename).get(chunkNum).remove(dataNodeIP);
+		System.out.println(dataNodeIP + " has been successfully removed from file distribution table...");
+		return;
+	}
+
+	
+	@Override
+	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(
+			ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> failureList) {
+		ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> newList = 
+				new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
+		
+		
 		return null;
+	}
+
+	
+	@Override
+	public void updateFileDistributionTable(
+			ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> tableToBeUpdated) {
+		for (Entry<String, Hashtable<Integer, HashSet<String>>> fileTuple : tableToBeUpdated.entrySet()) {
+			String filename = fileTuple.getKey();
+			if (!this.fileDistributionTable.contains(filename)) {
+				fileDistributionTable.put(filename, fileTuple.getValue());
+			} else {
+				for (Entry<Integer, HashSet<String>> chunkTuple : fileTuple.getValue().entrySet()) {
+					int chunkNum = chunkTuple.getKey();
+					if (!fileDistributionTable.get(filename).contains(chunkNum)) {
+						fileDistributionTable.get(filename).put(chunkNum,chunkTuple.getValue());
+					} else {
+						fileDistributionTable.get(filename).get(chunkNum).addAll(chunkTuple.getValue());
+					}
+				}
+			}
+		}
+		System.out.println("File distribution table has been successfully updated...");
+		return;
+	}
+
+	
+	@Override
+	public void registerDataNode(String dataNodeIP, int availableSlot) {
+		this.dataNodeList.put(dataNodeIP, availableSlot);
+		System.out.println(dataNodeIP + " has been added to data node list...");
 	}
 }
