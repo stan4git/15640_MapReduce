@@ -53,14 +53,23 @@ public class NameNode implements NameNodeInterface {
 	private ConcurrentHashMap<String, NodeStatus> dataNodeStatusList;
 	private ConcurrentHashMap<String, FileStatus> fileStatusTable;
 	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistributionTable;
+	private boolean isRunning;
+	
 	
 	public static void main(String[] args) {
 		NameNode nameNode = new NameNode();
 		
+		
+		while (nameNode.isRunning) {
+			
+		}
+		
+		System.out.println("System is shuting down...");
 	}
 	
 	
 	public NameNode() {
+		this.isRunning = true;
 		dataNodeAvailableSlotList = new ConcurrentHashMap<String, Integer>();
 		setDataNodeStatusList(new ConcurrentHashMap<String, NodeStatus>());
 		fileStatusTable = new ConcurrentHashMap<String, FileStatus>();
@@ -69,7 +78,7 @@ public class NameNode implements NameNodeInterface {
 		NodeMonitor nodeMonitor = new NodeMonitor(this);
 		Thread monitoring = new Thread(nodeMonitor);
 		monitoring.start();
-		System.out.println("Start monitoring name node server...");
+		System.out.println("Start monitoring...");
 		
 		try {
 			this.nameNodeRegistry = LocateRegistry.createRegistry(this.nameNodeRegPort);
@@ -249,6 +258,12 @@ public class NameNode implements NameNodeInterface {
 
 	public boolean fileExist(String filename) {
 		return this.fileDistributionTable.contains(filename);
+	}
+
+
+	@Override
+	public void termiate() {
+		this.isRunning = false;
 	}
 
 }

@@ -8,4 +8,7 @@ public interface DataNodeInterface extends Remote {
 	public void removeFile(String filename, int chunkNum) throws RemoteException;
 	public byte[] getFile(String filename, int chunkNum) throws RemoteException;
 	public boolean heartbeat() throws RemoteException;
+	public boolean hasChunk(String filename, int chunkNum) throws RemoteException;
+	public void downloadChunk(String filename, int chunkNum, String fromIP);
+	public void terminate();
 }

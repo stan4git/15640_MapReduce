@@ -26,4 +26,6 @@ public interface NameNodeInterface extends Remote {
 	
 	public HashSet<String> getHealthyNodes();
 	public boolean fileExist(String filename);
+	
+	public void termiate();
 }

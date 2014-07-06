@@ -1,5 +1,6 @@
 package dfs;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.rmi.AlreadyBoundException;
@@ -7,6 +8,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.util.Hashtable;
 
 import util.IOUtil;
 
@@ -28,17 +30,14 @@ public class DataNode implements DataNodeInterface {
 	private int dataNodeRegPort;
 	private int dataNodePort;
 	private String dataNodeService;
-	private int replicaNum;
-	private int heartbeatCheckThreshold;
-	private int heartbeatInterval;
 	private String dataNodePath;
-	private String checkPointPath;
-	private int chunkTranferRetryThreshold;
-	private int ackTimeout;
 	private Registry dataNodeRegistry;
 	private Registry nameNodeRegistry;
 	private NameNodeInterface nameNode;
 	private int availableChunkSlot;
+	private Hashtable<String, DataNodeInterface> dataNodeList;
+	private boolean isRunning;
+	
 	
 	public static void main(String[] args) {
 		DataNode dataNode = new DataNode();
@@ -47,14 +46,18 @@ public class DataNode implements DataNodeInterface {
 		System.out.println("Configuration data loaded successfully...");
 		
 		System.out.println("System is running...");
-		while (true) {
+		while (dataNode.isRunning) {
 			
 		}
+
+		System.out.println("System is shutting down...");
 	}
 	
 	public DataNode() {
 		try {
+			isRunning = true;
 			this.availableChunkSlot = this.maxChunkSlot;
+			dataNodeList = new Hashtable<String, DataNodeInterface>();
 			dataNodeRegistry = LocateRegistry.createRegistry(this.dataNodeRegPort);
 			dataNodeRegistry.bind(dataNodeService, this);
 			System.out.println("Server has been set up...");
@@ -115,5 +118,39 @@ public class DataNode implements DataNodeInterface {
 	@Override
 	public boolean heartbeat() throws RemoteException {
 		return true;
+	}
+
+	@Override
+	public boolean hasChunk(String filename, int chunkNum) throws RemoteException {
+		File file = new File(this.dataNodePath + filename + "_" + chunkNum);
+		return file.exists();
+	}
+
+	@Override
+	public void downloadChunk(String filename, int chunkNum, String fromIP) {
+		if (!this.dataNodeList.contains(fromIP)) {
+			try {
+				Registry dataNodeRegistry = LocateRegistry.getRegistry(fromIP, this.dataNodePort);
+				DataNodeInterface dataNode = (DataNodeInterface) dataNodeRegistry.lookup(dataNodeService);
+				this.dataNodeList.put(fromIP, dataNode);
+			} catch (RemoteException e) {
+				e.printStackTrace();
+			} catch (NotBoundException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		try {
+			byte[] chunk = this.dataNodeList.get(fromIP).getFile(filename, chunkNum);
+			IOUtil.writeBinary(chunk, dataNodePath + filename + "_" + chunkNum);
+			System.out.println(filename + "_" + chunkNum + " has been downloaded...");
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Override
+	public void terminate() {
+		this.isRunning = false;
 	}
 }

@@ -36,7 +36,6 @@ import util.StringHandling;
  */
 public class DFSClient implements DFSClientInterface {
 	private int clientRegPort;
-	private String clientServiceName;
 	private int maxChunkSize;
 	private String nameNodeIP;
 	private int nameNodePort;
