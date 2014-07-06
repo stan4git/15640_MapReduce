@@ -79,8 +79,8 @@ public class MapRunner implements Runnable{
 			StringBuffer[] partitionContents = Partitioner.partition(outputCollector.mapperOutputCollector,numPartitions);
 			// step4: write the partition contents to the specific path
 			for(int j = 0; j < numPartitions; j++) {
-				String filename = jobID.toString() + mapperNum.toString() + "partition" + j;
-				IOUtil.writeBinary(partitionContents[j].toString().getBytes("UTF-8"), partitionPath + filename);
+				String filename = partitionPath + jobID.toString() + "/" + mapperNum.toString() + "/partition" + j;
+				IOUtil.writeBinary(partitionContents[j].toString().getBytes("UTF-8"), filename);
 			}
 		} catch (ClassNotFoundException | NoSuchMethodException | SecurityException 
 				| InstantiationException | IllegalAccessException 
