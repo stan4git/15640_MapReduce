@@ -88,14 +88,14 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		try {
 			Registry reigstry = LocateRegistry.getRegistry(nameNodeIP, nameNodeRegPort);
 			nameNode = (NameNodeInterface)reigstry.lookup(nameNodeService);
-			if(!nameNode.exists(jobConf.getInputfile())) {
+			if(!nameNode.fileExist(jobConf.getInputfile())) {
 				return "INPUTNOTFOUND";
 			}
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		} catch (NotBoundException e) {
-			return "FAIL";
 			e.printStackTrace();
+			return "FAIL";
 		}
 		// step 2: update the globalJobID
 		Integer jobID = globalJobID;
@@ -233,6 +233,12 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	@Override
 	public double checkReducer(Integer jobId) {
 		return 0;
+	}
+
+	@Override
+	public void localizeJob(KVPair mapper, KVPair reducer) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }
