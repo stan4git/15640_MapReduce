@@ -2,7 +2,6 @@ package mapred;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.SortedMap;
 
 import format.KVPair;
 

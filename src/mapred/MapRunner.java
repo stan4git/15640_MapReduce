@@ -15,7 +15,6 @@ import dfs.DataNodeInterface;
 import format.InputFormat;
 import format.KVPair;
 import format.MapperOutputCollector;
-import format.ReducerOutputCollector;
 
 public class MapRunner implements Runnable{
 	private Mapper mapper;

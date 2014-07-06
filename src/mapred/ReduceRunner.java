@@ -81,7 +81,6 @@ public class ReduceRunner {
 				} 
 			}
 			ReducerOutputCollector outputCollector = new ReducerOutputCollector();
-
 			ArrayList<KVPair> formattedInput= Merger.combineValues(pathsForPartition);
 			
 			for(KVPair kv : formattedInput) {
