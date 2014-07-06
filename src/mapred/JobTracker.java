@@ -88,7 +88,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		try {
 			Registry reigstry = LocateRegistry.getRegistry(nameNodeIP, nameNodeRegPort);
 			nameNode = (NameNodeInterface)reigstry.lookup(nameNodeService);
-			if(!nameNode.exists(jobConf.getInputfile())) {
+			if(!nameNode.fileExists(jobConf.getInputfile())) {
 				return "INPUTNOTFOUND";
 			}
 		} catch (RemoteException e) {
