@@ -14,7 +14,7 @@ import java.util.HashSet;
 
 import dfs.NameNodeInterface;
 import format.KVPair;
-import format.OutputCollector;
+import format.ReducerOutputCollector;
 import format.OutputFormat;
 import util.IOUtil;
 
@@ -80,8 +80,8 @@ public class ReduceRunner {
 					e.printStackTrace();
 				} 
 			}
-			
-			OutputCollector outputCollector = new OutputCollector();
+			ReducerOutputCollector outputCollector = new ReducerOutputCollector();
+
 			ArrayList<KVPair> formattedInput= Merger.combineValues(pathsForPartition);
 			
 			for(KVPair kv : formattedInput) {
