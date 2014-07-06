@@ -7,6 +7,8 @@ import java.rmi.registry.Registry;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.concurrent.ConcurrentHashMap;
 
 import util.IOUtil;
 import dfs.NameNodeInterface;
@@ -21,7 +23,6 @@ public class JobScheduler {
 	private static NameNodeInterface nameNode = null;
 	
 	private static Integer maxTaskPerNode;
-	private static Integer mapperChunkThreshold;
 	private static Double localWeight;
 	private static Double globalWeight;
 	
@@ -52,6 +53,64 @@ public class JobScheduler {
 		}
 	}
 	
+	
+	public HashMap<String, HashMap<Integer, String>> selectBestNodeToChunks(
+			Hashtable<Integer, HashSet<String>> chunkDistribution) {
+		HashMap<String, HashMap<Integer, String>> res = new HashMap<String, HashMap<Integer, String>>();
+		for(int chunkNum : chunkDistribution.keySet()) {
+			HashSet<String> healthyNodes = nameNode.getHealthyNodes();
+			
+			// step1 : select the best nodes of the replication
+			HashSet<String> nodes = chunkDistribution.get(chunkNum);
+			for(String node : nodes) {
+				if(!healthyNodes.contains(node)) {
+					healthyNodes.remove(node);
+				}
+			}
+			if(nodes.size() == 0) {
+				System.out.println("It don't allow all the replications down!");
+				return null;
+			}
+			String bestLocalNode = chooseLightWorkloadNode(nodes);
+			
+			// step2 : select the best nodes from all the other nodes except the local nodes
+			
+			for(String node : nodes) {
+				if(healthyNodes.contains(node)) {
+					healthyNodes.remove(node);
+				}
+			}
+			String bestGlobalNode = chooseLightWorkloadNode(healthyNodes);
+			
+			// step3: compare the two different nodes
+			
+			double localNodePoint = (maxTaskPerNode - JobTracker.node_totalTasks.get(bestLocalNode)) * localWeight;
+			double globalNodePoint = (maxTaskPerNode - JobTracker.node_totalTasks.get(bestGlobalNode)) * globalWeight;
+			String finalNode = localNodePoint >= globalNodePoint ? bestLocalNode : bestGlobalNode;
+			
+			// step4 : organize the return info
+			//JobTracker.node_totalTasks.put(finalNode, JobTracker.jobID_totalMapTasks.get(finalNode) + 1);
+			
+			HashMap<Integer,String> chunkAndSourceNode = new HashMap<Integer,String>();
+			chunkAndSourceNode.put(chunkNum, bestLocalNode);
+			res.put(finalNode, chunkAndSourceNode);
+		}
+		return res;
+	}
+	
+	public String chooseLightWorkloadNode(HashSet<String> nodes) {
+		if(nodes == null) {
+			return null;
+		}
+		String lightestNode = null;
+		for(String node : nodes) {
+			int num = JobTracker.node_totalTasks.get(node);
+			if(lightestNode == null || num < JobTracker.node_totalTasks.get(lightestNode)) {
+				lightestNode = node;
+			}
+		}
+		return lightestNode;
+	}
 	
 	public ArrayList<String> pickBestNodesForReduce(int numOfReducers) {
 		

@@ -24,10 +24,7 @@ public interface JobTrackerInterface extends Remote {
 	public KVPair getReducerInfo(int jobID);
 
 	public void startReducePhase (int jobID);
-	
-	
-	
-	
-	
-	
+
+	void localizeJob(KVPair mapper, KVPair reducer, Integer jobID);
+
 }
