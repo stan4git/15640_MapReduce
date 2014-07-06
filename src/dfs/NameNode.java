@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import util.FileStatus;
+import util.NodeStatus;
 
 /**
  * 1. node list - from conf
@@ -49,9 +50,9 @@ public class NameNode implements NameNodeInterface {
 	private Registry nameNodeRegistry;
 	private NameNodeInterface nameNode;
 	private ConcurrentHashMap<String, Integer> dataNodeList;
+	private ConcurrentHashMap<String, NodeStatus> dataNodeStatusList;
 	private ConcurrentHashMap<String, FileStatus> fileStatusTable;
 	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistributionTable;
-	
 	
 	public static void main(String[] args) {
 		NameNode nameNode = new NameNode();
@@ -60,6 +61,11 @@ public class NameNode implements NameNodeInterface {
 	
 	
 	public NameNode() {
+		dataNodeList = new ConcurrentHashMap<String, Integer>();
+		dataNodeStatusList = new ConcurrentHashMap<String, NodeStatus>();
+		fileStatusTable = new ConcurrentHashMap<String, FileStatus>();
+		fileDistributionTable = new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
+		
 		try {
 			this.nameNodeRegistry = LocateRegistry.createRegistry(this.nameNodeRegPort);
 			this.nameNodeRegistry.bind(nameNodeService, this);
@@ -184,5 +190,23 @@ public class NameNode implements NameNodeInterface {
 	public void registerDataNode(String dataNodeIP, int availableSlot) {
 		this.dataNodeList.put(dataNodeIP, availableSlot);
 		System.out.println(dataNodeIP + " has been added to data node list...");
+	}
+
+
+	@Override
+	public HashSet<String> getHealthyNodes() {
+		HashSet<String> returnList = new HashSet<String>();
+		for (Entry<String, NodeStatus> node : this.dataNodeStatusList.entrySet()) {
+			if (node.getValue() == NodeStatus.HEALTHY) {
+				returnList.add(node.getKey());
+			}
+		}
+		return returnList;
+	}
+
+
+	@Override
+	public ConcurrentHashMap<String, NodeStatus> getFullDataNodeStatus() {
+		return this.dataNodeStatusList;
 	}
 }
