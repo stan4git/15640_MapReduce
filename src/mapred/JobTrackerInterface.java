@@ -1,7 +1,6 @@
 package mapred;
 
 import java.rmi.Remote;
-import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 import util.JobStatus;

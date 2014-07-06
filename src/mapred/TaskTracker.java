@@ -132,7 +132,18 @@ public class TaskTracker extends UnicastRemoteObject implements
 		executor.execute(mapRunner);
 	}
 
-	public void registerReduceTask(int jobID, int partitionNo, HashSet<String> nodesWithPartitions) {
+	public void registerReduceTask(int jobID, int partitionNo, HashMap<Integer, HashMap<String, String>> nodesWithPartitions, int numOfPartitions) {
+		// Update task status 
+		TaskStatusInfo taskStatusInfo;
+		if(jobID_taskStatus.containsKey(jobID)) {
+			taskStatusInfo = jobID_taskStatus.get(jobID);
+		} else {
+			taskStatusInfo = new TaskStatusInfo();	
+		}
+		taskStatusInfo.setTotalReduceTasks(taskStatusInfo.getTotalReduceTasks() + numOfPartitions);
+		taskStatusInfo.setUnfinishedReduceTasks(taskStatusInfo.getUnfinishedReduceTasks() + numOfPartitions);
+		jobID_taskStatus.put(jobID, taskStatusInfo);
+		
 		localizeReduceTask(jobID);
 		startReduceTask(jobID, partitionNo, nodesWithPartitions, reducerClassName);
 	}
@@ -144,19 +155,14 @@ public class TaskTracker extends UnicastRemoteObject implements
 		IOUtil.writeBinary(reducerClassContent, reducerClassName);
 	}
 
-	public void startReduceTask(int jobID, int partitionNo, HashSet<String> nodesWithPartitions, String className) {
+	public void startReduceTask(int jobID, int partitionNo, HashMap<Integer, HashMap<String, String>> nodesWithPartitions, String className) {
 		ReduceRunner reduceRunner = new ReduceRunner(jobID, partitionNo, nodesWithPartitions, className);
 		reduceRunner.start();
 	}
 	
 	@Override
-	public String getPartitionContent(int jobID, int partitionNo) {
-		HashSet<String> pathsForJob = jobID_parFilePath.get(jobID);
-		HashSet<String> pathsForPartition = new HashSet<String>();
-		for (String path : pathsForJob) {
-			pathsForPartition.add(path + partitionNo);
-		}
-		return Merger.merge(pathsForPartition);
+	public byte[] getPartitionContent(String path) {
+		return IOUtil.readFile(path);
 	}
 	
 	private void transmitHeartBeat() {

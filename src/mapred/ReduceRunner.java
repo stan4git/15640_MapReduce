@@ -9,8 +9,8 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 
 import dfs.NameNodeInterface;
 import format.KVPair;
@@ -36,10 +36,10 @@ public class ReduceRunner {
 	
 	private int jobID;
 	private int partitionNo;
-	private HashSet<String> nodesWithPartitions;
+	private HashMap<Integer, HashMap<String, String>> job_nodesWithPartitions;
 	private String className;
 	
-	public ReduceRunner (int jobID, int partitionNo, HashSet<String> nodesWithPartitions, String className) {
+	public ReduceRunner (int jobID, int partitionNo, HashMap<Integer, HashMap<String, String>> job_nodesWithPartitions, String className) {
 		 
 		try {
 			Registry reigstry = LocateRegistry.getRegistry(nameNodeIP, nameNodeRegPort);
@@ -52,7 +52,7 @@ public class ReduceRunner {
 		
 		this.jobID = jobID;
 		this.partitionNo = partitionNo;
-		this.nodesWithPartitions = nodesWithPartitions;
+		this.job_nodesWithPartitions = job_nodesWithPartitions;
 		this.className = className;
 	}
 	
@@ -62,26 +62,25 @@ public class ReduceRunner {
 			Class<Reducer> reduceClass = (Class<Reducer>) Class.forName(className);
 			reducer = reduceClass.newInstance();
 			HashSet<String> pathsForPartition = new HashSet<String>();
+			HashMap<String, String> nodesWithPartitions = job_nodesWithPartitions.get(jobID);
 			
-			Iterator<String> iterator = nodesWithPartitions.iterator();
-			while(iterator.hasNext()) {
-				String node = iterator.next();
+			for (String node : nodesWithPartitions.keySet()) {
 				try {
 					Registry registry = LocateRegistry.getRegistry(node, taskTrackerRegPort);
 					TaskTrackerInterface taskTracker = (TaskTrackerInterface) registry.lookup(taskTrackServiceName);
-					String sortedContent = taskTracker.getPartitionContent(jobID, partitionNo);
-					String outputPath = jobID + "-node-" + node + "-partition-" + partitionNo;
-					pathsForPartition.add(outputPath);
-					IOUtil.writeBinary(sortedContent.getBytes("UTF-8"), outputPath);
-					
+					for (String path : nodesWithPartitions.keySet()) {
+						byte[] content = taskTracker.getPartitionContent(path);
+						String outputPath = path;
+						pathsForPartition.add(outputPath);
+						IOUtil.writeBinary(content, outputPath);
+					}
 				} catch (RemoteException e) {
 					e.printStackTrace();
 				} catch (NotBoundException e) {
 					e.printStackTrace();
-				} catch (UnsupportedEncodingException e) {
-					e.printStackTrace();
-				}
+				} 
 			}
+			
 			OutputCollector outputCollector = new OutputCollector();
 			ArrayList<KVPair> formattedInput= Merger.combineValues(pathsForPartition);
 			
@@ -92,8 +91,9 @@ public class ReduceRunner {
 			OutputFormat outputFormat = new OutputFormat();
 			String formattedOutput = outputFormat.formatOutput(outputCollector);
 			byte[] outputForDFS = formattedOutput.getBytes("UTF-8");
-			IOUtil.writeBinary(outputForDFS, "output-" + partitionNo);
-//			Upload the output file into DFS !
+			IOUtil.writeBinary(outputForDFS, "job-" + jobID + "-output-" + partitionNo);
+						
+			// Upload the output file into DFS !
 
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
