@@ -1,6 +1,6 @@
 package mapred;
 
-import format.OutputCollector;
+import format.MapperOutputCollector;
 
 /**
  * 
@@ -9,5 +9,5 @@ import format.OutputCollector;
  *
  */
 public interface Mapper {
-	public void map(Object key, Object value, OutputCollector outputCollector);
+	public void map(Object key, Object value, MapperOutputCollector mapperOutputCollector);
 }
