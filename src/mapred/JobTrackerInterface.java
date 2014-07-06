@@ -9,15 +9,15 @@ public interface JobTrackerInterface extends Remote {
 
 	public String submitJob(JobConfiguration jobConf, KVPair mapper, KVPair reducer);
 
-	public void localizeJob(KVPair mapper, KVPair reducer);
+	public void localizeJob (KVPair mapper, KVPair reducer, Integer jobID);
 	
 	public void terminateJob(Integer jobId);
 
 	public JobStatus checkJobStatus(Integer jobId);
 
-	public double checkMapper(Integer jobId);
+	public double getMapperProgress(Integer jobId);
 
-	public double checkReducer(Integer jobId);
+	public double getReducerProgress(Integer jobId);
 
 	public KVPair getMapperInfo(int jobID);
 	
@@ -25,6 +25,6 @@ public interface JobTrackerInterface extends Remote {
 
 	public void startReducePhase (int jobID);
 
-	void localizeJob(KVPair mapper, KVPair reducer, Integer jobID);
+	public void responseToHeartBeat(String node, int totalMap, int unfinishedMap, int totalReduce, int unfinishedReduce);
 
 }

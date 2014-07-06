@@ -102,8 +102,8 @@ public class JobClient {
 				jobtracker.terminateJob(jobId);
 				break;
 			} else if(status.equals("INPROGRESS")) {
-				double mapperPercentage = jobtracker.checkMapper(jobId);
-				double reducePercentage = jobtracker.checkReducer(jobId);
+				double mapperPercentage = jobtracker.getMapperProgress(jobId);
+				double reducePercentage = jobtracker.getReducerProgress(jobId);
 				System.out.printf("Mapper: %fpercent; Reducer: %fpercent\n", mapperPercentage*100, reducePercentage*100);
 			} else if(status.equals("FAIL")) {
 				System.err.println("Job failed!");

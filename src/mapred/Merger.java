@@ -17,7 +17,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import format.KVPair;
-import format.OutputCollector;
 
 /**
 * 

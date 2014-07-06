@@ -49,10 +49,10 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	private static ExecutorService executor = Executors.newCachedThreadPool();
 	
 	// Global Job ID
-	private static volatile Integer globalJobID = 0;
+	private static volatile Integer globaljobID = 0;
 	
-	// JobId -> All map tasks, JobId -> unfinished Map Tasks, 
-	// JobId -> All reduce Tasks, JobId -> unfinished reduce tasks
+	// jobID -> All map tasks, jobID -> unfinished Map Tasks
+	// jobID -> All reduce Tasks, jobID -> unfinished reduce tasks
 	public static ConcurrentHashMap<Integer, Integer> jobID_totalMapTasks = new ConcurrentHashMap<Integer, Integer>();
 	public static ConcurrentHashMap<Integer, Integer> jobID_unfinishedMapTasks = new ConcurrentHashMap<Integer, Integer>();
 	public static ConcurrentHashMap<Integer, Integer> jobID_totalReduceTasks = new ConcurrentHashMap<Integer, Integer>();
@@ -61,23 +61,22 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	// Associate Node with its tasks
 	public static HashMap<String, Boolean> node_status;
 	public static ConcurrentHashMap<String, Integer> node_totalTasks = new ConcurrentHashMap<String, Integer>();
-//	public static ConcurrentHashMap<String, Integer> node_mapTasks = new ConcurrentHashMap<String, Integer>();
-//	public static ConcurrentHashMap<String, Integer> node_reduceTasks = new ConcurrentHashMap<String, Integer>();
 	
-	//<JobID,<Do Job Node,<ChunkID,Chunk host Node>>>
+	// <jobID,<Do Job Node,<ChunkID,Chunk host Node>>>
 	public static ConcurrentHashMap<Integer, HashMap<String, HashMap<Integer, String>>> jobID_mapTasks = new ConcurrentHashMap<Integer, HashMap<String, HashMap<Integer, String>>>();
 	
-	/* Associate jobID with configuration information */
+	// Associate jobID with configuration information
 	public static ConcurrentHashMap<Integer, KVPair> jobID_mapRedName = new ConcurrentHashMap<Integer, KVPair>();
 	public static ConcurrentHashMap<Integer, KVPair> jobID_mapRedPath = new ConcurrentHashMap<Integer, KVPair>();
 	
 	protected JobTracker() throws RemoteException {
 		super();
-		globalJobID = 0;
+		globaljobID = 0;
 	}
 	
 	@Override
 	public String submitJob (JobConfiguration jobConf, KVPair mapper, KVPair reducer) {
+		
 		// step1 : find if the input file exists on the DFS system.
 		try {
 			Registry reigstry = LocateRegistry.getRegistry(nameNodeIP, nameNodeRegPort);
@@ -91,9 +90,9 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			e.printStackTrace();
 			return "FAIL";
 		}
-		// step 2: update the globalJobID
-		Integer jobID = globalJobID;
-		updateGlobalJobID();
+		// step 2: update the globaljobID
+		Integer jobID = globaljobID;
+		updateGlobaljobID();
 		
 		// step 3: Get the working node and chunks from jobScheduler
 		Hashtable<Integer,HashSet<String>> chunkDistribution = nameNode.getFileDistributionTable().get(jobConf.getInputfile());
@@ -115,9 +114,9 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		return jobID.toString();
 	}
 
-	public void updateGlobalJobID(){
-		synchronized(globalJobID){
-			globalJobID++;
+	public void updateGlobaljobID(){
+		synchronized(globaljobID){
+			globaljobID++;
 		}
 	}
 	
@@ -129,7 +128,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		// value: wordCount/wordMapper.class
 		String[] mappers =  ((String)mapper.getKey()).split(".");
 		String[] reducers = ((String)reducer.getKey()).split(".");
-		//mapperPath:/tmp/upload/wordMapper-0.class
+		// mapperPath:/tmp/upload/wordMapper-0.class
 		String mapperPath = jobUploadPath + mappers[mappers.length - 1] + "-" + jobID +".class";
 		String reducerPath = jobUploadPath + reducers[reducers.length - 1] + "-" + jobID + ".class";
 		
@@ -138,6 +137,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		
 		KVPair mapRedName = new KVPair ((String)mapper.getKey(), (String)reducer.getKey());
 		KVPair mapRedPath = new KVPair (mapperPath, reducerPath);
+		
 		jobID_mapRedName.put(jobID, mapRedName);
 		jobID_mapRedPath.put(jobID, mapRedPath);
 	}
@@ -172,7 +172,67 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	}
 	
 	@Override
-	public void terminateJob(Integer jobId) {
+	public void terminateJob(Integer jobID) {
+		
+		jobID_totalMapTasks.remove(jobID);
+		jobID_unfinishedMapTasks.remove(jobID);
+		jobID_totalReduceTasks.remove(jobID);
+		jobID_unfinishedReduceTasks.remove(jobID);
+		jobID_mapTasks.remove(jobID);
+		
+		
+	}
+	
+	
+	
+	public void initSlaveNodes (String slaveListPath) {
+		try {
+			String content = new String(IOUtil.readFile(slaveListPath),"UTF-8");
+			String[] lines = content.split("\n");
+			for(int i = 0; i < lines.length; i++) {
+				node_totalTasks.put(lines[i],0);
+			}
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Override
+	public JobStatus checkJobStatus(Integer jobID) {
+		
+		return null;
+	}
+
+	/**
+	 * This method is used to calculate the percentage of finished reducer tasks.
+	 * 
+	 * @param jobID - the jobID of the reducer tasks      
+	 * @return the percentage of finished reducer tasks  
+	 */
+	
+	@Override
+	public double getMapperProgress (Integer jobID) {
+		int totalMapTasks = jobID_totalMapTasks.get(jobID);
+		int unfinishedMapTasks = jobID_unfinishedMapTasks.get(jobID);
+		return 1 - (double)unfinishedMapTasks / (double)totalMapTasks;
+	}
+
+	/**
+	 * This method is used to calculate the percentage of finished reducer tasks.
+	 * 
+	 * @param jobID - the jobID of the reducer tasks      
+	 * @return the percentage of finished reducer tasks  
+	 */
+	
+	@Override
+	public double getReducerProgress (Integer jobID) {
+		int totalReduceTasks = jobID_totalReduceTasks.get(jobID);
+		int unfinishedReduceTasks = jobID_unfinishedReduceTasks.get(jobID);
+		return 1 - (double)unfinishedReduceTasks / (double)totalReduceTasks;
+	}
+	
+	@Override
+	public void responseToHeartBeat(String node, int totalMap, int unfinishedMap, int totalReduce, int unfinishedReduce){
 		
 	}
 	
@@ -199,40 +259,6 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
-	}
-	
-	public void initSlaveNodes(String slaveListPath) {
-		try {
-			String content = new String(IOUtil.readFile(slaveListPath),"UTF-8");
-			String[] lines = content.split("\n");
-			for(int i = 0; i < lines.length; i++) {
-				node_totalTasks.put(lines[i],0);
-			}
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
-	}
-
-	@Override
-	public JobStatus checkJobStatus(Integer jobId) {
-		
-		return null;
-	}
-
-	@Override
-	public double checkMapper(Integer jobId) {
-		return 0;
-	}
-
-	@Override
-	public double checkReducer(Integer jobId) {
-		return 0;
-	}
-
-	@Override
-	public void localizeJob(KVPair mapper, KVPair reducer) {
-		// TODO Auto-generated method stub
-		
 	}
 
 }

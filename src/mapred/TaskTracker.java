@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
 import format.KVPair;
@@ -35,94 +37,36 @@ public class TaskTracker extends UnicastRemoteObject implements
 	private static Integer mapperChunkThreshold;
 
 	public static ConcurrentHashMap<Integer, HashSet<String>> jobID_parFilePath = new ConcurrentHashMap<Integer, HashSet<String>>();
-	public static ConcurrentHashMap<Integer, Integer> jobToUnfinishedMappers = new ConcurrentHashMap<Integer, Integer>();
-	public static ConcurrentHashMap<Integer, Integer> jobTotalMappers = new ConcurrentHashMap<Integer, Integer>();
+	public static ConcurrentHashMap<Integer, Integer> jobID_totalMapTasks = new ConcurrentHashMap<Integer, Integer>();
+	public static ConcurrentHashMap<Integer, Integer> jobID_unfinishedMapTasks = new ConcurrentHashMap<Integer, Integer>();
+	public static ConcurrentHashMap<Integer, Integer> jobID_totalReduceTasks = new ConcurrentHashMap<Integer, Integer>();
+	public static ConcurrentHashMap<Integer, Integer> jobID_unfinishedReduceTasks = new ConcurrentHashMap<Integer, Integer>();
+	
 	public static Integer runningMappers = 0;
-
+	public static Integer runningReducers = 0;
+	
 	private static String reducerClassName;
 	private static String mapperClassName;
 	private static Integer dataNodeRegPort;
 	private static String dataNodeService;
 	private static Integer partitionNums;
 	private static String partitionFilePath;
+	
+	private static String node;
 
 	protected TaskTracker() throws RemoteException {
 		super();
 
 		try {
-			Registry registry = LocateRegistry.getRegistry(jobTrackerIP,
-					jobTrackerRegPort);
-			jobTracker = (JobTrackerInterface) registry
-					.lookup(jobTrackServiceName);
+			Registry registry = LocateRegistry.getRegistry(jobTrackerIP, jobTrackerRegPort);
+			jobTracker = (JobTrackerInterface) registry.lookup(jobTrackServiceName);
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		} catch (NotBoundException e) {
 			e.printStackTrace();
 		}
 	}
-
-	public void registerReduceTask(int jobID, int partitionNo,
-			HashSet<String> nodesWithPartitions) {
-		localizeReduceTask(jobID);
-		startReduceTask(jobID, partitionNo, nodesWithPartitions,
-				reducerClassName);
-	}
-
-	public void localizeReduceTask(int jobID) {
-		KVPair reducerInfo = jobTracker.getReducerInfo(jobID);
-		reducerClassName = reducerInfo.getKey().toString().replace('.', '/')
-				+ ".class";
-		byte[] reducerClassContent = (byte[]) reducerInfo.getValue();
-		IOUtil.writeBinary(reducerClassContent, reducerClassName);
-	}
-
-	public void localizeMapTask(int jobID) {
-		KVPair mapInfo = jobTracker.getMapperInfo(jobID);
-		mapperClassName = mapInfo.getKey().toString().replace('.', '/')
-				+ ".class";
-		byte[] mapperClassContent = (byte[]) mapInfo.getValue();
-		IOUtil.writeBinary(mapperClassContent, mapperClassName);
-	}
-
-	public void startReduceTask(int jobID, int partitionNo,
-			HashSet<String> nodesWithPartitions, String className) {
-		ReduceRunner reduceRunner = new ReduceRunner(jobID, partitionNo,
-				nodesWithPartitions, className);
-		reduceRunner.start();
-	}
-
-	public String getPartitionContent(int jobID, int partitionNo) {
-		HashSet<String> pathsForJob = jobID_parFilePath.get(jobID);
-		HashSet<String> pathsForPartition = new HashSet<String>();
-		for (String path : pathsForJob) {
-			pathsForPartition.add(path + partitionNo);
-		}
-		return Merger.merge(pathsForPartition);
-	}
-
-	public static void main(String args[]) {
-
-		try {
-			TaskTracker taskTracker = new TaskTracker();
-			IOUtil.readConf(mapredConf, taskTracker);
-			IOUtil.readConf(dfsConf, taskTracker);
-
-			TaskTrackerInterface stub = (TaskTrackerInterface) exportObject(
-					taskTracker, taskPort);
-			Registry registry = LocateRegistry
-					.createRegistry(taskTrackerRegPort);
-			registry.rebind(taskTrackServiceName, stub);
-
-			System.out.println("I'm the TaskTracker for node "
-					+ InetAddress.getLocalHost().getHostAddress());
-
-		} catch (RemoteException e) {
-			e.printStackTrace();
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		}
-	}
-
+	
 	@Override
 	public void registerMapperTask(int jobID, JobConfiguration jobConf,
 			HashMap<Integer, String> chunkSets) {
@@ -150,8 +94,8 @@ public class TaskTracker extends UnicastRemoteObject implements
 		}
 
 		System.out.println("It needs " + mapNums + "mappers!");
-		jobToUnfinishedMappers.put(jobID, mapNums);
-		jobTotalMappers.put(jobID, mapNums);
+		jobID_unfinishedMapTasks.put(jobID, mapNums);
+		jobID_totalMapTasks.put(jobID, mapNums);
 		synchronized (runningMappers) {
 			runningMappers += mapNums;
 		}
@@ -159,16 +103,22 @@ public class TaskTracker extends UnicastRemoteObject implements
 
 		for (Integer mapperNum : mappers.keySet()) {
 			ArrayList<KVPair> chunksAndNodes = mappers.get(mapperNum);
-			String mapperName = jobTracker.getMapperInfo(jobID).getKey()
-					.toString();
+			String mapperName = jobTracker.getMapperInfo(jobID).getKey().toString();
 			startMapTask(jobID, chunksAndNodes.size(), jobConf, chunksAndNodes,
 					dataNodeRegPort, dataNodeService, mapperName,
 					partitionFilePath, partitionNums);
 		}
 	}
+	
+	public void localizeMapTask(int jobID) {
+		KVPair mapInfo = jobTracker.getMapperInfo(jobID);
+		mapperClassName = mapInfo.getKey().toString().replace('.', '/') + ".class";
+		byte[] mapperClassContent = (byte[]) mapInfo.getValue();
+		IOUtil.writeBinary(mapperClassContent, mapperClassName);
+	}
 
 	public void startMapTask(int jobID, int numOfChunks,
-			JobConfiguration jobConf, ArrayList<KVPair> pairLists, int regPort,
+		JobConfiguration jobConf, ArrayList<KVPair> pairLists, int regPort,
 			String serviceName, String classname, String partitionPath,
 			int numPartitions) {
 		MapRunner mapRunner = new MapRunner(jobID, numOfChunks, jobConf,
@@ -176,4 +126,85 @@ public class TaskTracker extends UnicastRemoteObject implements
 				numPartitions);
 		mapRunner.start();
 	}
+
+	public void registerReduceTask(int jobID, int partitionNo, HashSet<String> nodesWithPartitions) {
+		localizeReduceTask(jobID);
+		startReduceTask(jobID, partitionNo, nodesWithPartitions, reducerClassName);
+	}
+
+	public void localizeReduceTask(int jobID) {
+		KVPair reducerInfo = jobTracker.getReducerInfo(jobID);
+		reducerClassName = reducerInfo.getKey().toString().replace('.', '/') + ".class";
+		byte[] reducerClassContent = (byte[]) reducerInfo.getValue();
+		IOUtil.writeBinary(reducerClassContent, reducerClassName);
+	}
+
+	public void startReduceTask(int jobID, int partitionNo, HashSet<String> nodesWithPartitions, String className) {
+		ReduceRunner reduceRunner = new ReduceRunner(jobID, partitionNo, nodesWithPartitions, className);
+		reduceRunner.start();
+	}
+	
+	@Override
+	public String getPartitionContent(int jobID, int partitionNo) {
+		HashSet<String> pathsForJob = jobID_parFilePath.get(jobID);
+		HashSet<String> pathsForPartition = new HashSet<String>();
+		for (String path : pathsForJob) {
+			pathsForPartition.add(path + partitionNo);
+		}
+		return Merger.merge(pathsForPartition);
+	}
+	
+	private void transmitHeartBeat() {
+		System.out.println("Sending task progress to JobTracker...");
+		TimerTask timerTask = new TimerTask() {
+
+			@Override
+			public void run() {
+				
+				int totalMapTasks = 0;
+				int unfinishedMapTasks = 0;
+				int totalReduceTasks = 0;
+				int unfinishedReduceTasks = 0;
+				
+				for(int jobID : jobID_totalMapTasks.keySet()) {
+					totalMapTasks = jobID_totalMapTasks.get(jobID);
+					unfinishedMapTasks = jobID_unfinishedMapTasks.get(jobID);
+				}
+				
+				for(int jobID : jobID_totalReduceTasks.keySet()) {
+					totalReduceTasks = jobID_totalReduceTasks.get(jobID);
+					unfinishedReduceTasks = jobID_unfinishedMapTasks.get(jobID);
+				}
+				
+				jobTracker.responseToHeartBeat(node, totalMapTasks, unfinishedMapTasks, totalReduceTasks, unfinishedReduceTasks);
+			}
+			
+		};
+		new Timer().scheduleAtFixedRate (timerTask, 0, 5000);
+	}
+	
+	
+
+	public static void main(String args[]) {
+		try {
+			TaskTracker taskTracker = new TaskTracker();
+			IOUtil.readConf(mapredConf, taskTracker);
+			IOUtil.readConf(dfsConf, taskTracker);
+
+			TaskTrackerInterface stub = (TaskTrackerInterface) exportObject(taskTracker, taskPort);
+			Registry registry = LocateRegistry.createRegistry(taskTrackerRegPort);
+			registry.rebind(taskTrackServiceName, stub);
+			
+			node = InetAddress.getLocalHost().getHostAddress();
+			System.out.println("I'm the TaskTracker for node " + node);
+			// Continuously sending heart beat to job tracker.
+			taskTracker.transmitHeartBeat();
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		}
+	}
+
+	
 }

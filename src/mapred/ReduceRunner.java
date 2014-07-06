@@ -92,7 +92,7 @@ public class ReduceRunner {
 			OutputFormat outputFormat = new OutputFormat();
 			String formattedOutput = outputFormat.formatOutput(outputCollector);
 			byte[] outputForDFS = formattedOutput.getBytes("UTF-8");
-			
+			IOUtil.writeBinary(outputForDFS, "output-" + partitionNo);
 //			Upload the output file into DFS !
 
 		} catch (ClassNotFoundException e) {
