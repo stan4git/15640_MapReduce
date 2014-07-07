@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * 1. assign chunk to dataNode
  * 2. replica management
+ * ******Deprecated********
  */
 public class DFSScheduler {
 	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> assignChunksToNodes() {
