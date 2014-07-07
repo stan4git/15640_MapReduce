@@ -3,7 +3,6 @@ package dfs;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.rmi.AlreadyBoundException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -20,30 +19,20 @@ import util.IOUtil;
  * 5. makeCopy for RMI call
  */
 public class DataNode implements DataNodeInterface {
-	private int clientPort;
+	private Integer clientPort;
 	private String clientServiceName;
-	private int maxChunkSlot;
-	private String nameNodeIP;
-	private int nameNodeRegPort;
-	private int nameNodePort;
-	private String nameNodeService;
-	private int dataNodeRegPort;
-	private int dataNodePort;
+	private Integer maxChunkSlot;
+	private Integer dataNodeRegPort;
+	private Integer dataNodePort;
 	private String dataNodeService;
 	private String dataNodePath;
-	private Registry nameNodeRegistry;
-	private NameNodeInterface nameNode;
-	private int availableChunkSlot;
+	private Integer availableChunkSlot;
 	private Hashtable<String, DataNodeInterface> dataNodeList;
 	private boolean isRunning;
 	
 	
 	public static void main(String[] args) {
 		DataNode dataNode = new DataNode();
-		System.out.println("Loading configuration data...");
-		IOUtil.readConf("conf/dfs.conf", dataNode);
-		System.out.println("Configuration data loaded successfully...");
-		
 		Registry dataNodeRegistry;
 		try {
 			System.out.println("Configuring server...");
@@ -63,19 +52,14 @@ public class DataNode implements DataNodeInterface {
 	}
 	
 	public DataNode() {
-		try {
-			isRunning = true;
-			this.availableChunkSlot = this.maxChunkSlot;
-			dataNodeList = new Hashtable<String, DataNodeInterface>();
-			
-			this.nameNodeRegistry = LocateRegistry.getRegistry(nameNodeIP, nameNodePort);
-			this.nameNode = (NameNodeInterface) nameNodeRegistry.lookup(nameNodeService);
-			System.out.println("Connected to name node.");
-		} catch (RemoteException e) {
-			e.printStackTrace();
-		} catch (NotBoundException e) {
-			e.printStackTrace();
-		} 
+		isRunning = true;
+		this.availableChunkSlot = this.maxChunkSlot;
+		dataNodeList = new Hashtable<String, DataNodeInterface>();
+		
+		System.out.println("Loading configuration data...");
+		IOUtil.readConf("conf/dfs.conf", this);
+		System.out.println("Configuration data loaded successfully...");
+		System.out.println(this.dataNodeRegPort);
 	}
 	
 	public void uploadChunk(String filename, byte[] chunk, int chunkNum, String fromIP)
@@ -90,7 +74,7 @@ public class DataNode implements DataNodeInterface {
 			
 			Registry clientRegistry = LocateRegistry.getRegistry(fromIP, this.clientPort);
 			DFSClientInterface client = (DFSClientInterface) clientRegistry.lookup(clientServiceName);
-			client.sendACK(InetAddress.getLocalHost().getHostAddress(), filename, chunkNum);
+			client.sendChunkReceivedACK(InetAddress.getLocalHost().getHostAddress(), filename, chunkNum);
 			System.out.println("Client acknowledged.");
 		} catch (IOException e) {
 			e.printStackTrace();

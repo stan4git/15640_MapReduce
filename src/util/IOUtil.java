@@ -285,11 +285,9 @@ public class IOUtil {
 					field.set(obj, Double.parseDouble(temp[1]));
 				}
 			} catch (NoSuchFieldException e) {
-				e.printStackTrace();
 			} catch (SecurityException e) {
 				e.printStackTrace();
 			} catch (NumberFormatException e) {
-				e.printStackTrace();
 			} catch (IllegalArgumentException e) {
 				e.printStackTrace();
 			} catch (IllegalAccessException e) {

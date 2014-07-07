@@ -12,7 +12,6 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.rmi.server.RemoteServer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -51,30 +50,9 @@ public class DFSClient implements DFSClientInterface {
 	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> dispatchList;
 	private Registry clientRegistry;
 	
-	public DFSClient() {
-		try {
-			
-			clientRegistry = LocateRegistry.createRegistry(this.clientRegPort);
-			clientRegistry.bind(this.clientServiceName, this);
-			System.out.println("Server has been set up...");
-			
-			this.nameNodeRegistry = LocateRegistry.getRegistry(nameNodeIP, nameNodePort);
-			this.nameNode = (NameNodeInterface) nameNodeRegistry.lookup(nameNodeService);
-			System.out.println("Connected to name node...");
-		} catch (RemoteException e) {
-			e.printStackTrace();
-		} catch (NotBoundException e) {
-			e.printStackTrace();
-		} catch (AlreadyBoundException e) {
-		}
-	}
-	
-	
+	@SuppressWarnings("unused")
 	public static void main(String[] args) {
 		DFSClient client = new DFSClient();
-		System.out.println("Loading configuration data...");
-		IOUtil.readConf("conf/dfs.conf", client);
-		System.out.println("Configuration data loaded successfully...");
 		
 		System.out.println("For more information, please use: \"help\"");
 		System.out.println("Type in your command:");
@@ -98,9 +76,36 @@ public class DFSClient implements DFSClientInterface {
 		}
 	}
 	
+	
+	
+	public DFSClient() {
+		try {
+			System.out.println("Loading configuration data...");
+			IOUtil.readConf("conf/dfs.conf", this);
+			System.out.println("Configuration data loaded successfully...");
+			
+			clientRegistry = LocateRegistry.createRegistry(this.clientRegPort);
+			clientRegistry.bind(this.clientServiceName, this);
+			System.out.println("Server has been set up...");
+			
+			this.nameNodeRegistry = LocateRegistry.getRegistry(nameNodeIP, nameNodePort);
+			this.nameNode = (NameNodeInterface) nameNodeRegistry.lookup(nameNodeService);
+			System.out.println("Connected to name node...");
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		} catch (NotBoundException e) {
+			e.printStackTrace();
+		} catch (AlreadyBoundException e) {
+		}
+	}
+	
+	
+	
+	
 	/**
 	 * Get the file list from NameNode
 	 */
+	@SuppressWarnings("unused")
 	private void getFileList() {
 		Map<String, FileStatus> list = this.nameNode.getFileStatusTable();
 		System.out.println("Fetching file list from remote server...");
@@ -116,6 +121,7 @@ public class DFSClient implements DFSClientInterface {
 	/**
 	 * Get the node list from NameNode
 	 */
+	@SuppressWarnings("unused")
 	private void getNodeList() {
 		ConcurrentHashMap<String, Integer> list = this.nameNode.getDataNodeAvailableSlotList();
 		System.out.println("Fetching data node list from remote server...");
@@ -134,13 +140,18 @@ public class DFSClient implements DFSClientInterface {
 	 * @param input String The path of input file.
 	 * @param output String The path of output on DFS.
 	 */
+	@SuppressWarnings("unused")
 	private void putFile(String filePath) {
 		String filename = StringHandling.getFileNameFromPath(filePath);
 		ArrayList<Long> split = calculateFileSplit(filePath);
 		
-		
 		//get dispatching list from name node
-		dispatchList = this.nameNode.generateChunkDistributionList(filename, split.size());
+		try {
+			dispatchList = this.nameNode.generateChunkDistributionList(filename, split.size());
+		} catch (RemoteException e) {
+			System.out.println("There are duplicated file on DFS. Please try another file name.");
+			return;
+		}
 		if (dispatchList != null && dispatchList.size() > 0) {
 			dispatchChunks(filePath, split);
 			dispatchList = null;
@@ -156,6 +167,7 @@ public class DFSClient implements DFSClientInterface {
 	 * Get a file from DFS.
 	 * @param file String The path of input file on DFS.
 	 */
+	@SuppressWarnings("unused")
 	private void getFile(String filename, String output) {
 		ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistribution = this.nameNode.getFileDistributionTable(filename);
 		if (fileDistribution.contains(filename)) {
@@ -184,6 +196,7 @@ public class DFSClient implements DFSClientInterface {
 	 * Delete a file on DFS.
 	 * @param file String The path of file to be deleted.
 	 */
+	@SuppressWarnings("unused")
 	private void removeFile(String filename) {
 		ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistribution = this.nameNode.getFileDistributionTable(filename);
 		if (fileDistribution.contains(filename)) {
@@ -298,10 +311,16 @@ public class DFSClient implements DFSClientInterface {
 			
 			if (dispatchList.get(filename).size() == 0) {		//Send back failure list to name node for new dispatching list.
 				this.dispatchList = null;
+				break;
 			} else {
 				this.dispatchList = nameNode.generateChunkDistributionList(this.dispatchList);
 			}
 		}
+		
+		if (!nameNode.fileDistributionConfirm(filename)) {		//acknowledge name node
+			System.out.println("Cannot acknowledge name node.");
+		}
+		return;
 	}
 	
 	
@@ -324,7 +343,7 @@ public class DFSClient implements DFSClientInterface {
 	}
 	
 	
-	public void sendACK(String fromIP, String filename, int chunkNum) {
+	public void sendChunkReceivedACK(String fromIP, String filename, int chunkNum) {
 		if (this.dispatchList != null) {
 			if (this.dispatchList.contains(filename)) {
 				if (this.dispatchList.get(filename).contains(chunkNum)) {

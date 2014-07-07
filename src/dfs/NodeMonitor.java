@@ -4,7 +4,6 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Map.Entry;
@@ -33,6 +32,19 @@ public class NodeMonitor implements Runnable {
 	public NodeMonitor(NameNode nameNodeInstance) {
 		this.nameNodeInstance = nameNodeInstance;
 		this.dataNodeList = new ConcurrentHashMap<String, DataNodeInterface>();
+	}
+	
+	
+	public void run() {
+		IOUtil.readConf("conf/dfs.conf", this);
+		while (isRunning) {
+			updateNodeStatus();
+			try {
+				Thread.sleep(this.heartbeatInterval * 1000);
+			} catch (InterruptedException e) {
+				continue;
+			}
+		}
 	}
 	
 	
@@ -101,19 +113,8 @@ public class NodeMonitor implements Runnable {
 		}
 	}
 	
+	@SuppressWarnings("unused")
 	private void terminate() {
 		this.isRunning = false;
-	}
-	@Override
-	public void run() {
-		IOUtil.readConf("conf/dfs.conf", this);
-		while (isRunning) {
-			updateNodeStatus();
-			try {
-				Thread.sleep(this.heartbeatInterval * 1000);
-			} catch (InterruptedException e) {
-				continue;
-			}
-		}
 	}
 }
