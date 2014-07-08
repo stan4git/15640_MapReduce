@@ -22,27 +22,31 @@ public class MapRunner implements Runnable{
 	private Integer numOfChunks;
 	private JobConfiguration jobConf;
 	private ArrayList<KVPair> pairLists;
-	private Integer regPort;
-	private String serviceName;
 	private String classname;
-	private String partitionPath;
-	private Integer numPartitions;
 	private Integer mapperNum;
 	
-	public MapRunner(Integer jobID, Integer numOfChunks, JobConfiguration jobConf,
-			ArrayList<KVPair> pairLists, Integer regPort,
-			String serviceName, String classname, String partitionPath, Integer numPartitions, Integer mapperNum){
+	private Integer dataNodeRegPort;
+	private String dataNodeService;
+	private Integer partitionNums;
+	private String partitionFilePath;
+	
+	public MapRunner (Integer jobID, Integer numOfChunks, JobConfiguration jobConf,
+			ArrayList<KVPair> pairLists, String classname, Integer mapperNum, RMIServiceInfo rmiServiceInfo) {
+		
 		this.jobID = jobID;
 		this.numOfChunks = numOfChunks;
 		this.jobConf = jobConf;
 		this.pairLists = pairLists;
-		this.regPort = regPort;
-		this.serviceName = serviceName;
 		this.classname = classname;
-		this.partitionPath = partitionPath;
-		this.numPartitions = numPartitions;
 		this.mapperNum = mapperNum;
+		
+		this.dataNodeRegPort = rmiServiceInfo.getDataNodeRegPort();
+		this.dataNodeService = rmiServiceInfo.getDataNodeService();
+		this.partitionNums = rmiServiceInfo.getPartitionNums();
+		this.partitionFilePath = rmiServiceInfo.getPartitionFilePath();
 	}
+	
+	
 
 	@SuppressWarnings("unchecked")
 	@Override
@@ -59,11 +63,12 @@ public class MapRunner implements Runnable{
 			String contents[] = new String[numOfChunks];
 			int count = 0;
 			MapperOutputCollector outputCollector = new MapperOutputCollector();
+			ArrayList<String> filePaths = new ArrayList<String>();
 			for(KVPair pair : pairLists) {
 				Integer chunkNum = (Integer) pair.getKey();
 				String sourceNodeIP = (String) pair.getValue();
-				Registry reg = LocateRegistry.getRegistry(sourceNodeIP, regPort);
-				DataNodeInterface datanode = (DataNodeInterface)reg.lookup(serviceName);
+				Registry reg = LocateRegistry.getRegistry(sourceNodeIP, dataNodeRegPort);
+				DataNodeInterface datanode = (DataNodeInterface)reg.lookup(dataNodeService);
 				contents[count] = new String(datanode.getFile(jobConf.getInputfile(),chunkNum),"UTF-8");
 				Class<InputFormat> inputFormatClass = (Class<InputFormat>) Class.forName(jobConf.getInputFormat().toString());
 				Constructor<InputFormat> constuctor = inputFormatClass.getConstructor(String.class);
@@ -75,12 +80,16 @@ public class MapRunner implements Runnable{
 				count++;
 			}
 			// step3: partition the OutputCollector
-			StringBuffer[] partitionContents = Partitioner.partition(outputCollector.mapperOutputCollector,numPartitions);
+			StringBuffer[] partitionContents = Partitioner.partition(outputCollector.mapperOutputCollector,partitionNums);
 			// step4: write the partition contents to the specific path
-			for(int j = 0; j < numPartitions; j++) {
-				String filename = partitionPath + jobID.toString() + "/" + mapperNum.toString() + "/partition" + j;
+			for(int j = 0; j < partitionNums; j++) {
+				String filename = partitionFilePath + jobID.toString() + "/" + mapperNum.toString() + "/partition" + j;
+				filePaths.add(filename);
 				IOUtil.writeBinary(partitionContents[j].toString().getBytes("UTF-8"), filename);
 			}
+			// step5: notify task tracker to update task status
+			TaskTracker.updateFilePaths(jobID, filePaths);
+			TaskTracker.updateMapStatus(jobID, true);
 		} catch (ClassNotFoundException | NoSuchMethodException | SecurityException 
 				| InstantiationException | IllegalAccessException 
 				| IllegalArgumentException | InvocationTargetException | RemoteException 

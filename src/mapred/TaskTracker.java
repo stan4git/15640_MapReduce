@@ -32,15 +32,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	private static final String mapredConf = "conf/mapred.conf";
 	private static final String dfsConf = "conf/dfs.conf";
 
-	private static String jobTrackerIP;
-	private static Integer jobTrackerRegPort;
-	private static String jobTrackServiceName;
-	private static Integer taskPort;
-	private static Integer taskTrackerRegPort;
-	private static String taskTrackServiceName;
-	private static Integer mapperChunkThreshold;
-	
-	public static ConcurrentHashMap<Integer, HashSet<String>> jobID_parFilePath = new ConcurrentHashMap<Integer, HashSet<String>>();
+	public static ConcurrentHashMap<Integer, ArrayList<String>> jobID_parFilePath = new ConcurrentHashMap<Integer, ArrayList<String>>();
 	public static ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus = new ConcurrentHashMap<Integer, TaskStatusInfo>();
 	public static ConcurrentHashMap<Integer, HashMap<String, ArrayList<Integer>>> jobID_node_mapID = new ConcurrentHashMap<Integer, HashMap<String, ArrayList<Integer>>>();
 	
@@ -50,6 +42,17 @@ public class TaskTracker extends UnicastRemoteObject implements
 	private static String dataNodeService;
 	private static Integer partitionNums;
 	private static String partitionFilePath;
+	private static String nameNodeIP;
+	private static Integer nameNodeRegPort;
+	private static String nameNodeService;
+	private static String jobOutputPath;
+	private static String jobTrackerIP;
+	private static Integer jobTrackerRegPort;
+	private static String jobTrackServiceName;
+	private static Integer taskPort;
+	private static Integer taskTrackerRegPort;
+	private static String taskTrackServiceName;
+	private static Integer mapperChunkThreshold;
 	
 	private static String node;
 
@@ -109,9 +112,10 @@ public class TaskTracker extends UnicastRemoteObject implements
 		for (Integer mapperNum : mappers.keySet()) {
 			ArrayList<KVPair> chunksAndNodes = mappers.get(mapperNum);
 			String mapperName = jobTracker.getMapperInfo(jobID).getKey().toString();
+			RMIServiceInfo rmiServiceInfo = new RMIServiceInfo();
+			rmiServiceInfo.settingForMapper(dataNodeRegPort, dataNodeService,partitionNums,partitionFilePath);
 			startMapTask(jobID, chunksAndNodes.size(), jobConf, chunksAndNodes,
-					dataNodeRegPort, dataNodeService, mapperName,
-					partitionFilePath, partitionNums,mapperNum);
+					mapperName, mapperNum, rmiServiceInfo);
 		}
 	}
 	
@@ -122,17 +126,17 @@ public class TaskTracker extends UnicastRemoteObject implements
 		IOUtil.writeBinary(mapperClassContent, mapperClassName);
 	}
 
-	public void startMapTask(int jobID, int numOfChunks,
-		JobConfiguration jobConf, ArrayList<KVPair> pairLists, int regPort,
-			String serviceName, String classname, String partitionPath,
-			int numPartitions, int mapperNum) {
-		MapRunner mapRunner = new MapRunner(jobID, numOfChunks, jobConf,
-				pairLists, regPort, serviceName, classname, partitionPath,
-				numPartitions,mapperNum);
+	public void startMapTask(int jobID, int numOfChunks, JobConfiguration jobConf, 
+			ArrayList<KVPair> pairLists, String classname, Integer mapperNum, RMIServiceInfo rmiServiceInfo) {
+		
+		MapRunner mapRunner = new MapRunner(jobID, numOfChunks, jobConf, pairLists, classname, mapperNum, rmiServiceInfo);
 		executor.execute(mapRunner);
+		
+		
 	}
 
-	public void registerReduceTask(int jobID, int partitionNo, HashMap<Integer, HashMap<String, String>> nodesWithPartitions, int numOfPartitions) {
+	public void registerReduceTask(int jobID, int partitionNo, HashMap<String, ArrayList<String>> nodesWithPartitions, 
+			int numOfPartitions) {
 		// Update task status 
 		TaskStatusInfo taskStatusInfo;
 		if(jobID_taskStatus.containsKey(jobID)) {
@@ -145,7 +149,10 @@ public class TaskTracker extends UnicastRemoteObject implements
 		jobID_taskStatus.put(jobID, taskStatusInfo);
 		
 		localizeReduceTask(jobID);
-		startReduceTask(jobID, partitionNo, nodesWithPartitions, reducerClassName);
+		RMIServiceInfo rmiServiceInfo = new RMIServiceInfo();
+		rmiServiceInfo.settingForReducer(nameNodeIP, nameNodeRegPort, nameNodeService, taskTrackerRegPort,
+				taskTrackServiceName, jobOutputPath);
+		startReduceTask(jobID, partitionNo, nodesWithPartitions, reducerClassName, rmiServiceInfo);
 	}
 
 	public void localizeReduceTask(int jobID) {
@@ -155,8 +162,9 @@ public class TaskTracker extends UnicastRemoteObject implements
 		IOUtil.writeBinary(reducerClassContent, reducerClassName);
 	}
 
-	public void startReduceTask(int jobID, int partitionNo, HashMap<Integer, HashMap<String, String>> nodesWithPartitions, String className) {
-		ReduceRunner reduceRunner = new ReduceRunner(jobID, partitionNo, nodesWithPartitions, className);
+	public void startReduceTask(int jobID, int partitionNo, HashMap<String, ArrayList<String>> nodesWithPartitions, 
+			String className, RMIServiceInfo rmiServiceInfo) {
+		ReduceRunner reduceRunner = new ReduceRunner(jobID, partitionNo, nodesWithPartitions, className, rmiServiceInfo);
 		reduceRunner.start();
 	}
 	
@@ -165,13 +173,53 @@ public class TaskTracker extends UnicastRemoteObject implements
 		return IOUtil.readFile(path);
 	}
 	
+	public static void updateMapStatus(Integer jobID, boolean isSuccessful) {
+		if(isSuccessful) {
+			TaskStatusInfo taskStatusInfo = TaskTracker.jobID_taskStatus.get(jobID);
+			int curUnfinishedMapTasks = taskStatusInfo.getUnfinishedMapTasks() - 1;
+			taskStatusInfo.setUnfinishedMapTasks(curUnfinishedMapTasks);
+			TaskTracker.jobID_taskStatus.put(jobID, taskStatusInfo);
+			
+			if(curUnfinishedMapTasks == 0) {
+				jobTracker.notifyMapperFinish(node, jobID_taskStatus, jobID_parFilePath);
+			} 
+		} else {
+			
+		}
+	}
+	
+	public static void updateReduceStatus(Integer jobID, boolean isSuccessful) {
+		if(isSuccessful) {
+			TaskStatusInfo taskStatusInfo = TaskTracker.jobID_taskStatus.get(jobID);
+			int curUnfinishedReduceTasks = taskStatusInfo.getUnfinishedReduceTasks() - 1;
+			taskStatusInfo.setUnfinishedReduceTasks(curUnfinishedReduceTasks);
+			TaskTracker.jobID_taskStatus.put(jobID, taskStatusInfo);
+			
+			if(curUnfinishedReduceTasks == 0) {
+				jobTracker.notifyReducerFinish(node, jobID_taskStatus);
+			} 
+		} else {
+			
+		}
+	}
+	
+	public static void updateFilePaths(Integer jobID, ArrayList<String> filePaths) {
+		ArrayList<String> parFilePath = null;
+		if(!jobID_parFilePath.containsKey(jobID)) {
+			parFilePath = new ArrayList<String>();
+		} else {
+			parFilePath = jobID_parFilePath.get(jobID);
+		}
+		parFilePath.addAll(filePaths);
+	}
+	
 	private void transmitHeartBeat() {
 		System.out.println("Sending task progress to JobTracker...");
 		TimerTask timerTask = new TimerTask() {
 
 			@Override
 			public void run() {
-				jobTracker.responseToHeartBeat(node, jobID_taskStatus);
+				jobTracker.responseToHeartbeat(node, jobID_taskStatus);
 			}
 			
 		};

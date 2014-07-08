@@ -7,6 +7,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
@@ -22,7 +23,7 @@ public class TaskThread implements Runnable {
 	private HashMap<Integer,String> chunkSets;
 	private boolean isMapTask;
 	private int partitionNo;
-	private HashMap<Integer, HashMap<String, String>> nodesWithPartitions;
+	private HashMap<String, ArrayList<String>> nodesWithPartitions;
 	private int numOfPartitions;
 	
 	private TaskTrackerInterface taskTracker;
@@ -31,7 +32,7 @@ public class TaskThread implements Runnable {
 	
 	public TaskThread (String node, int jobID, JobConfiguration jobConf,
 			HashMap<Integer,String> chunkSets, Boolean isMapTask, int partitionNo, 
-			HashMap<Integer, HashMap<String, String>> nodesWithPartitions, int numOfPartitions) {
+			HashMap<String, ArrayList<String>> nodesWithPartitions, int numOfPartitions) {
 		this.curNode = node;
 		this.jobID = jobID;
 		this.jobConf = jobConf;

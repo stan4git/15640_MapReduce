@@ -65,6 +65,9 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	// <jobID,<Do Job Node,<ChunkID,Chunk host Node>>>
 	public static ConcurrentHashMap<Integer, HashMap<String, HashMap<Integer, String>>> jobID_mapTasks = new ConcurrentHashMap<Integer, HashMap<String, HashMap<Integer, String>>>();
 	
+	
+	public static ConcurrentHashMap<Integer, HashMap<String, ArrayList<String>>> jobID_nodes_partitionsPath = new ConcurrentHashMap<Integer, HashMap<String, ArrayList<String>>>();
+	
 	// Associate jobID with configuration information
 	public static ConcurrentHashMap<Integer, KVPair> jobID_mapRedName = new ConcurrentHashMap<Integer, KVPair>();
 	public static ConcurrentHashMap<Integer, KVPair> jobID_mapRedPath = new ConcurrentHashMap<Integer, KVPair>();
@@ -105,12 +108,22 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			localizeJob(mapper, reducer, jobID);
 		}
 		
-		// step 5: Send work to node 
+		// step 5: initial maps with jobID
+		jobID_node_taskStatus.put(jobID, new HashMap<String, TaskStatusInfo>());
+		jobID_nodes_partitionsPath.put(jobID, new HashMap<String, ArrayList<String>>());
+		
+		// step 6: Send work to node 
 		for (String node : nodeToChunks.keySet()) {
 			if(jobID_node_taskStatus.get(jobID).get(node) == null) {
 				HashMap<String, TaskStatusInfo> taskNodeStatus = new HashMap<String, TaskStatusInfo>();
 				taskNodeStatus.put(node, new TaskStatusInfo());
 				jobID_node_taskStatus.put(jobID, taskNodeStatus);
+			}
+			
+			if(jobID_nodes_partitionsPath.get(jobID).get(node) == null) {
+				HashMap<String, ArrayList<String>> nodes_partitionsPath = new HashMap<String, ArrayList<String>>();
+				nodes_partitionsPath.put(node, new ArrayList<String>());
+				jobID_nodes_partitionsPath.put(jobID, nodes_partitionsPath);
 			}
 			
 			System.out.println("choose node: " + node + " to run one or more Mapper tasks!");
@@ -153,13 +166,13 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		System.out.println("Start reduce job !!");
 		int numOfPartitions = partitionNums;
 		ArrayList<String> chosenReduceNodes = jobScheduler.pickBestNodesForReduce(numOfPartitions);
+		HashMap<String, ArrayList<String>> nodes_partitionsPath = jobID_nodes_partitionsPath.get(jobID);
 		if(chosenReduceNodes == null) {
 			System.out.println("System is busy, the job fails");
 			return;
 		}
 		for(int i = 0; i < numOfPartitions; i++) {
-			// TODO Auto-generated method stub
-			TaskThread reduceTask = new TaskThread(chosenReduceNodes.get(i), jobID, null, null, false, i, null,partitionNums);	
+			TaskThread reduceTask = new TaskThread(chosenReduceNodes.get(i), jobID, null, null, false, i, nodes_partitionsPath, partitionNums);	
 			executor.execute(reduceTask);
 		}
 	}
@@ -234,7 +247,56 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	
 	
 	@Override
-	public void responseToHeartBeat(String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus) {
+	public void notifyMapperFinish (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus, 
+			ConcurrentHashMap<Integer, ArrayList<String>> jobID_parFilePath) {
+		
+		int unfinishedMapTasks = 0;
+		int unfinishedReduceTasks = 0;
+		
+		for(int jobID : jobID_taskStatus.keySet()) {
+			// step1: update jobID_node_taskStatus
+			TaskStatusInfo taskStatusInfo = jobID_taskStatus.get(jobID);
+			jobID_node_taskStatus.get(jobID).put(node, taskStatusInfo);
+			unfinishedMapTasks += taskStatusInfo.getUnfinishedMapTasks();
+			unfinishedReduceTasks += taskStatusInfo.getUnfinishedReduceTasks();
+			
+			// step2: update jobID_nodes_partitionsPath
+			HashMap<String, ArrayList<String>> nodes_Paths = jobID_nodes_partitionsPath.get(jobID);
+			nodes_Paths.get(node).addAll(jobID_parFilePath.get(jobID));
+		
+			
+			// step3: if the whole mapper process has finished, start reduce phase.
+			if(isMapperJobFinished(jobID)) {
+				startReducePhase(jobID);
+			}
+		}
+		
+		node_totalTasks.put(node, unfinishedMapTasks + unfinishedReduceTasks);
+		
+	}
+	
+	@Override
+	public void notifyReducerFinish (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus) {
+		int unfinishedMapTasks = 0;
+		int unfinishedReduceTasks = 0;
+		
+		for(int jobID : jobID_taskStatus.keySet()) {
+			// step1: update jobID_node_taskStatus
+			TaskStatusInfo taskStatusInfo = jobID_taskStatus.get(jobID);
+			jobID_node_taskStatus.get(jobID).put(node, taskStatusInfo);
+			unfinishedMapTasks += taskStatusInfo.getUnfinishedMapTasks();
+			unfinishedReduceTasks += taskStatusInfo.getUnfinishedReduceTasks();
+			
+			if(isReducerJobFinished(jobID)) {
+				terminateJob(jobID);
+			}
+		}
+		
+		node_totalTasks.put(node, unfinishedMapTasks + unfinishedReduceTasks);
+	}
+	
+	@Override
+	public void responseToHeartbeat (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus) {
 		int unfinishedMapTasks = 0;
 		int unfinishedReduceTasks = 0;
 		
@@ -243,8 +305,35 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			jobID_node_taskStatus.get(jobID).put(node, taskStatusInfo);
 			unfinishedMapTasks += taskStatusInfo.getUnfinishedMapTasks();
 			unfinishedReduceTasks += taskStatusInfo.getUnfinishedReduceTasks();
+			
+			if(isReducerJobFinished(jobID)) {
+				terminateJob(jobID);
+			}
 		}
+		
 		node_totalTasks.put(node, unfinishedMapTasks + unfinishedReduceTasks);
+	}
+	
+	public boolean isMapperJobFinished(int jobID){
+		HashMap<String,TaskStatusInfo> node_status = jobID_node_taskStatus.get(jobID);
+		for(String nodeIP : node_status.keySet()) {
+			TaskStatusInfo taskStatusInfo = node_status.get(nodeIP);
+			if(taskStatusInfo.getUnfinishedMapTasks() != 0) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	public boolean isReducerJobFinished(int jobID){
+		HashMap<String,TaskStatusInfo> node_status = jobID_node_taskStatus.get(jobID);
+		for(String nodeIP : node_status.keySet()) {
+			TaskStatusInfo taskStatusInfo = node_status.get(nodeIP);
+			if(taskStatusInfo.getUnfinishedReduceTasks() != 0) {
+				return false;
+			}
+		}
+		return true;
 	}
 	
 	private void initSlaveNodes (String slaveListPath) {
