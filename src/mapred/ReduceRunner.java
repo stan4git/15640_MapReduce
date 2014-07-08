@@ -102,7 +102,7 @@ public class ReduceRunner {
 				System.exit(-1);
 			}
 			
-			TaskTracker.updateMapStatus(jobID, true);
+			TaskTracker.updateReduceStatus(jobID, true);
 
 		} catch (ClassNotFoundException | InstantiationException |
 				IllegalAccessException | UnsupportedEncodingException e) {

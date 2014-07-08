@@ -9,6 +9,7 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -16,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import dfs.NameNodeInterface;
 import format.KVPair;
 import util.IOUtil;
 
@@ -25,6 +27,9 @@ public class TaskTracker extends UnicastRemoteObject implements
 	private static final long serialVersionUID = -897603125687983899L;
 
 	private static JobTrackerInterface jobTracker = null;
+	private static NameNodeInterface nameNode = null;
+	private static TaskTracker taskTracker = null;
+	
 	// Create a thread pool
 	private static ExecutorService executor = Executors.newCachedThreadPool();
 
@@ -61,6 +66,9 @@ public class TaskTracker extends UnicastRemoteObject implements
 		try {
 			Registry registry = LocateRegistry.getRegistry(jobTrackerIP, jobTrackerRegPort);
 			jobTracker = (JobTrackerInterface) registry.lookup(jobTrackServiceName);
+			
+			Registry nameNodeRegistry = LocateRegistry.getRegistry(nameNodeIP, nameNodeRegPort);
+			nameNode = (NameNodeInterface) nameNodeRegistry.lookup(nameNodeService);
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		} catch (NotBoundException e) {
@@ -130,8 +138,6 @@ public class TaskTracker extends UnicastRemoteObject implements
 		
 		MapRunner mapRunner = new MapRunner(jobID, numOfChunks, jobConf, pairLists, classname, mapperNum, rmiServiceInfo);
 		executor.execute(mapRunner);
-		
-		
 	}
 
 	public void registerReduceTask(int jobID, int partitionNo, HashMap<String, ArrayList<String>> nodesWithPartitions, 
@@ -182,8 +188,6 @@ public class TaskTracker extends UnicastRemoteObject implements
 			if(curUnfinishedMapTasks == 0) {
 				jobTracker.notifyMapperFinish(node, jobID_taskStatus, jobID_parFilePath);
 			} 
-		} else {
-			
 		}
 	}
 	
@@ -197,8 +201,6 @@ public class TaskTracker extends UnicastRemoteObject implements
 			if(curUnfinishedReduceTasks == 0) {
 				jobTracker.notifyReducerFinish(node, jobID_taskStatus);
 			} 
-		} else {
-			
 		}
 	}
 	
@@ -224,8 +226,31 @@ public class TaskTracker extends UnicastRemoteObject implements
 		new Timer().scheduleAtFixedRate (timerTask, 0, 5000);
 	}
 	
-	public static void handleDataNodeFailure (int jobID, ArrayList<KVPair> pairLists) {
+	public static void handleDataNodeFailure (Integer jobID, Integer numOfChunks, JobConfiguration jobConf,
+			ArrayList<KVPair> pairLists, String classname, Integer mapperNum, RMIServiceInfo rmiServiceInfo) {
 		
+		ArrayList<Integer> chunks = new ArrayList<Integer>();
+		ArrayList<KVPair> pairs = new ArrayList<KVPair>();
+		
+		for(KVPair kvPair : pairLists) {
+			chunks.add((Integer)kvPair.getKey());
+		}
+		Hashtable<Integer,HashSet<String>> chunkDistribution = nameNode.getFileDistributionTable().get(jobConf.getInputfile());
+		HashSet<String> healthyNodes = nameNode.getHealthyNodes();
+		
+		for(int i = 0; i < chunks.size(); i++) {
+			if(healthyNodes.contains((String)pairLists.get(i).getValue())) {
+				continue;
+			}
+			HashSet<String> distribution = chunkDistribution.get(chunks.get(i));
+			for(String node : distribution) {
+				if(healthyNodes.contains(node)) {
+					pairs.add(new KVPair(chunks.get(i), node));
+				}
+				break;
+			}
+		}
+		taskTracker.startMapTask(jobID, numOfChunks, jobConf, pairs, classname, mapperNum, rmiServiceInfo);
 	}
 	
 	public static void handleMapperNodeFailure (int jobID) {
@@ -242,7 +267,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 
 	public static void main(String args[]) {
 		try {
-			TaskTracker taskTracker = new TaskTracker();
+			taskTracker = new TaskTracker();
 			IOUtil.readConf(mapredConf, taskTracker);
 			IOUtil.readConf(dfsConf, taskTracker);
 

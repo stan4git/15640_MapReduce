@@ -29,6 +29,7 @@ public class MapRunner implements Runnable{
 	private String dataNodeService;
 	private Integer partitionNums;
 	private String partitionFilePath;
+	private RMIServiceInfo rmiServiceInfo;
 	
 	public MapRunner (Integer jobID, Integer numOfChunks, JobConfiguration jobConf,
 			ArrayList<KVPair> pairLists, String classname, Integer mapperNum, RMIServiceInfo rmiServiceInfo) {
@@ -44,6 +45,7 @@ public class MapRunner implements Runnable{
 		this.dataNodeService = rmiServiceInfo.getDataNodeService();
 		this.partitionNums = rmiServiceInfo.getPartitionNums();
 		this.partitionFilePath = rmiServiceInfo.getPartitionFilePath();
+		this.rmiServiceInfo = rmiServiceInfo;
 	}
 	
 	
@@ -94,7 +96,7 @@ public class MapRunner implements Runnable{
 				| InstantiationException | IllegalAccessException 
 				| IllegalArgumentException | InvocationTargetException | RemoteException 
 				| NotBoundException | UnsupportedEncodingException e) {
-			TaskTracker.handleDataNodeFailure(jobID, pairLists);
+			TaskTracker.handleDataNodeFailure(jobID, numOfChunks, jobConf, pairLists,classname,mapperNum, rmiServiceInfo);
 			System.err.println("Mapper fails while fetching chunks !!");
 		}
 		
