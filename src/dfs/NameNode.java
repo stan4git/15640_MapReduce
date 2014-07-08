@@ -207,16 +207,6 @@ public class NameNode implements NameNodeInterface {
 	}
 
 	
-	public void setFileUploadFinished(String filename) throws RemoteException {
-		if (this.fileStatusTable.contains(filename)) {
-			this.fileStatusTable.put(filename, FileStatus.SUCCESS);
-		} else {
-			throw new RemoteException("File not exist!!");
-		}
-		return;
-	}
-	
-	
 	public void registerDataNode(String dataNodeIP, int availableSlot) {
 		this.dataNodeAvailableSlotList.put(dataNodeIP, availableSlot);
 		System.out.println(dataNodeIP + " has been added to data node list...");

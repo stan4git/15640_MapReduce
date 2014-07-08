@@ -21,7 +21,6 @@ public interface NameNodeInterface extends Remote {
 	public void updateFileDistributionTable(ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> tableToBeUpdated);
 	public void removeChunkFromFileDistributionTable(String filename, int chunkNum, String dataNodeIP);
 	public void registerDataNode(String dataNodeIP, int availableSlot);
-	public void setFileUploadFinished(String filename) throws RemoteException;
 	
 	public HashSet<String> getHealthyNodes();
 	public boolean fileExist(String filename);
