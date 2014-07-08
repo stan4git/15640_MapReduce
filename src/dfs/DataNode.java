@@ -51,6 +51,7 @@ public class DataNode implements DataNodeInterface {
 		System.out.println("System is shutting down...");
 	}
 	
+	
 	public DataNode() {
 		isRunning = true;
 		this.availableChunkSlot = this.maxChunkSlot;
@@ -62,9 +63,10 @@ public class DataNode implements DataNodeInterface {
 		System.out.println(this.dataNodeRegPort);
 	}
 	
+	
 	public void uploadChunk(String filename, byte[] chunk, int chunkNum, String fromIP)
 			throws RemoteException {
-		try {
+		try {	//check if there is available slots
 			if (availableChunkSlot <= 0) {
 				throw new RemoteException("Storage is full!! Please try another data node.");
 			}
@@ -72,7 +74,7 @@ public class DataNode implements DataNodeInterface {
 			availableChunkSlot--;
 			System.out.println(filename + "_" + chunkNum + " has been stored to " + this.dataNodePath);
 			
-			Registry clientRegistry = LocateRegistry.getRegistry(fromIP, this.clientPort);
+			Registry clientRegistry = LocateRegistry.getRegistry(fromIP, this.clientPort);		//send out ack to client
 			DFSClientInterface client = (DFSClientInterface) clientRegistry.lookup(clientServiceName);
 			client.sendChunkReceivedACK(InetAddress.getLocalHost().getHostAddress(), filename, chunkNum);
 			System.out.println("Client acknowledged.");
@@ -85,6 +87,7 @@ public class DataNode implements DataNodeInterface {
 			e.printStackTrace();
 		}
 	}
+	
 
 	public void removeFile(String filename, int chunkNum) throws RemoteException {
 		if (availableChunkSlot >= this.maxChunkSlot) {
@@ -96,26 +99,25 @@ public class DataNode implements DataNodeInterface {
 		return;
 	}
 
-
-	@Override
+	
 	public byte[] getFile(String filename, int chunkNum) throws RemoteException {
 		byte[] chunk = IOUtil.readFile(this.dataNodePath + filename + "_" + chunkNum);
 		System.out.println("Sending out " + filename + "_" + chunkNum + " ...");
 		return chunk;
 	}
 
-	@Override
+
 	public boolean heartbeat() throws RemoteException {
 		return true;
 	}
 
-	@Override
+
 	public boolean hasChunk(String filename, int chunkNum) throws RemoteException {
 		File file = new File(this.dataNodePath + filename + "_" + chunkNum);
 		return file.exists();
 	}
 
-	@Override
+
 	public void downloadChunk(String filename, int chunkNum, String fromIP) {
 		if (!this.dataNodeList.contains(fromIP)) {
 			try {
@@ -129,7 +131,7 @@ public class DataNode implements DataNodeInterface {
 			}
 		}
 		
-		try {
+		try {	
 			byte[] chunk = this.dataNodeList.get(fromIP).getFile(filename, chunkNum);
 			IOUtil.writeBinary(chunk, dataNodePath + filename + "_" + chunkNum);
 			System.out.println(filename + "_" + chunkNum + " has been downloaded...");
@@ -138,7 +140,7 @@ public class DataNode implements DataNodeInterface {
 		}
 	}
 
-	@Override
+
 	public void terminate() {
 		this.isRunning = false;
 	}
