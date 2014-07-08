@@ -3,6 +3,7 @@ package dfs;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -27,22 +28,29 @@ public class DataNode implements DataNodeInterface {
 	private String dataNodeService;
 	private String dataNodePath;
 	private Integer availableChunkSlot;
+	private String nameNodeIP;
+	private int nameNodePort;
+	private String nameNodeService;
+	private Registry nameNodeRegistry;
+	private NameNodeInterface nameNode;
 	private Hashtable<String, DataNodeInterface> dataNodeList;
 	private boolean isRunning;
 	
 	
 	public static void main(String[] args) {
-		DataNode dataNode = new DataNode();
 		Registry dataNodeRegistry;
+		DataNode dataNode;
 		try {
+			dataNode = new DataNode();
 			System.out.println("Configuring server...");
 			dataNodeRegistry = LocateRegistry.createRegistry(dataNode.dataNodeRegPort);
 			dataNodeRegistry.rebind(dataNode.dataNodeService, dataNode);
 		} catch (RemoteException e) {
 			e.printStackTrace();
-			System.err.println("System start failed...");
+			System.err.println("System initialization failed...");
 			return;
 		}
+		
 		System.out.println("System is running...");
 		while (dataNode.isRunning) {
 			
@@ -52,7 +60,7 @@ public class DataNode implements DataNodeInterface {
 	}
 	
 	
-	public DataNode() {
+	public DataNode() throws RemoteException {
 		isRunning = true;
 		this.availableChunkSlot = this.maxChunkSlot;
 		dataNodeList = new Hashtable<String, DataNodeInterface>();
@@ -61,6 +69,25 @@ public class DataNode implements DataNodeInterface {
 		IOUtil.readConf("conf/dfs.conf", this);
 		System.out.println("Configuration data loaded successfully...");
 		System.out.println(this.dataNodeRegPort);
+		
+		try {
+			this.nameNodeRegistry = LocateRegistry.getRegistry(this.nameNodeIP, this.nameNodePort);
+			this.nameNode = (NameNodeInterface) this.nameNodeRegistry.lookup(this.nameNodeService);
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		} catch (NotBoundException e) {
+			e.printStackTrace();
+		}
+		
+		if (this.nameNode != null) {
+			try {
+				this.nameNode.registerDataNode(InetAddress.getLocalHost().getHostAddress(), this.availableChunkSlot);
+			} catch (UnknownHostException e) {
+				e.printStackTrace();
+			}
+		} else {
+			throw new RemoteException();
+		}
 	}
 	
 	

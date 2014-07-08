@@ -68,9 +68,20 @@ public class DFSClient implements DFSClientInterface {
 			}
 			
 			String[] cmdSplit = command.trim().split(" ");
-			if (cmdSplit.length > 0) {
-				switch (cmdSplit[0]) {
-					
+			if (cmdSplit.length > 0 && cmdSplit[0].equals("dfs")) {
+				switch (cmdSplit[1]) {
+				case "put":
+					break;
+				case "get":
+					break;
+				case "ls":
+					break;
+				case "node":
+					break;
+				case "rm":
+					break;
+				default:
+					break;
 				}
 			}
 		}
