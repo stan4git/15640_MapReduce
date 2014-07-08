@@ -28,32 +28,33 @@ public class ReduceRunner {
 	private static Reducer reducer;
 	private static NameNodeInterface nameNode;
 	
-	private static String nameNodeIP;
-	private static Integer nameNodeRegPort;
-	private static String nameNodeService;
-	private static Integer taskTrackerRegPort;
-	private static String taskTrackServiceName;
+	private String nameNodeIP;
+	private Integer nameNodeRegPort;
+	private String nameNodeService;
+	private Integer taskTrackerRegPort;
+	private String taskTrackServiceName;
+	private String jobOutputPath;
 	
 	private int jobID;
 	private int partitionNo;
-	private HashMap<Integer, HashMap<String, String>> job_nodesWithPartitions;
+	private HashMap<String, ArrayList<String>> nodesWithPartitions;
 	private String className;
 	
-	public ReduceRunner (int jobID, int partitionNo, HashMap<Integer, HashMap<String, String>> job_nodesWithPartitions, String className) {
+	
+	public ReduceRunner (int jobID, int partitionNo, HashMap<String, ArrayList<String>> nodesWithPartitions, 
+			String className, RMIServiceInfo rmiServiceInfo) {
 		 
-		try {
-			Registry reigstry = LocateRegistry.getRegistry(nameNodeIP, nameNodeRegPort);
-			nameNode = (NameNodeInterface)reigstry.lookup(nameNodeService);
-		} catch (RemoteException e) {
-			e.printStackTrace();
-		} catch (NotBoundException e) {
-			e.printStackTrace();
-		}
-		
 		this.jobID = jobID;
 		this.partitionNo = partitionNo;
-		this.job_nodesWithPartitions = job_nodesWithPartitions;
+		this.nodesWithPartitions = nodesWithPartitions;
 		this.className = className;
+		
+		this.nameNodeIP = rmiServiceInfo.getNameNodeIP();
+		this.nameNodeRegPort = rmiServiceInfo.getNameNodeRegPort();
+		this.nameNodeService = rmiServiceInfo.getNameNodeService();
+		this.taskTrackerRegPort = rmiServiceInfo.getTaskTrackerRegPort();
+		this.taskTrackServiceName = rmiServiceInfo.getTaskTrackServiceName();
+		this.jobOutputPath = rmiServiceInfo.getJobOutputPath();
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -62,13 +63,12 @@ public class ReduceRunner {
 			Class<Reducer> reduceClass = (Class<Reducer>) Class.forName(className);
 			reducer = reduceClass.newInstance();
 			HashSet<String> pathsForPartition = new HashSet<String>();
-			HashMap<String, String> nodesWithPartitions = job_nodesWithPartitions.get(jobID);
 			
 			for (String node : nodesWithPartitions.keySet()) {
 				try {
 					Registry registry = LocateRegistry.getRegistry(node, taskTrackerRegPort);
 					TaskTrackerInterface taskTracker = (TaskTrackerInterface) registry.lookup(taskTrackServiceName);
-					for (String path : nodesWithPartitions.keySet()) {
+					for (String path : nodesWithPartitions.get(node)) {
 						byte[] content = taskTracker.getPartitionContent(path);
 						String outputPath = path;
 						pathsForPartition.add(outputPath);
@@ -93,17 +93,22 @@ public class ReduceRunner {
 			IOUtil.writeBinary(outputForDFS, "job-" + jobID + "-output-" + partitionNo);
 						
 			// Upload the output file into DFS !
+			
+			try {
+				Registry reigstry = LocateRegistry.getRegistry(nameNodeIP, nameNodeRegPort);
+				nameNode = (NameNodeInterface)reigstry.lookup(nameNodeService);
+			} catch (RemoteException | NotBoundException e) {
+				System.err.println("Cannot connect to the name node !!");
+				System.exit(-1);
+			}
+			
+			TaskTracker.updateReduceStatus(jobID, true);
 
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
-		
+		} catch (ClassNotFoundException | InstantiationException |
+				IllegalAccessException | UnsupportedEncodingException e) {
+			TaskTracker.handleMapperNodeFailure(jobID);
+			System.err.println("Reducer fails while fetching partitions !!");
+			System.exit(-1);
+		} 
 	}
-
 }

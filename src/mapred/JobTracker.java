@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -24,6 +25,9 @@ import format.KVPair;
 public class JobTracker extends UnicastRemoteObject implements JobTrackerInterface {
 
 	private static final long serialVersionUID = 9023603070698668607L;
+	
+	private static JobTracker jobTracker = null;
+	
 	private static JobScheduler jobScheduler = new JobScheduler();
 	private static NameNodeInterface nameNode = null;
 	
@@ -41,6 +45,9 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	private static String nameNodeIP;
 	private static Integer nameNodeRegPort;
 	private static String nameNodeService;
+	
+	private static Integer taskTrackerRegPort;
+	private static String taskTrackServiceName;
 	
 	// The path for uploading the programmer's Mapper and Reducer
 	private static String jobUploadPath;
@@ -65,9 +72,20 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	// <jobID,<Do Job Node,<ChunkID,Chunk host Node>>>
 	public static ConcurrentHashMap<Integer, HashMap<String, HashMap<Integer, String>>> jobID_mapTasks = new ConcurrentHashMap<Integer, HashMap<String, HashMap<Integer, String>>>();
 	
+	
+	public static ConcurrentHashMap<Integer, HashMap<String, ArrayList<String>>> jobID_nodes_partitionsPath = new ConcurrentHashMap<Integer, HashMap<String, ArrayList<String>>>();
+	
 	// Associate jobID with configuration information
 	public static ConcurrentHashMap<Integer, KVPair> jobID_mapRedName = new ConcurrentHashMap<Integer, KVPair>();
 	public static ConcurrentHashMap<Integer, KVPair> jobID_mapRedPath = new ConcurrentHashMap<Integer, KVPair>();
+	
+	public static ConcurrentHashMap<Integer, JobStatus> jobID_status = new ConcurrentHashMap<Integer, JobStatus>();
+	public static ConcurrentHashMap<Integer, JobConfiguration> jobID_configuration = new ConcurrentHashMap<Integer, JobConfiguration>();
+	
+	public static ConcurrentHashMap<Integer, Integer> jobID_mapFailureTimes = new ConcurrentHashMap<Integer, Integer>();
+	public static ConcurrentHashMap<Integer, Integer> jobID_reduceFailureTimes = new ConcurrentHashMap<Integer, Integer>();
+	
+	public static Integer jobMaxFailureThreshold;
 	
 	protected JobTracker() throws RemoteException {
 		super();
@@ -93,6 +111,9 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		// step 2: update the globaljobID
 		Integer jobID = globaljobID;
 		updateGlobaljobID();
+		jobID_status.put(jobID, JobStatus.INPROGRESS);
+		jobID_mapFailureTimes.put(jobID, 1);
+		jobID_reduceFailureTimes.put(jobID, 1);
 		
 		// step 3: Get the working node and chunks from jobScheduler
 		Hashtable<Integer,HashSet<String>> chunkDistribution = nameNode.getFileDistributionTable().get(jobConf.getInputfile());
@@ -105,7 +126,12 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			localizeJob(mapper, reducer, jobID);
 		}
 		
-		// step 5: Send work to node 
+		// step 5: initial maps with jobID
+		jobID_node_taskStatus.put(jobID, new HashMap<String, TaskStatusInfo>());
+		jobID_nodes_partitionsPath.put(jobID, new HashMap<String, ArrayList<String>>());
+		jobID_configuration.put(jobID, jobConf);
+		
+		// step 6: Send work to node 
 		for (String node : nodeToChunks.keySet()) {
 			if(jobID_node_taskStatus.get(jobID).get(node) == null) {
 				HashMap<String, TaskStatusInfo> taskNodeStatus = new HashMap<String, TaskStatusInfo>();
@@ -113,11 +139,93 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 				jobID_node_taskStatus.put(jobID, taskNodeStatus);
 			}
 			
+			if(jobID_nodes_partitionsPath.get(jobID).get(node) == null) {
+				HashMap<String, ArrayList<String>> nodes_partitionsPath = new HashMap<String, ArrayList<String>>();
+				nodes_partitionsPath.put(node, new ArrayList<String>());
+				jobID_nodes_partitionsPath.put(jobID, nodes_partitionsPath);
+			}
+			
 			System.out.println("choose node: " + node + " to run one or more Mapper tasks!");
 			TaskThread mapTask = new TaskThread(node,jobID,jobConf,nodeToChunks.get(node),true,0,null,0);
 			executor.execute(mapTask);
 		}
 		return jobID.toString();
+	}
+	
+	public static void handleMapperFailure (int jobID, String node, Set<Integer> chunks) {
+		// step1: 调Stan, 设为unhealthy
+		// step2: 重新分配该node上的chunks
+		// step3: 更新分配表
+		// step4: 重新启动一个TaskThread.
+		if(node_totalTasks.get(node) != null) {
+			node_totalTasks.remove(node);
+		}
+		
+		int failureTimes = jobID_mapFailureTimes.get(jobID);
+		if(failureTimes < jobMaxFailureThreshold) {
+//TODO		nameNode.setNodeStatus(node, false);
+			Hashtable<Integer,HashSet<String>> chunkDistribution = nameNode.getFileDistributionTable().get(jobID_configuration.get(jobID).getInputfile());
+			Hashtable<Integer,HashSet<String>> result = new Hashtable<Integer,HashSet<String>>();
+			for(int chunk : chunks) {
+				HashSet<String> nodes = chunkDistribution.get(chunk);
+				result.put(chunk, nodes);
+			}
+			HashMap<String,HashMap<Integer,String>> nodeToChunks = jobScheduler.selectBestNodeToChunks(result);
+			
+			for (String assignedNode : nodeToChunks.keySet()) {
+				if(jobID_node_taskStatus.get(jobID).get(assignedNode) == null) {
+					HashMap<String, TaskStatusInfo> taskNodeStatus = new HashMap<String, TaskStatusInfo>();
+					taskNodeStatus.put(assignedNode, new TaskStatusInfo());
+					jobID_node_taskStatus.put(jobID, taskNodeStatus);
+				}
+				
+				if(jobID_nodes_partitionsPath.get(jobID).get(assignedNode) == null) {
+					HashMap<String, ArrayList<String>> nodes_partitionsPath = new HashMap<String, ArrayList<String>>();
+					nodes_partitionsPath.put(assignedNode, new ArrayList<String>());
+					jobID_nodes_partitionsPath.put(jobID, nodes_partitionsPath);
+				}
+				
+				System.out.println("choose node: " + assignedNode + " to run one or more Mapper tasks!");
+				TaskThread mapTask = new TaskThread(assignedNode,jobID,jobID_configuration.get(jobID),nodeToChunks.get(assignedNode),true,0,null,0);
+				executor.execute(mapTask);
+			}
+			
+			jobID_mapFailureTimes.put(jobID, failureTimes + 1);
+			
+		} else {
+			jobID_status.put(jobID, JobStatus.FAIL);
+			jobTracker.terminateJob(jobID);
+			System.out.println("Job terminated!");
+			System.exit(-1);
+		}
+	}
+	
+	public static void handleReducerFailure (int jobID, int partitionNo) {
+		// step1: 调Stan, 设为unhealthy
+		// step2: 重新分配该node上的任务
+		// step3: 更新分配表
+		// step4: 重新启动一个TaskThread.
+		
+//TODO	nameNode.setNodeStatus(node, false);
+		int failureTimes = jobID_mapFailureTimes.get(jobID);
+		if(failureTimes < jobMaxFailureThreshold) {
+			ArrayList<String> chosenReduceNodes = jobScheduler.pickBestNodesForReduce(1);
+			HashMap<String, ArrayList<String>> nodes_partitionsPath = jobID_nodes_partitionsPath.get(jobID);
+			if(chosenReduceNodes == null) {
+				System.out.println("System is busy, the job fails");
+				jobID_status.put(jobID, JobStatus.FAIL);
+				return;
+			}
+			TaskThread reduceTask = new TaskThread(chosenReduceNodes.get(0), jobID, null, null, false, partitionNo, nodes_partitionsPath, partitionNums);	
+			executor.execute(reduceTask);
+			
+			jobID_mapFailureTimes.put(jobID, failureTimes + 1);
+		} else {
+			jobID_status.put(jobID, JobStatus.FAIL);
+			jobTracker.terminateJob(jobID);
+			System.out.println("Job terminated!");
+			System.exit(-1);
+		}
 	}
 
 	public void updateGlobaljobID(){
@@ -153,13 +261,14 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		System.out.println("Start reduce job !!");
 		int numOfPartitions = partitionNums;
 		ArrayList<String> chosenReduceNodes = jobScheduler.pickBestNodesForReduce(numOfPartitions);
+		HashMap<String, ArrayList<String>> nodes_partitionsPath = jobID_nodes_partitionsPath.get(jobID);
 		if(chosenReduceNodes == null) {
 			System.out.println("System is busy, the job fails");
+			jobID_status.put(jobID, JobStatus.FAIL);
 			return;
 		}
 		for(int i = 0; i < numOfPartitions; i++) {
-			// TODO Auto-generated method stub
-			TaskThread reduceTask = new TaskThread(chosenReduceNodes.get(i), jobID, null, null, false, i, null,partitionNums);	
+			TaskThread reduceTask = new TaskThread(chosenReduceNodes.get(i), jobID, null, null, false, i, nodes_partitionsPath, partitionNums);	
 			executor.execute(reduceTask);
 		}
 	}
@@ -180,10 +289,31 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	
 	@Override
 	public void terminateJob(int jobID) {
+		
+		if(!jobID_node_taskStatus.contains(jobID)) {
+			return;
+		}
+		
+		for (String node : jobID_node_taskStatus.get(jobID).keySet()) {
+			try {
+				Registry registry = LocateRegistry.getRegistry(node, taskTrackerRegPort);
+				TaskTrackerInterface taskTracker = (TaskTrackerInterface) registry.lookup(taskTrackServiceName);
+				taskTracker.remove(jobID);
+			} catch (RemoteException e) {
+				e.printStackTrace();
+			} catch (NotBoundException e) {
+				e.printStackTrace();
+			} 
+		}			
+		
 		jobID_node_taskStatus.remove(jobID);
 		jobID_mapTasks.remove(jobID);
 		jobID_mapRedName.remove(jobID);
 		jobID_mapRedPath.remove(jobID);
+		jobID_mapFailureTimes.remove(jobID);
+		jobID_reduceFailureTimes.remove(jobID);
+		jobID_configuration.remove(jobID);
+		jobID_status.remove(jobID);
 	}
 
 	@Override
@@ -234,7 +364,60 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	
 	
 	@Override
-	public void responseToHeartBeat(String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus) {
+	public void notifyMapperFinish (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus, 
+			ConcurrentHashMap<Integer, ArrayList<String>> jobID_parFilePath) {
+		
+		int unfinishedMapTasks = 0;
+		int unfinishedReduceTasks = 0;
+		
+		for(int jobID : jobID_taskStatus.keySet()) {
+			// step1: update jobID_node_taskStatus
+			if(jobID_status.get(jobID) == null) {
+				continue;
+			}
+			TaskStatusInfo taskStatusInfo = jobID_taskStatus.get(jobID);
+			jobID_node_taskStatus.get(jobID).put(node, taskStatusInfo);
+			unfinishedMapTasks += taskStatusInfo.getUnfinishedMapTasks();
+			unfinishedReduceTasks += taskStatusInfo.getUnfinishedReduceTasks();
+			
+			// step2: update jobID_nodes_partitionsPath
+			HashMap<String, ArrayList<String>> nodes_Paths = jobID_nodes_partitionsPath.get(jobID);
+			nodes_Paths.get(node).addAll(jobID_parFilePath.get(jobID));
+		
+			
+			// step3: if the whole mapper process has finished, start reduce phase.
+			if(isMapperJobFinished(jobID)) {
+				startReducePhase(jobID);
+			}
+		}
+		
+		node_totalTasks.put(node, unfinishedMapTasks + unfinishedReduceTasks);
+		
+	}
+	
+	@Override
+	public void notifyReducerFinish (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus) {
+		int unfinishedMapTasks = 0;
+		int unfinishedReduceTasks = 0;
+		
+		for(int jobID : jobID_taskStatus.keySet()) {
+			// step1: update jobID_node_taskStatus
+			TaskStatusInfo taskStatusInfo = jobID_taskStatus.get(jobID);
+			jobID_node_taskStatus.get(jobID).put(node, taskStatusInfo);
+			unfinishedMapTasks += taskStatusInfo.getUnfinishedMapTasks();
+			unfinishedReduceTasks += taskStatusInfo.getUnfinishedReduceTasks();
+			
+			if(isReducerJobFinished(jobID)) {
+				jobID_status.put(jobID, JobStatus.SUCCESS);
+				terminateJob(jobID);
+			}
+		}
+		
+		node_totalTasks.put(node, unfinishedMapTasks + unfinishedReduceTasks);
+	}
+	
+	@Override
+	public void responseToHeartbeat (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus) {
 		int unfinishedMapTasks = 0;
 		int unfinishedReduceTasks = 0;
 		
@@ -243,8 +426,35 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			jobID_node_taskStatus.get(jobID).put(node, taskStatusInfo);
 			unfinishedMapTasks += taskStatusInfo.getUnfinishedMapTasks();
 			unfinishedReduceTasks += taskStatusInfo.getUnfinishedReduceTasks();
+			
+			if(isReducerJobFinished(jobID)) {
+				terminateJob(jobID);
+			}
 		}
+		
 		node_totalTasks.put(node, unfinishedMapTasks + unfinishedReduceTasks);
+	}
+	
+	public boolean isMapperJobFinished(int jobID){
+		HashMap<String,TaskStatusInfo> node_status = jobID_node_taskStatus.get(jobID);
+		for(String nodeIP : node_status.keySet()) {
+			TaskStatusInfo taskStatusInfo = node_status.get(nodeIP);
+			if(taskStatusInfo.getUnfinishedMapTasks() != 0) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	public boolean isReducerJobFinished(int jobID){
+		HashMap<String,TaskStatusInfo> node_status = jobID_node_taskStatus.get(jobID);
+		for(String nodeIP : node_status.keySet()) {
+			TaskStatusInfo taskStatusInfo = node_status.get(nodeIP);
+			if(taskStatusInfo.getUnfinishedReduceTasks() != 0) {
+				return false;
+			}
+		}
+		return true;
 	}
 	
 	private void initSlaveNodes (String slaveListPath) {
@@ -261,7 +471,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	
 	public static void main (String args[]) {
 		try {
-			JobTracker jobTracker = new JobTracker();
+			jobTracker = new JobTracker();
 			
 			// 1. Read DFS and MapReduce's configuration files and fill the properties to the jobTrack object
 			IOUtil.readConf(DFSConfPath, jobTracker);
