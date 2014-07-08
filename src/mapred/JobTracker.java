@@ -494,4 +494,9 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		}
 	}
 
+	@Override
+	public void updateJobStatus(Integer jobId, JobStatus jobStatus) {
+		jobID_status.put(jobId, jobStatus);
+	}
+
 }

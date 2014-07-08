@@ -34,4 +34,5 @@ public interface JobTrackerInterface extends Remote {
 	
 	public void responseToHeartbeat (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus);
 
+	public void updateJobStatus(Integer jobId, JobStatus jobStatus);
 }

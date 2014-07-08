@@ -20,6 +20,7 @@ import java.util.concurrent.Executors;
 import dfs.NameNodeInterface;
 import format.KVPair;
 import util.IOUtil;
+import util.JobStatus;
 
 public class TaskTracker extends UnicastRemoteObject implements
 		TaskTrackerInterface {
@@ -57,6 +58,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	private static Integer taskTrackerRegPort;
 	private static String taskTrackServiceName;
 	private static Integer mapperChunkThreshold;
+	private static Integer jobMaxFailureThreshold;
 	
 	private static String node;
 
@@ -122,7 +124,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 			RMIServiceInfo rmiServiceInfo = new RMIServiceInfo();
 			rmiServiceInfo.settingForMapper(dataNodeRegPort, dataNodeService,partitionNums,partitionFilePath);
 			startMapTask(jobID, chunksAndNodes.size(), jobConf, chunksAndNodes,
-					mapperName, mapperNum, rmiServiceInfo);
+					mapperName, mapperNum, rmiServiceInfo,1);
 		}
 	}
 	
@@ -134,9 +136,9 @@ public class TaskTracker extends UnicastRemoteObject implements
 	}
 
 	public void startMapTask(int jobID, int numOfChunks, JobConfiguration jobConf, 
-			ArrayList<KVPair> pairLists, String classname, Integer mapperNum, RMIServiceInfo rmiServiceInfo) {
+			ArrayList<KVPair> pairLists, String classname, Integer mapperNum, RMIServiceInfo rmiServiceInfo,int tryNums) {
 		
-		MapRunner mapRunner = new MapRunner(jobID, numOfChunks, jobConf, pairLists, classname, mapperNum, rmiServiceInfo);
+		MapRunner mapRunner = new MapRunner(jobID, numOfChunks, jobConf, pairLists, classname, mapperNum, rmiServiceInfo,1);
 		executor.execute(mapRunner);
 	}
 
@@ -227,30 +229,38 @@ public class TaskTracker extends UnicastRemoteObject implements
 	}
 	
 	public static void handleDataNodeFailure (Integer jobID, Integer numOfChunks, JobConfiguration jobConf,
-			ArrayList<KVPair> pairLists, String classname, Integer mapperNum, RMIServiceInfo rmiServiceInfo) {
+			ArrayList<KVPair> pairLists, String classname, Integer mapperNum, RMIServiceInfo rmiServiceInfo,int tryNums) {
 		
-		ArrayList<Integer> chunks = new ArrayList<Integer>();
-		ArrayList<KVPair> pairs = new ArrayList<KVPair>();
-		
-		for(KVPair kvPair : pairLists) {
-			chunks.add((Integer)kvPair.getKey());
-		}
-		Hashtable<Integer,HashSet<String>> chunkDistribution = nameNode.getFileDistributionTable().get(jobConf.getInputfile());
-		HashSet<String> healthyNodes = nameNode.getHealthyNodes();
-		
-		for(int i = 0; i < chunks.size(); i++) {
-			if(healthyNodes.contains((String)pairLists.get(i).getValue())) {
-				continue;
+		if(tryNums < jobMaxFailureThreshold) {
+			ArrayList<Integer> chunks = new ArrayList<Integer>();
+			ArrayList<KVPair> pairs = new ArrayList<KVPair>();
+			
+			for(KVPair kvPair : pairLists) {
+				chunks.add((Integer)kvPair.getKey());
 			}
-			HashSet<String> distribution = chunkDistribution.get(chunks.get(i));
-			for(String node : distribution) {
-				if(healthyNodes.contains(node)) {
-					pairs.add(new KVPair(chunks.get(i), node));
+			Hashtable<Integer,HashSet<String>> chunkDistribution = nameNode.getFileDistributionTable().get(jobConf.getInputfile());
+			HashSet<String> healthyNodes = nameNode.getHealthyNodes();
+			
+			for(int i = 0; i < chunks.size(); i++) {
+				if(healthyNodes.contains((String)pairLists.get(i).getValue())) {
+					continue;
 				}
-				break;
+				HashSet<String> distribution = chunkDistribution.get(chunks.get(i));
+				for(String node : distribution) {
+					if(healthyNodes.contains(node)) {
+						pairs.add(new KVPair(chunks.get(i), node));
+					}
+					break;
+				}
 			}
+			taskTracker.startMapTask(jobID, numOfChunks, jobConf, pairs, classname, mapperNum, rmiServiceInfo,tryNums++);
+		} else {
+			jobTracker.updateJobStatus(jobID, JobStatus.FAIL);
+			jobTracker.terminateJob(jobID);
+			System.out.println("Job terminated!");
+			System.exit(-1);
 		}
-		taskTracker.startMapTask(jobID, numOfChunks, jobConf, pairs, classname, mapperNum, rmiServiceInfo);
+		
 	}
 	
 	public static void handleMapperNodeFailure (int jobID) {
