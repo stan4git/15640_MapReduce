@@ -12,6 +12,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -23,8 +25,10 @@ import format.KVPair;
 
 public class JobTracker extends UnicastRemoteObject implements JobTrackerInterface {
 
-	private static JobTracker jobTracker = null;
 	private static final long serialVersionUID = 9023603070698668607L;
+	
+	private static JobTracker jobTracker = null;
+	
 	private static JobScheduler jobScheduler = new JobScheduler();
 	private static NameNodeInterface nameNode = null;
 	
@@ -77,6 +81,8 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	public static ConcurrentHashMap<Integer, KVPair> jobID_mapRedPath = new ConcurrentHashMap<Integer, KVPair>();
 	
 	public static ConcurrentHashMap<Integer, JobStatus> jobID_status = new ConcurrentHashMap<Integer, JobStatus>();
+	public static ConcurrentHashMap<Integer, JobConfiguration> jobID_configuration = new ConcurrentHashMap<Integer, JobConfiguration>();
+	
 	public static ConcurrentHashMap<Integer, Integer> jobID_mapFailureTimes = new ConcurrentHashMap<Integer, Integer>();
 	public static ConcurrentHashMap<Integer, Integer> jobID_reduceFailureTimes = new ConcurrentHashMap<Integer, Integer>();
 	
@@ -124,6 +130,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		// step 5: initial maps with jobID
 		jobID_node_taskStatus.put(jobID, new HashMap<String, TaskStatusInfo>());
 		jobID_nodes_partitionsPath.put(jobID, new HashMap<String, ArrayList<String>>());
+		jobID_configuration.put(jobID, jobConf);
 		
 		// step 6: Send work to node 
 		for (String node : nodeToChunks.keySet()) {
@@ -146,49 +153,79 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		return jobID.toString();
 	}
 	
-	public static void handleMapperFailure (int jobID) {
+	public static void handleMapperFailure (int jobID, String node, Set<Integer> chunks) {
 		// step1: 调Stan, 设为unhealthy
 		// step2: 重新分配该node上的chunks
 		// step3: 更新分配表
 		// step4: 重新启动一个TaskThread.
-		
-		while(true) {
-			int failureTimes = jobID_mapFailureTimes.get(jobID);
-			if(failureTimes < jobMaxFailureThreshold) {
-//				System.out.println("Restarting job!");
-//				res = jobtracker.submitJob(jobConf,mapper,reducer);
-				jobID_mapFailureTimes.put(jobID, failureTimes + 1);
-				continue;
-			} else {
-				jobID_status.put(jobID, JobStatus.FAIL);
-				jobTracker.terminateJob(jobID);
-				System.out.println("Job terminated!");
-				System.exit(-1);
-			}
+		if(node_totalTasks.get(node) != null) {
+			node_totalTasks.remove(node);
 		}
 		
-		
+		int failureTimes = jobID_mapFailureTimes.get(jobID);
+		if(failureTimes < jobMaxFailureThreshold) {
+//TODO		nameNode.setNodeStatus(node, false);
+			Hashtable<Integer,HashSet<String>> chunkDistribution = nameNode.getFileDistributionTable().get(jobID_configuration.get(jobID).getInputfile());
+			Hashtable<Integer,HashSet<String>> result = new Hashtable<Integer,HashSet<String>>();
+			for(int chunk : chunks) {
+				HashSet<String> nodes = chunkDistribution.get(chunk);
+				result.put(chunk, nodes);
+			}
+			HashMap<String,HashMap<Integer,String>> nodeToChunks = jobScheduler.selectBestNodeToChunks(result);
+			
+			for (String assignedNode : nodeToChunks.keySet()) {
+				if(jobID_node_taskStatus.get(jobID).get(assignedNode) == null) {
+					HashMap<String, TaskStatusInfo> taskNodeStatus = new HashMap<String, TaskStatusInfo>();
+					taskNodeStatus.put(assignedNode, new TaskStatusInfo());
+					jobID_node_taskStatus.put(jobID, taskNodeStatus);
+				}
+				
+				if(jobID_nodes_partitionsPath.get(jobID).get(assignedNode) == null) {
+					HashMap<String, ArrayList<String>> nodes_partitionsPath = new HashMap<String, ArrayList<String>>();
+					nodes_partitionsPath.put(assignedNode, new ArrayList<String>());
+					jobID_nodes_partitionsPath.put(jobID, nodes_partitionsPath);
+				}
+				
+				System.out.println("choose node: " + assignedNode + " to run one or more Mapper tasks!");
+				TaskThread mapTask = new TaskThread(assignedNode,jobID,jobID_configuration.get(jobID),nodeToChunks.get(assignedNode),true,0,null,0);
+				executor.execute(mapTask);
+			}
+			
+			jobID_mapFailureTimes.put(jobID, failureTimes + 1);
+			
+		} else {
+			jobID_status.put(jobID, JobStatus.FAIL);
+			jobTracker.terminateJob(jobID);
+			System.out.println("Job terminated!");
+			System.exit(-1);
+		}
 	}
 	
-	public static void handleReducerFailure (int jobID) {
+	public static void handleReducerFailure (int jobID, int partitionNo) {
 		// step1: 调Stan, 设为unhealthy
 		// step2: 重新分配该node上的任务
 		// step3: 更新分配表
 		// step4: 重新启动一个TaskThread.
 		
-		while(true) {
-			int failureTimes = jobID_mapFailureTimes.get(jobID);
-			if(failureTimes < jobMaxFailureThreshold) {
-//				System.out.println("Restarting job!");
-//				res = jobtracker.submitJob(jobConf,mapper,reducer);
-				jobID_mapFailureTimes.put(jobID, failureTimes + 1);
-				continue;
-			} else {
+//TODO	nameNode.setNodeStatus(node, false);
+		int failureTimes = jobID_mapFailureTimes.get(jobID);
+		if(failureTimes < jobMaxFailureThreshold) {
+			ArrayList<String> chosenReduceNodes = jobScheduler.pickBestNodesForReduce(1);
+			HashMap<String, ArrayList<String>> nodes_partitionsPath = jobID_nodes_partitionsPath.get(jobID);
+			if(chosenReduceNodes == null) {
+				System.out.println("System is busy, the job fails");
 				jobID_status.put(jobID, JobStatus.FAIL);
-				jobTracker.terminateJob(jobID);
-				System.out.println("Job terminated!");
-				System.exit(-1);
+				return;
 			}
+			TaskThread reduceTask = new TaskThread(chosenReduceNodes.get(0), jobID, null, null, false, partitionNo, nodes_partitionsPath, partitionNums);	
+			executor.execute(reduceTask);
+			
+			jobID_mapFailureTimes.put(jobID, failureTimes + 1);
+		} else {
+			jobID_status.put(jobID, JobStatus.FAIL);
+			jobTracker.terminateJob(jobID);
+			System.out.println("Job terminated!");
+			System.exit(-1);
 		}
 	}
 
@@ -276,6 +313,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		jobID_mapRedPath.remove(jobID);
 		jobID_mapFailureTimes.remove(jobID);
 		jobID_reduceFailureTimes.remove(jobID);
+		jobID_configuration.remove(jobID);
 		jobID_status.remove(jobID);
 	}
 
