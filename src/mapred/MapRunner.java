@@ -94,7 +94,8 @@ public class MapRunner implements Runnable{
 				| InstantiationException | IllegalAccessException 
 				| IllegalArgumentException | InvocationTargetException | RemoteException 
 				| NotBoundException | UnsupportedEncodingException e) {
-			e.printStackTrace();
+			TaskTracker.handleDataNodeFailure(jobID, pairLists);
+			System.err.println("Mapper fails while fetching chunks !!");
 		}
 		
 	}

@@ -23,6 +23,7 @@ import format.KVPair;
 
 public class JobTracker extends UnicastRemoteObject implements JobTrackerInterface {
 
+	private static JobTracker jobTracker = null;
 	private static final long serialVersionUID = 9023603070698668607L;
 	private static JobScheduler jobScheduler = new JobScheduler();
 	private static NameNodeInterface nameNode = null;
@@ -41,6 +42,9 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	private static String nameNodeIP;
 	private static Integer nameNodeRegPort;
 	private static String nameNodeService;
+	
+	private static Integer taskTrackerRegPort;
+	private static String taskTrackServiceName;
 	
 	// The path for uploading the programmer's Mapper and Reducer
 	private static String jobUploadPath;
@@ -72,6 +76,12 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	public static ConcurrentHashMap<Integer, KVPair> jobID_mapRedName = new ConcurrentHashMap<Integer, KVPair>();
 	public static ConcurrentHashMap<Integer, KVPair> jobID_mapRedPath = new ConcurrentHashMap<Integer, KVPair>();
 	
+	public static ConcurrentHashMap<Integer, JobStatus> jobID_status = new ConcurrentHashMap<Integer, JobStatus>();
+	public static ConcurrentHashMap<Integer, Integer> jobID_mapFailureTimes = new ConcurrentHashMap<Integer, Integer>();
+	public static ConcurrentHashMap<Integer, Integer> jobID_reduceFailureTimes = new ConcurrentHashMap<Integer, Integer>();
+	
+	public static Integer jobMaxFailureThreshold;
+	
 	protected JobTracker() throws RemoteException {
 		super();
 		globaljobID = 0;
@@ -96,6 +106,9 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		// step 2: update the globaljobID
 		Integer jobID = globaljobID;
 		updateGlobaljobID();
+		jobID_status.put(jobID, JobStatus.INPROGRESS);
+		jobID_mapFailureTimes.put(jobID, 1);
+		jobID_reduceFailureTimes.put(jobID, 1);
 		
 		// step 3: Get the working node and chunks from jobScheduler
 		Hashtable<Integer,HashSet<String>> chunkDistribution = nameNode.getFileDistributionTable().get(jobConf.getInputfile());
@@ -131,6 +144,52 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			executor.execute(mapTask);
 		}
 		return jobID.toString();
+	}
+	
+	public static void handleMapperFailure (int jobID) {
+		// step1: 调Stan, 设为unhealthy
+		// step2: 重新分配该node上的chunks
+		// step3: 更新分配表
+		// step4: 重新启动一个TaskThread.
+		
+		while(true) {
+			int failureTimes = jobID_mapFailureTimes.get(jobID);
+			if(failureTimes < jobMaxFailureThreshold) {
+//				System.out.println("Restarting job!");
+//				res = jobtracker.submitJob(jobConf,mapper,reducer);
+				jobID_mapFailureTimes.put(jobID, failureTimes + 1);
+				continue;
+			} else {
+				jobID_status.put(jobID, JobStatus.FAIL);
+				jobTracker.terminateJob(jobID);
+				System.out.println("Job terminated!");
+				System.exit(-1);
+			}
+		}
+		
+		
+	}
+	
+	public static void handleReducerFailure (int jobID) {
+		// step1: 调Stan, 设为unhealthy
+		// step2: 重新分配该node上的任务
+		// step3: 更新分配表
+		// step4: 重新启动一个TaskThread.
+		
+		while(true) {
+			int failureTimes = jobID_mapFailureTimes.get(jobID);
+			if(failureTimes < jobMaxFailureThreshold) {
+//				System.out.println("Restarting job!");
+//				res = jobtracker.submitJob(jobConf,mapper,reducer);
+				jobID_mapFailureTimes.put(jobID, failureTimes + 1);
+				continue;
+			} else {
+				jobID_status.put(jobID, JobStatus.FAIL);
+				jobTracker.terminateJob(jobID);
+				System.out.println("Job terminated!");
+				System.exit(-1);
+			}
+		}
 	}
 
 	public void updateGlobaljobID(){
@@ -169,6 +228,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		HashMap<String, ArrayList<String>> nodes_partitionsPath = jobID_nodes_partitionsPath.get(jobID);
 		if(chosenReduceNodes == null) {
 			System.out.println("System is busy, the job fails");
+			jobID_status.put(jobID, JobStatus.FAIL);
 			return;
 		}
 		for(int i = 0; i < numOfPartitions; i++) {
@@ -193,10 +253,30 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	
 	@Override
 	public void terminateJob(int jobID) {
+		
+		if(!jobID_node_taskStatus.contains(jobID)) {
+			return;
+		}
+		
+		for (String node : jobID_node_taskStatus.get(jobID).keySet()) {
+			try {
+				Registry registry = LocateRegistry.getRegistry(node, taskTrackerRegPort);
+				TaskTrackerInterface taskTracker = (TaskTrackerInterface) registry.lookup(taskTrackServiceName);
+				taskTracker.remove(jobID);
+			} catch (RemoteException e) {
+				e.printStackTrace();
+			} catch (NotBoundException e) {
+				e.printStackTrace();
+			} 
+		}			
+		
 		jobID_node_taskStatus.remove(jobID);
 		jobID_mapTasks.remove(jobID);
 		jobID_mapRedName.remove(jobID);
 		jobID_mapRedPath.remove(jobID);
+		jobID_mapFailureTimes.remove(jobID);
+		jobID_reduceFailureTimes.remove(jobID);
+		jobID_status.remove(jobID);
 	}
 
 	@Override
@@ -255,6 +335,9 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		
 		for(int jobID : jobID_taskStatus.keySet()) {
 			// step1: update jobID_node_taskStatus
+			if(jobID_status.get(jobID) == null) {
+				continue;
+			}
 			TaskStatusInfo taskStatusInfo = jobID_taskStatus.get(jobID);
 			jobID_node_taskStatus.get(jobID).put(node, taskStatusInfo);
 			unfinishedMapTasks += taskStatusInfo.getUnfinishedMapTasks();
@@ -288,6 +371,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			unfinishedReduceTasks += taskStatusInfo.getUnfinishedReduceTasks();
 			
 			if(isReducerJobFinished(jobID)) {
+				jobID_status.put(jobID, JobStatus.SUCCESS);
 				terminateJob(jobID);
 			}
 		}
@@ -350,7 +434,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	
 	public static void main (String args[]) {
 		try {
-			JobTracker jobTracker = new JobTracker();
+			jobTracker = new JobTracker();
 			
 			// 1. Read DFS and MapReduce's configuration files and fill the properties to the jobTrack object
 			IOUtil.readConf(DFSConfPath, jobTracker);

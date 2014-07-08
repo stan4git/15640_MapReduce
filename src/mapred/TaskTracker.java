@@ -9,7 +9,6 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -220,10 +219,23 @@ public class TaskTracker extends UnicastRemoteObject implements
 			@Override
 			public void run() {
 				jobTracker.responseToHeartbeat(node, jobID_taskStatus);
-			}
-			
+			}	
 		};
 		new Timer().scheduleAtFixedRate (timerTask, 0, 5000);
+	}
+	
+	public static void handleDataNodeFailure (int jobID, ArrayList<KVPair> pairLists) {
+		
+	}
+	
+	public static void handleMapperNodeFailure (int jobID) {
+		jobTracker.terminateJob(jobID);
+	}
+	
+	public void remove (int jobID) {
+		jobID_parFilePath.remove(jobID);
+		jobID_taskStatus.remove(jobID);
+		jobID_node_mapID.remove(jobID);
 	}
 	
 	

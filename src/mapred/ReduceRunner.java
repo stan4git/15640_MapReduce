@@ -97,26 +97,18 @@ public class ReduceRunner {
 			try {
 				Registry reigstry = LocateRegistry.getRegistry(nameNodeIP, nameNodeRegPort);
 				nameNode = (NameNodeInterface)reigstry.lookup(nameNodeService);
-			} catch (RemoteException e) {
-				e.printStackTrace();
-			} catch (NotBoundException e) {
-				e.printStackTrace();
+			} catch (RemoteException | NotBoundException e) {
+				System.err.println("Cannot connect to the name node !!");
+				System.exit(-1);
 			}
-			
-			
 			
 			TaskTracker.updateMapStatus(jobID, true);
 
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-		} catch (InstantiationException e) {
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
-		
+		} catch (ClassNotFoundException | InstantiationException |
+				IllegalAccessException | UnsupportedEncodingException e) {
+			TaskTracker.handleMapperNodeFailure(jobID);
+			System.err.println("Reducer fails while fetching partitions !!");
+			System.exit(-1);
+		} 
 	}
-
 }
