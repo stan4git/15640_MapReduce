@@ -27,7 +27,6 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	private static final long serialVersionUID = 9023603070698668607L;
 	
 	private static JobTracker jobTracker = null;
-	
 	private static JobScheduler jobScheduler = new JobScheduler();
 	private static NameNodeInterface nameNode = null;
 	
@@ -46,6 +45,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	private static Integer nameNodeRegPort;
 	private static String nameNodeService;
 	
+	// These 2 contains TaksTracker's registry port and service name
 	private static Integer taskTrackerRegPort;
 	private static String taskTrackServiceName;
 	
@@ -67,12 +67,14 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	
 	// node -> status
 	public static HashMap<String, Boolean> node_status;
+	
+	// Each node contains total tasks
 	public static ConcurrentHashMap<String, Integer> node_totalTasks = new ConcurrentHashMap<String, Integer>();
 	
 	// <jobID,<Do Job Node,<ChunkID,Chunk host Node>>>
 	public static ConcurrentHashMap<Integer, HashMap<String, HashMap<Integer, String>>> jobID_mapTasks = new ConcurrentHashMap<Integer, HashMap<String, HashMap<Integer, String>>>();
 	
-	
+	// <jobID,<nodes with partition files, paths>>
 	public static ConcurrentHashMap<Integer, HashMap<String, ArrayList<String>>> jobID_nodes_partitionsPath = new ConcurrentHashMap<Integer, HashMap<String, ArrayList<String>>>();
 	
 	// Associate jobID with configuration information
