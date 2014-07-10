@@ -55,6 +55,7 @@ public class TaskThread implements Runnable {
 				JobTracker.handleReducerFailure(jobID, partitionNo);
 			}
 			System.err.println("Cannot connect to the desired TaskTracker!!");
+			System.exit(-1);
 		}
 		
 		if(isMapTask) {

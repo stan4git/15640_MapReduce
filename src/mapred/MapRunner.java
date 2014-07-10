@@ -100,6 +100,7 @@ public class MapRunner implements Runnable{
 				| NotBoundException | UnsupportedEncodingException e) {
 			TaskTracker.handleDataNodeFailure(jobID, numOfChunks, jobConf, pairLists,classname,mapperNum, rmiServiceInfo,tryNums);
 			System.err.println("Mapper fails while fetching chunks !!");
+			System.exit(-1);
 		}
 		
 	}
