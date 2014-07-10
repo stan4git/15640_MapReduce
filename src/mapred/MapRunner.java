@@ -51,7 +51,9 @@ public class MapRunner implements Runnable{
 	}
 	
 	
-
+	/***
+	 * This method is used to implement the mapper process.
+	 */
 	@SuppressWarnings("unchecked")
 	@Override
 	public void run() {

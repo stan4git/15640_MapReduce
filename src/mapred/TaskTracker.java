@@ -50,7 +50,6 @@ public class TaskTracker extends UnicastRemoteObject implements
 	private static String nameNodeIP;
 	private static Integer nameNodeRegPort;
 	private static String nameNodeService;
-	private static String jobOutputPath;
 	private static String jobTrackerIP;
 	private static Integer jobTrackerRegPort;
 	private static String jobTrackServiceName;
@@ -157,8 +156,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 		
 		localizeReduceTask(jobID);
 		RMIServiceInfo rmiServiceInfo = new RMIServiceInfo();
-		rmiServiceInfo.settingForReducer(nameNodeIP, nameNodeRegPort, nameNodeService, taskTrackerRegPort,
-				taskTrackServiceName, jobOutputPath);
+		rmiServiceInfo.settingForReducer(taskTrackerRegPort, taskTrackServiceName);
 		startReduceTask(jobID, partitionNo, nodesWithPartitions, reducerClassName, rmiServiceInfo);
 	}
 
@@ -172,7 +170,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	public void startReduceTask(int jobID, int partitionNo, HashMap<String, ArrayList<String>> nodesWithPartitions, 
 			String className, RMIServiceInfo rmiServiceInfo) {
 		ReduceRunner reduceRunner = new ReduceRunner(jobID, partitionNo, nodesWithPartitions, className, rmiServiceInfo);
-		reduceRunner.start();
+		executor.execute(reduceRunner);
 	}
 	
 	@Override
@@ -295,6 +293,4 @@ public class TaskTracker extends UnicastRemoteObject implements
 			e.printStackTrace();
 		}
 	}
-
-	
 }
