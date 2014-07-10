@@ -1,5 +1,6 @@
 package mapred;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.rmi.NotBoundException;
@@ -79,7 +80,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	
 	@Override
 	public void registerMapperTask(int jobID, JobConfiguration jobConf,
-			HashMap<Integer, String> chunkSets) {
+			HashMap<Integer, String> chunkSets) throws IOException {
 		System.out.println("This node need to handle the chunk number is: "
 				+ chunkSets.size());
 		int count = 0, mapNums = 0;
@@ -127,7 +128,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 		}
 	}
 	
-	public void localizeMapTask(int jobID) {
+	public void localizeMapTask(int jobID) throws IOException {
 		KVPair mapInfo = jobTracker.getMapperInfo(jobID);
 		mapperClassName = mapInfo.getKey().toString().replace('.', '/') + ".class";
 		byte[] mapperClassContent = (byte[]) mapInfo.getValue();
@@ -142,7 +143,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	}
 
 	public void registerReduceTask(int jobID, int partitionNo, HashMap<String, ArrayList<String>> nodesWithPartitions, 
-			int numOfPartitions) {
+			int numOfPartitions) throws IOException {
 		// Update task status 
 		TaskStatusInfo taskStatusInfo;
 		if(jobID_taskStatus.containsKey(jobID)) {
@@ -160,7 +161,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 		startReduceTask(jobID, partitionNo, nodesWithPartitions, reducerClassName, rmiServiceInfo);
 	}
 
-	public void localizeReduceTask(int jobID) {
+	public void localizeReduceTask(int jobID) throws IOException {
 		KVPair reducerInfo = jobTracker.getReducerInfo(jobID);
 		reducerClassName = reducerInfo.getKey().toString().replace('.', '/') + ".class";
 		byte[] reducerClassContent = (byte[]) reducerInfo.getValue();
@@ -174,7 +175,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	}
 	
 	@Override
-	public byte[] getPartitionContent(String path) {
+	public byte[] getPartitionContent(String path) throws IOException {
 		return IOUtil.readFile(path);
 	}
 	
@@ -273,7 +274,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	
 	
 
-	public static void main(String args[]) {
+	public static void main(String args[]) throws IOException {
 		try {
 			taskTracker = new TaskTracker();
 			IOUtil.readConf(mapredConf, taskTracker);

@@ -31,8 +31,9 @@ public class IOUtil {
 	 *            String the contents we want to write into the file
 	 * @param filename
 	 *            String the file name
+	 * @throws IOException 
 	 */
-	public static void writeToFile(String content, String filename) {
+	public static void writeToFile(String content, String filename) throws IOException {
 		int index = filename.length() - 1;
 		while(index >= 0 && filename.charAt(index) != '/') {
 			index--;
@@ -57,14 +58,14 @@ public class IOUtil {
 			fos = new FileOutputStream(file);
 			fos.write(content.getBytes(), 0, content.getBytes().length);
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			throw new IOException(e.toString());
 		} catch (IOException e) {
-			e.printStackTrace();
+			throw new IOException(e.toString());
 		} finally {
 			try {
 				fos.close();
 			} catch (IOException e) {
-				e.printStackTrace();
+				throw new IOException(e.toString());
 			}
 		}
 	}
@@ -76,8 +77,9 @@ public class IOUtil {
 	 *            byte[] it is the contents you want to write
 	 * @param filename
 	 *            String it is the file name you want to write
+	 * @throws IOException 
 	 */
-	public static void writeBinary(byte[] content, String filename) {
+	public static void writeBinary(byte[] content, String filename) throws IOException {
 		int index = filename.length() - 1;
 		while(index >= 0 && filename.charAt(index) != '/') {
 			index--;
@@ -95,7 +97,7 @@ public class IOUtil {
 			try {
 				file.createNewFile();
 			} catch (IOException e) {
-				e.printStackTrace();
+				throw new IOException(e.toString());
 			}
 		}
 		FileOutputStream fos = null;
@@ -103,14 +105,14 @@ public class IOUtil {
 			fos = new FileOutputStream(file);
 			fos.write(content);
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			throw new IOException(e.toString());
 		} catch (IOException e) {
-			e.printStackTrace();
+			throw new IOException(e.toString());
 		} finally {
 			try {
 				fos.close();
 			} catch (IOException e) {
-				e.printStackTrace();
+				throw new IOException(e.toString());
 			}
 		}
 	}
@@ -122,8 +124,9 @@ public class IOUtil {
 	 *            Object the object you want to write to the file
 	 * @param filename
 	 *            String the file name you need to write
+	 * @throws IOException 
 	 */
-	public static void writeObject(Object obj, String filename) {
+	public static void writeObject(Object obj, String filename) throws IOException {
 		int index = filename.length() - 1;
 		while(index >= 0 && filename.charAt(index) != '/') {
 			index--;
@@ -141,7 +144,7 @@ public class IOUtil {
 			try {
 				file.createNewFile();
 			} catch (IOException e) {
-				e.printStackTrace();
+				throw new IOException(e.toString());
 			}
 		}
 		FileOutputStream fos = null;
@@ -151,15 +154,15 @@ public class IOUtil {
 			oos = new ObjectOutputStream(fos);
 			oos.writeObject(obj);
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			throw new IOException(e.toString());
 		} catch (IOException e) {
-			e.printStackTrace();
+			throw new IOException(e.toString());
 		} finally {
 			try {
 				fos.close();
 				oos.close();
 			} catch (IOException e) {
-				e.printStackTrace();
+				throw new IOException(e.toString());
 			}
 		}
 	}
@@ -171,8 +174,9 @@ public class IOUtil {
 	 *            String the file name you want to write
 	 * @param obj
 	 *            Object the object you want to write
+	 * @throws IOException 
 	 */
-	public static void writeCheckpointFiles(String filename, Object obj) {
+	public static void writeCheckpointFiles(String filename, Object obj) throws IOException {
 		synchronized (obj) {
 			writeObject(obj, filename);
 		}
@@ -184,8 +188,9 @@ public class IOUtil {
 	 * @param filename
 	 *            String The file you need to read
 	 * @return byte[] The return type is byte array
+	 * @throws IOException 
 	 */
-	public static byte[] readFile(String filename) {
+	public static byte[] readFile(String filename) throws IOException {
 		File file = new File(filename);
 		if (!file.exists()) {
 			System.err.println("File " + filename + " does not exist!");
@@ -197,14 +202,14 @@ public class IOUtil {
 			fis = new FileInputStream(file);
 			fis.read(content);
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			throw new IOException(e.toString());
 		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
+			throw new IOException(e.toString());
+		}  finally {
 			try {
 				fis.close();
 			} catch (IOException e) {
-				e.printStackTrace();
+				throw new IOException(e.toString());
 			}
 		}
 		return content;
@@ -216,8 +221,10 @@ public class IOUtil {
 	 * @param filename
 	 *            The file name you want to read
 	 * @return Object return type is an Object
+	 * @throws IOException 
+	 * @throws ClassNotFoundException 
 	 */
-	public static Object readObject(String filename) {
+	public static Object readObject(String filename) throws IOException {
 		Object content = null;
 		File file = new File(filename);
 		if (!file.exists()) {
@@ -231,11 +238,11 @@ public class IOUtil {
 			ois = new ObjectInputStream(fis);
 			content = ois.readObject();
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			throw new FileNotFoundException(e.toString());
 		} catch (IOException e) {
-			e.printStackTrace();
+			throw new IOException(e.toString());
 		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
+			throw new IOException(e.toString());
 		} finally {
 			try {
 				fis.close();
@@ -255,14 +262,17 @@ public class IOUtil {
 	 *            the configuration file name you want to read
 	 * @param obj
 	 *            the Object you want to fill
+	 * @throws IOException 
 	 */
-	public static void readConf(String filename, Object obj) {
+	public static void readConf(String filename, Object obj) throws IOException {
 		String content = null;
 		try {
 			content = new String(readFile(filename), "UTF-8");
-		} catch (UnsupportedEncodingException e1) {
-			e1.printStackTrace();
-		}
+		} catch (FileNotFoundException e) {
+			throw new IOException(e.toString());
+		} catch (IOException e) {
+			throw new IOException(e.toString());
+		} 
 		String lines[] = content.split("\n");
 		for (String line : lines) {
 			String temp[] = new String[2];
@@ -285,13 +295,15 @@ public class IOUtil {
 					field.set(obj, Double.parseDouble(temp[1]));
 				}
 			} catch (NoSuchFieldException e) {
+				throw new IOException(e.toString());
 			} catch (SecurityException e) {
-				e.printStackTrace();
+				throw new IOException(e.toString());
 			} catch (NumberFormatException e) {
+				throw new IOException(e.toString());
 			} catch (IllegalArgumentException e) {
-				e.printStackTrace();
+				throw new IOException(e.toString());
 			} catch (IllegalAccessException e) {
-				e.printStackTrace();
+				throw new IOException(e.toString());
 			}
 		}
 	}
@@ -318,7 +330,7 @@ public class IOUtil {
 			try {
 				file.createNewFile();
 			} catch (IOException e) {
-				e.printStackTrace();
+				throw new IOException(e.toString());
 			}
 		}
 		FileWriter fos = null;
@@ -326,14 +338,14 @@ public class IOUtil {
 			fos = new FileWriter(file);
 			fos.append(new String(chunk));
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			throw new IOException(e.toString());
 		} catch (IOException e) {
-			e.printStackTrace();
+			throw new IOException(e.toString());
 		} finally {
 			try {
 				fos.close();
 			} catch (IOException e) {
-				e.printStackTrace();
+				throw new IOException(e.toString());
 			}
 		}
 	}
@@ -346,7 +358,7 @@ public class IOUtil {
 	}
 	
 	
-	public static ArrayList<Long> calculateFileSplit(String filePath, int chunkSize) {
+	public static ArrayList<Long> calculateFileSplit(String filePath, int chunkSize) throws IOException {
 		RandomAccessFile raFile = null;
 		ArrayList<Long> split = new ArrayList<Long>();
 		try {
@@ -372,14 +384,14 @@ public class IOUtil {
 				}
 			} while (tmp != null);
 		} catch (FileNotFoundException e) {
-			e.printStackTrace();
+			throw new IOException(e.toString());
 		} catch (IOException e) {
-			e.printStackTrace();
+			throw new IOException(e.toString());
 		} finally {
 			try {
 				raFile.close();
 			} catch (IOException e) {
-				return null;
+				throw new IOException(e.toString());
 			}
 		}
 		return split;

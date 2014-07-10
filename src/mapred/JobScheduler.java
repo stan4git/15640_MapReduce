@@ -1,5 +1,6 @@
 package mapred;
 
+import java.io.IOException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -44,14 +45,19 @@ public class JobScheduler {
 	private static String MapReduceConfPath = "conf/mapred.conf";
 
 	public JobScheduler() {
-		init();
+		try {
+			init();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	/**
 	 * This is a method to initialize the class. It contains reading the
 	 * configuration files and get the ROR from the namenode.
+	 * @throws IOException 
 	 */
-	public void init() {
+	public void init() throws IOException {
 		JobScheduler jobScheduler = new JobScheduler();
 		IOUtil.readConf(DFSConfPath, jobScheduler);
 		IOUtil.readConf(MapReduceConfPath, jobScheduler);

@@ -3,7 +3,7 @@
  */
 package mapred;
 
-import java.io.UnsupportedEncodingException;
+import java.io.IOException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -98,11 +98,9 @@ public class ReduceRunner implements Runnable {
 			// step 5 : upload the output file into DFS !
 			DFSClient dfsClient = new DFSClient();
 			dfsClient.putFile(reduceFileName);
-			
 			TaskTracker.updateReduceStatus(jobID, true);
-
 		} catch (ClassNotFoundException | InstantiationException |
-				IllegalAccessException | UnsupportedEncodingException e) {
+				IllegalAccessException | IOException e) {
 			TaskTracker.handleMapperNodeFailure(jobID);
 			System.err.println("Reducer fails while fetching partitions !!");
 			System.exit(-1);
