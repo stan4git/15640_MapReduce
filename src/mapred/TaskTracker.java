@@ -179,7 +179,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 		return IOUtil.readFile(path);
 	}
 	
-	public static void updateMapStatus(Integer jobID, boolean isSuccessful) {
+	public static void updateMapStatus(Integer jobID, boolean isSuccessful) throws RemoteException {
 		if(isSuccessful) {
 			TaskStatusInfo taskStatusInfo = TaskTracker.jobID_taskStatus.get(jobID);
 			int curUnfinishedMapTasks = taskStatusInfo.getUnfinishedMapTasks() - 1;
@@ -228,7 +228,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	}
 	
 	public static void handleDataNodeFailure (Integer jobID, Integer numOfChunks, JobConfiguration jobConf,
-			ArrayList<KVPair> pairLists, String classname, Integer mapperNum, RMIServiceInfo rmiServiceInfo,int tryNums) {
+			ArrayList<KVPair> pairLists, String classname, Integer mapperNum, RMIServiceInfo rmiServiceInfo,int tryNums) throws RemoteException {
 		
 		if(tryNums < jobMaxFailureThreshold) {
 			ArrayList<Integer> chunks = new ArrayList<Integer>();

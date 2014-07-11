@@ -2,6 +2,7 @@ package mapred;
 
 import java.io.IOException;
 import java.rmi.Remote;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -26,10 +27,10 @@ public interface JobTrackerInterface extends Remote {
 	
 	public KVPair getReducerInfo(int jobID) throws IOException;
 
-	public void startReducePhase(int jobID);
+	public void startReducePhase(int jobID) throws RemoteException;
 
 	public void notifyMapperFinish(String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus, 
-			ConcurrentHashMap<Integer, ArrayList<String>> jobID_parFilePath);
+			ConcurrentHashMap<Integer, ArrayList<String>> jobID_parFilePath) throws RemoteException;
 	
 	public void notifyReducerFinish (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus);
 	

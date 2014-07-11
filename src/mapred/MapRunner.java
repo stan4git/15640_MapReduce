@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.ArrayList;
@@ -98,7 +99,11 @@ public class MapRunner implements Runnable{
 		} catch (ClassNotFoundException | NoSuchMethodException | SecurityException 
 				| InstantiationException | IllegalAccessException 
 				| IllegalArgumentException | InvocationTargetException | NotBoundException | IOException e) {
-			TaskTracker.handleDataNodeFailure(jobID, numOfChunks, jobConf, pairLists,classname,mapperNum, rmiServiceInfo,tryNums);
+			try {
+				TaskTracker.handleDataNodeFailure(jobID, numOfChunks, jobConf, pairLists,classname,mapperNum, rmiServiceInfo,tryNums);
+			} catch (RemoteException e1) {
+				e1.printStackTrace();
+			}
 			System.err.println("Mapper fails while fetching chunks !!");
 			System.exit(-1);
 		}

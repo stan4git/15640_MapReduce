@@ -84,9 +84,10 @@ public class JobScheduler {
 	 *            the chunks of the input file and their distribution list
 	 * @return HashMap<String, HashMap<Integer, String>> which node to execute
 	 *         the chunk and where to fetch the chunk
+	 * @throws RemoteException 
 	 */
 	public HashMap<String, HashMap<Integer, String>> selectBestNodeToChunks(
-			Hashtable<Integer, HashSet<String>> chunkDistribution) {
+			Hashtable<Integer, HashSet<String>> chunkDistribution) throws RemoteException {
 		HashMap<String, HashMap<Integer, String>> res = new HashMap<String, HashMap<Integer, String>>();
 		for (int chunkNum : chunkDistribution.keySet()) {
 			HashSet<String> healthyNodes = nameNode.getHealthyNodes();
@@ -189,8 +190,9 @@ public class JobScheduler {
 	 * @param numOfReducers
 	 *            the number of partitions or reducers.
 	 * @return ArrayList<String> the select nodes
+	 * @throws RemoteException 
 	 */
-	public ArrayList<String> pickBestNodesForReduce(int numOfReducers) {
+	public ArrayList<String> pickBestNodesForReduce(int numOfReducers) throws RemoteException {
 
 		ArrayList<String> nodesForReduce = new ArrayList<String>();
 		HashSet<String> availableNodes = nameNode.getHealthyNodes();

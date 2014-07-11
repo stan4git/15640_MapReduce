@@ -155,7 +155,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		return jobID.toString();
 	}
 	
-	public static void handleMapperFailure (int jobID, String node, Set<Integer> chunks) {
+	public static void handleMapperFailure (int jobID, String node, Set<Integer> chunks) throws RemoteException {
 		// step1: 调Stan, 设为unhealthy
 		// step2: 重新分配该node上的chunks
 		// step3: 更新分配表
@@ -203,7 +203,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		}
 	}
 	
-	public static void handleReducerFailure (int jobID, int partitionNo) {
+	public static void handleReducerFailure (int jobID, int partitionNo) throws RemoteException {
 		// step1: 调Stan, 设为unhealthy
 		// step2: 重新分配该node上的任务
 		// step3: 更新分配表
@@ -260,7 +260,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	}
 	
 	@Override
-	public void startReducePhase (int jobID) {
+	public void startReducePhase (int jobID) throws RemoteException {
 		System.out.println("Start reduce job !!");
 		int numOfPartitions = partitionNums;
 		ArrayList<String> chosenReduceNodes = jobScheduler.pickBestNodesForReduce(numOfPartitions);
@@ -368,7 +368,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	
 	@Override
 	public void notifyMapperFinish (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus, 
-			ConcurrentHashMap<Integer, ArrayList<String>> jobID_parFilePath) {
+			ConcurrentHashMap<Integer, ArrayList<String>> jobID_parFilePath) throws RemoteException {
 		
 		int unfinishedMapTasks = 0;
 		int unfinishedReduceTasks = 0;
