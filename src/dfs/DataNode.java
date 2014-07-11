@@ -57,9 +57,10 @@ public class DataNode implements DataNodeInterface {
 		
 		System.out.println("System is running...");
 		while (dataNode.isRunning) {
-			
+			//doing nothing, just waiting
 		}
 
+		//shutting down
 		System.out.println("System is shutting down...");
 	}
 	
@@ -71,7 +72,13 @@ public class DataNode implements DataNodeInterface {
 		this.fileList = new ConcurrentHashMap<String, HashSet<Integer>>();
 		
 		System.out.println("Loading configuration data...");
-		IOUtil.readConf("conf/dfs.conf", this);
+		try {
+			IOUtil.readConf("conf/dfs.conf", this);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+			System.out.println("Loading configuration failed...");
+			System.exit(-1);
+		}
 		System.out.println("Configuration data loaded successfully...");
 		System.out.println(this.dataNodeRegPort);
 		
@@ -158,7 +165,13 @@ public class DataNode implements DataNodeInterface {
 		if (availableChunkSlot >= this.maxChunkSlot) {
 			throw new RemoteException("There is no file on this node.");
 		}
-		IOUtil.deleteFile(this.dataNodePath + filename + "_" + chunkNum);
+		try {
+			IOUtil.deleteFile(this.dataNodePath + filename + "_" + chunkNum);
+		} catch (IOException e) {
+			e.printStackTrace();
+			System.out.println("Cannot remove " + filename + "_" + chunkNum + "...");
+			return;
+		}
 		availableChunkSlot++;
 		System.out.println(filename + "_" + chunkNum + " has been deleted from storage...");
 		return;
@@ -166,7 +179,14 @@ public class DataNode implements DataNodeInterface {
 
 	
 	public byte[] getFile(String filename, int chunkNum) throws RemoteException {
-		byte[] chunk = IOUtil.readFile(this.dataNodePath + filename + "_" + chunkNum);
+		byte[] chunk;
+		try {
+			chunk = IOUtil.readFile(this.dataNodePath + filename + "_" + chunkNum);
+		} catch (IOException e) {
+			e.printStackTrace();
+			System.out.println("Cannot fetch file " + filename + "_" + chunkNum + "...");
+			throw (new RemoteException());
+		}
 		System.out.println("Sending out " + filename + "_" + chunkNum + " ...");
 		return chunk;
 	}
@@ -183,7 +203,7 @@ public class DataNode implements DataNodeInterface {
 	}
 
 
-	public void downloadChunk(String filename, int chunkNum, String fromIP) {
+	public void downloadChunk(String filename, int chunkNum, String fromIP) throws RemoteException {
 		if (!this.dataNodeList.contains(fromIP)) {		//cache connection to other data nodes
 			try {
 				Registry dataNodeRegistry = LocateRegistry.getRegistry(fromIP, this.dataNodePort);
@@ -192,7 +212,7 @@ public class DataNode implements DataNodeInterface {
 			} catch (RemoteException | NotBoundException e) {
 				e.printStackTrace();
 				System.out.println("Cannot connect to client " + fromIP);
-				return;
+				throw (new RemoteException());
 			}
 		} 
 		
@@ -202,11 +222,13 @@ public class DataNode implements DataNodeInterface {
 			byte[] chunk = this.dataNodeList.get(fromIP).getFile(filename, chunkNum);
 			IOUtil.writeBinary(chunk, dataNodePath + filename + "_" + chunkNum);
 			System.out.println(filename + "_" + chunkNum + " has been downloaded...");
+			
 		} catch (IOException e) {
 			availableChunkSlot++;
 			reservedSlot--;
 			e.printStackTrace();
 			System.out.println("IO exception occurs when removing " + filename + "_" + chunkNum);
+			throw (new RemoteException());
 		}
 	}
 

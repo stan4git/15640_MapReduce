@@ -95,7 +95,13 @@ public class DFSClient implements DFSClientInterface {
 	public DFSClient() {
 		try {
 			System.out.println("Loading configuration data...");
-			IOUtil.readConf("conf/dfs.conf", this);
+			try {
+				IOUtil.readConf("conf/dfs.conf", this);
+			} catch (IOException e) {
+				e.printStackTrace();
+				System.out.println("Loading configuration failed...");
+				System.exit(-1);
+			}
 			System.out.println("Configuration data loaded successfully...");
 			
 			clientRegistry = LocateRegistry.createRegistry(this.clientRegPort);
@@ -120,7 +126,14 @@ public class DFSClient implements DFSClientInterface {
 	 * Get the file list from NameNode
 	 */
 	private void getFileList() {
-		Map<String, FileStatus> list = this.nameNode.getFileStatusTable();
+		Map<String, FileStatus> list;
+		try {
+			list = this.nameNode.getFileStatusTable();
+		} catch (RemoteException e) {
+			e.printStackTrace();
+			System.out.println("Cannot get file list from name node.");
+			return;
+		}
 		System.out.println("Fetching file list from remote server...");
 		System.out.println("Files on DFS are:");
 		System.out.println("=======================Start of list=======================");
@@ -135,7 +148,14 @@ public class DFSClient implements DFSClientInterface {
 	 * Get the node list from NameNode
 	 */
 	private void getNodeList() {
-		ConcurrentHashMap<String, Integer> list = this.nameNode.getDataNodeAvailableSlotList();
+		ConcurrentHashMap<String, Integer> list;
+		try {
+			list = this.nameNode.getDataNodeAvailableSlotList();
+		} catch (RemoteException e) {
+			e.printStackTrace();
+			System.out.println("Cannot get available slot list from name node.");
+			return;
+		}
 		System.out.println("Fetching data node list from remote server...");
 		System.out.println("Data nodes in DFS are:");
 		System.out.println("=======================Start of list=======================");
@@ -179,7 +199,14 @@ public class DFSClient implements DFSClientInterface {
 	 * @param file String The path of input file on DFS.
 	 */
 	private void getFile(String filename, String output) {
-		ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistribution = this.nameNode.getFileDistributionTable(filename);
+		ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistribution;
+		try {
+			fileDistribution = this.nameNode.getFileDistributionTable();
+		} catch (RemoteException e2) {
+			e2.printStackTrace();
+			System.out.println("Exception occurs when fetching file.");
+			return;
+		}
 		if (fileDistribution.contains(filename)) {
 			for (Entry<Integer, HashSet<String>> chunkTuple : fileDistribution.get(filename).entrySet()) {
 				int chunkNum = chunkTuple.getKey();
@@ -191,7 +218,7 @@ public class DFSClient implements DFSClientInterface {
 						chunk = dataNode.getFile(filename, chunkNum);
 						IOUtil.writeBinary(chunk, output);
 						break;
-					} catch (IOException e) {
+					} catch (IOException e) {	//if writing file chunk to storage failed, remove it
 						System.err.println("Exception occurs when downloading file...");
 						try {
 							IOUtil.deleteFile(output);
@@ -211,7 +238,14 @@ public class DFSClient implements DFSClientInterface {
 	 * @param file String The path of file to be deleted.
 	 */
 	private void removeFile(String filename) {
-		ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistribution = this.nameNode.getFileDistributionTable(filename);
+		ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistribution;
+		try {
+			fileDistribution = this.nameNode.getFileDistributionTable();
+		} catch (RemoteException e1) {
+			e1.printStackTrace();
+			System.out.println("Cannot remove file...");
+			return;
+		}
 		if (fileDistribution.contains(filename)) {
 			for (Entry<Integer, HashSet<String>> chunkTuple : fileDistribution.get(filename).entrySet()) {
 				int chunkNum = chunkTuple.getKey();
@@ -344,7 +378,11 @@ public class DFSClient implements DFSClientInterface {
 			}
 		}
 		
-		if (!nameNode.fileDistributionConfirm(filename)) {		//acknowledge name node
+		try {
+			nameNode.fileDistributionConfirm(filename);		//acknowledge name node
+			System.out.println("Acknowledged name node...");
+		} catch (RemoteException e) {
+			e.printStackTrace();
 			System.out.println("Cannot acknowledge name node.");
 		}
 		return;

@@ -14,7 +14,7 @@ public interface NameNodeInterface extends Remote {
 	public ConcurrentHashMap<String, Integer> getDataNodeAvailableSlotList() throws RemoteException;
 	public ConcurrentHashMap<String, NodeStatus> getDataNodeStatusList() throws RemoteException;
 	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFileDistributionTable() throws RemoteException;
-	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFileDistributionTable(String filename) throws RemoteException;
+//	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFileDistributionTable(String filename) throws RemoteException;
 	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(
 			String filename, int chunkAmount) throws RemoteException;
 	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(
@@ -25,7 +25,7 @@ public interface NameNodeInterface extends Remote {
 	public void removeChunkFromFileDistributionTable(String filename, int chunkNum, String dataNodeIP) throws RemoteException;
 	public void registerDataNode(String dataNodeIP, int availableSlot) throws RemoteException;
 	
-	public void chunkCopyMadeConfirm(String filename, int chunkNum, String fromIP) throws RemoteException;
+//	public void chunkCopyMadeConfirm(String filename, int chunkNum, String fromIP) throws RemoteException;
 	public HashSet<String> getHealthyNodes() throws RemoteException;
 	public boolean fileExist(String filename) throws RemoteException;
 	

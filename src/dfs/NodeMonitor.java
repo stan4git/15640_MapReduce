@@ -1,5 +1,6 @@
 package dfs;
 
+import java.io.IOException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -24,6 +25,7 @@ public class NodeMonitor implements Runnable {
 	private boolean isRunning;
 	private ConcurrentHashMap<String, DataNodeInterface> dataNodeServiceList;
 	private int dataNodePort;
+	private String dataNodeService;
 	private int heartbeatCheckThreshold;
 	private int heartbeatInterval;
 	
@@ -35,7 +37,14 @@ public class NodeMonitor implements Runnable {
 	
 	
 	public void run() {
-		IOUtil.readConf("conf/dfs.conf", this);
+		try {
+			IOUtil.readConf("conf/dfs.conf", this);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+			System.out.println("Loading configuration failed...");
+			System.exit(-1);
+		}
+		
 		while (isRunning) {
 			updateNodeStatus();
 			updateAvailableSlot();
@@ -52,35 +61,38 @@ public class NodeMonitor implements Runnable {
 		for (Entry<String, NodeStatus> nodeStatus : nameNodeInstance.getDataNodeStatusList().entrySet()) {
 			String dataNodeIP = nodeStatus.getKey();
 			DataNodeInterface dataNodeService = null;
-			dataNodeService = getDataNodeService(dataNodeIP);
+			try {
+				dataNodeService = getDataNodeService(dataNodeIP);
+			} catch (Exception e2) {
+				return;
+			}
 			
-			ConcurrentHashMap<String, NodeStatus> returnList = new ConcurrentHashMap<String, NodeStatus>();
 			int retryThreshold = this.heartbeatCheckThreshold;
 			while (retryThreshold > 0) {
 				retryThreshold--;
 				try {
 					dataNodeService.heartbeat();
-					returnList.put(dataNodeIP, NodeStatus.HEALTHY);
+					this.nameNodeInstance.getDataNodeStatusList().put(dataNodeIP, NodeStatus.HEALTHY);
 					break;
 				} catch (RemoteException e) {
 					if (retryThreshold <= 0) {
-						//make file chunk duplicate
-						//generate file dist list and get data node to download chunks
-						//update file dis list
+						try {
+							ensureReplica(dataNodeIP, this.nameNodeInstance.getFilesChunkOnNodesTable().get(dataNodeIP));
+						} catch (RemoteException e1) {
+							e1.printStackTrace();
+							System.err.println("Failed to recover from " + dataNodeIP + "'s failure...");
+							return;
+						}
 						
-						
-						
-						returnList.remove(dataNodeIP);
+						//clean up the dead node information
+						this.nameNodeInstance.getDataNodeStatusList().remove(dataNodeIP);
+						this.nameNodeInstance.getDataNodeAvailableSlotList().remove(dataNodeIP);
+						this.nameNodeInstance.getFilesChunkOnNodesTable().remove(dataNodeIP);
 						return;
 					}
 				}
 			}
-			
-			
 		}
-		
-		//update data node status list
-		nameNodeInstance.getDataNodeStatusList().putAll(returnList);
 		return;
 	}
 	
@@ -111,27 +123,64 @@ public class NodeMonitor implements Runnable {
 	}
 	
 	
-	public void ensureReplica(String deadNode, ConcurrentHashMap<String, HashSet<Integer>> missingChunkList) {
+	public void ensureReplica(String deadNode, Hashtable<String, HashSet<Integer>> missingChunkList) throws RemoteException {
 		for (Entry<String, HashSet<Integer>> fileTuple : missingChunkList.entrySet()) {
 			String filename = fileTuple.getKey();
+			
+			//copy chunks from other nodes
 			for (int chunkNum : fileTuple.getValue()) {
 				HashSet<String> excludeList = this.nameNodeInstance.getFileDistributionTable().get(filename).get(chunkNum);
-				String moveToNode = this.nameNodeInstance.pickMostAvailableSlotDataNode(excludeList);
+				String moveToNode = null;
 				
+				try {	//find a node to move to 
+					moveToNode = this.nameNodeInstance.pickMostAvailableSlotDataNode(excludeList);
+				} catch (RemoteException e1) {
+					e1.printStackTrace();
+					System.out.println("Cannot find any available node...");
+					throw (new RemoteException());
+				}
+				
+				//find a node to move from
+				String moveFromNode = null;
 				for (String node : excludeList) {
 					if (!node.equals(deadNode)) {
-						
+						moveFromNode = node;
+						System.out.println("Message sent to " + moveToNode + " to download "
+								+ filename + "_" + chunkNum + " from " + moveFromNode);
+						try {	//download chunks from another node
+							this.dataNodeServiceList.get(moveToNode).downloadChunk(filename, chunkNum, moveFromNode);
+							
+							//update file distribution list <filename, <chunkNum, nodeList>>
+							this.nameNodeInstance.getFileDistributionTable().get(filename).get(chunkNum).remove(moveFromNode);
+							this.nameNodeInstance.getFileDistributionTable().get(filename).get(chunkNum).add(moveToNode);
+							
+							//update chunks on nodes table <node,<filename, chunkSet>>
+							HashSet<Integer> chunkList = new HashSet<Integer>();
+							chunkList.addAll(this.nameNodeInstance.getFilesChunkOnNodesTable().get(moveToNode).get(filename));
+							chunkList.add(chunkNum);
+							this.nameNodeInstance.getFilesChunkOnNodesTable().get(moveToNode).put(filename, chunkList);
+
+							//done with the chunk moving
+							break;
+						} catch (RemoteException e) {
+							e.printStackTrace();
+							continue;
+						}
 					}
 				}
 				
-				
-				
-				
-				System.out.println("Message sent to " + node + " to download "
-						+ filename + "_" + chunkNum + " from "
-						+ nodeList[pickNodeIndex]);
+				//if no node available for this chunk, 
+				//that means we lost this chunk, file broken, set it to failed
+				if (moveFromNode == null) {
+					this.nameNodeInstance.getFileStatusTable().put(filename, FileStatus.FAILED);
+					throw (new RemoteException());
+				}
+				System.out.println("Finished copying " + filename + "_" + chunkNum 
+						+ " from " + moveFromNode + " to " + moveToNode + "...");
 			}
+			System.out.println(filename + " is recovered...");
 		}
+		return;
 	}
 	
 	
@@ -143,6 +192,7 @@ public class NodeMonitor implements Runnable {
 				DataNodeInterface dataNode = (DataNodeInterface) dataNodeRegistry.lookup(this.dataNodeService);
 				this.dataNodeServiceList.put(dataNodeIP, dataNode);
 			} catch (RemoteException | NotBoundException e) {
+				System.err.println("Cannot connect to " + dataNodeIP + "...");
 				throw e;
 			}
 		}

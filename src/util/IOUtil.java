@@ -350,7 +350,7 @@ public class IOUtil {
 	}
 	
 	
-	public static void deleteFile(String filePath) {
+	public static void deleteFile(String filePath) throws IOException{
 		File file = new File(filePath);
 		file.delete();
 		return;

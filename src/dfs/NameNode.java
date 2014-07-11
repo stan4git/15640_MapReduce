@@ -1,5 +1,6 @@
 package dfs;
 
+import java.io.IOException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -58,7 +59,13 @@ public class NameNode implements NameNodeInterface {
 		
 		
 		System.out.println("Loading configuration data...");
-		IOUtil.readConf("conf/dfs.conf", this);
+		try {
+			IOUtil.readConf("conf/dfs.conf", this);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+			System.err.println("Failed loading configurations...");
+			System.exit(-1);
+		}
 		System.out.println("Configuration data loaded successfully...");
 		
 		NodeMonitor nodeMonitor = new NodeMonitor(this);
@@ -189,10 +196,12 @@ public class NameNode implements NameNodeInterface {
 	}
 	
 
-	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFileDistributionTable(
-			String filename) {
-		return this.fileDistributionTable;
-	}
+//	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFileDistributionTable(
+//			String filename) {
+//		ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> returnList = new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
+//		returnList.put(filename, this.fileDistributionTable.get(filename));
+//		return returnList;
+//	}
 
 	
 	public void removeChunkFromFileDistributionTable(String filename, int chunkNum, String dataNodeIP) {
@@ -301,14 +310,6 @@ public class NameNode implements NameNodeInterface {
 
 	public void terminate() {
 		this.isRunning = false;
-	}
-
-
-	@Override
-	public void chunkCopyMadeConfirm(String filename, int chunkNum,
-			String fromIP) throws RemoteException {
-		// TODO Auto-generated method stub
-		dd
 	}
 
 
