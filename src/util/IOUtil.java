@@ -77,7 +77,7 @@ public class IOUtil {
 	 * @param filename
 	 *            String it is the file name you want to write
 	 */
-	public static void writeBinary(byte[] content, String filename) {
+	public static void writeBinary(byte[] content, String filename) throws IOException {
 		int index = filename.length() - 1;
 		while(index >= 0 && filename.charAt(index) != '/') {
 			index--;
@@ -307,7 +307,6 @@ public class IOUtil {
 			chunk[index++] = tmp;
 		}
 		
-		file.close();
 		return chunk;
 	}
 	
@@ -346,7 +345,7 @@ public class IOUtil {
 	}
 	
 	
-	public static ArrayList<Long> calculateFileSplit(String filePath, int chunkSize) {
+	public static ArrayList<Long> calculateFileSplit(String filePath, int chunkSize) throws IOException {
 		RandomAccessFile raFile = null;
 		ArrayList<Long> split = new ArrayList<Long>();
 		try {
@@ -358,11 +357,14 @@ public class IOUtil {
 				tmp = raFile.readLine();
 				if (tmp != null && tmp.length() > 0) {
 					int increment = tmp.getBytes().length;
+					if (increment > chunkSize) {
+						throw new IOException("Data row is too long...");
+					}
 					if (currentPointer - lastPointer + increment <= chunkSize) {
 						currentPointer += increment;
 					} else {
 						split.add(currentPointer);
-						lastPointer = currentPointer;
+						lastPointer = currentPointer + 1;
 						currentPointer += increment;
 					}
 				} else {	//reach the end of file

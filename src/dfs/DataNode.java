@@ -8,7 +8,9 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.concurrent.ConcurrentHashMap;
 
 import util.IOUtil;
 
@@ -34,8 +36,10 @@ public class DataNode implements DataNodeInterface {
 	private Registry nameNodeRegistry;
 	private NameNodeInterface nameNode;
 	private Hashtable<String, DataNodeInterface> dataNodeList;
+	private ConcurrentHashMap<String, HashSet<Integer>> fileList;
 	private boolean isRunning;
-	
+	private int ackTimeout;
+	private int reservedSlot;
 	
 	public static void main(String[] args) {
 		Registry dataNodeRegistry;
@@ -61,9 +65,10 @@ public class DataNode implements DataNodeInterface {
 	
 	
 	public DataNode() throws RemoteException {
-		isRunning = true;
+		this.isRunning = true;
 		this.availableChunkSlot = this.maxChunkSlot;
-		dataNodeList = new Hashtable<String, DataNodeInterface>();
+		this.dataNodeList = new Hashtable<String, DataNodeInterface>();
+		this.fileList = new ConcurrentHashMap<String, HashSet<Integer>>();
 		
 		System.out.println("Loading configuration data...");
 		IOUtil.readConf("conf/dfs.conf", this);
@@ -73,50 +78,83 @@ public class DataNode implements DataNodeInterface {
 		try {
 			this.nameNodeRegistry = LocateRegistry.getRegistry(this.nameNodeIP, this.nameNodePort);
 			this.nameNode = (NameNodeInterface) this.nameNodeRegistry.lookup(this.nameNodeService);
-		} catch (RemoteException e) {
-			e.printStackTrace();
-		} catch (NotBoundException e) {
-			e.printStackTrace();
-		}
-		
-		if (this.nameNode != null) {
-			try {
 				this.nameNode.registerDataNode(InetAddress.getLocalHost().getHostAddress(), this.availableChunkSlot);
-			} catch (UnknownHostException e) {
-				e.printStackTrace();
-			}
-		} else {
+		} catch (RemoteException | NotBoundException | UnknownHostException e) {
+			System.out.println("Cannot connect to name node...");
 			throw new RemoteException();
 		}
+		return;
 	}
 	
 	
 	public void uploadChunk(String filename, byte[] chunk, int chunkNum, String fromIP)
 			throws RemoteException {
-		try {	//check if there is available slots
-			if (availableChunkSlot <= 0) {
-				throw new RemoteException("Storage is full!! Please try another data node.");
+			if (this.availableChunkSlot <= 0) {		//check if there is available slots
+				throw new RemoteException("System storage error.");
+			} else {			//reserve slots for upload
+				this.availableChunkSlot--;
+				this.reservedSlot++;
 			}
-			IOUtil.writeBinary(chunk, this.dataNodePath + filename + "_" + chunkNum);
-			availableChunkSlot--;
-			System.out.println(filename + "_" + chunkNum + " has been stored to " + this.dataNodePath);
 			
-			Registry clientRegistry = LocateRegistry.getRegistry(fromIP, this.clientPort);		//send out ack to client
-			DFSClientInterface client = (DFSClientInterface) clientRegistry.lookup(clientServiceName);
-			client.sendChunkReceivedACK(InetAddress.getLocalHost().getHostAddress(), filename, chunkNum);
-			System.out.println("Client acknowledged.");
-		} catch (IOException e) {
-			e.printStackTrace();
-			System.err.println("IO exception occuring when writing files...");
-			throw new RemoteException("IO exception occuring when writing files...");
-		} catch (NotBoundException e) {
-			System.err.println("Unable to inform client server...");
-			e.printStackTrace();
-		}
+			try {		//write file on to local storage
+				IOUtil.writeBinary(chunk, this.dataNodePath + filename + "_" + chunkNum);		
+				System.out.println(filename + "_" + chunkNum + " has been stored to " + this.dataNodePath);
+			} catch (IOException e) {
+				this.availableChunkSlot++;
+				this.reservedSlot--;
+				e.printStackTrace();
+				System.err.println("IO exception occuring when writing files...");
+				throw new RemoteException("IO exception occuring when writing files...");
+			}
+			
+			try {	
+				Registry clientRegistry = LocateRegistry.getRegistry(fromIP, this.clientPort);		
+				DFSClientInterface client = (DFSClientInterface) clientRegistry.lookup(this.clientServiceName);
+				client.sendChunkReceivedACK(InetAddress.getLocalHost().getHostAddress(), filename, chunkNum);	//send out ack to client
+				System.out.println("Client acknowledged.");
+			} catch (NotBoundException | UnknownHostException e) {
+				e.printStackTrace();
+				System.err.println("Unable to connect to client server...");
+				try {
+					IOUtil.deleteFile(dataNodePath + filename + "_" + chunkNum);
+					this.availableChunkSlot++;
+					this.reservedSlot--;
+					System.out.println("Removing " + filename + "_" + chunkNum);
+				} catch (IOException e1) {
+					System.out.println("Exception occurs when removing" + filename + "_" + chunkNum);
+				}
+				return;
+			}
+			
+			
+			if (this.fileList.contains(filename)) {		//update local file list
+				this.fileList.get(filename).add(chunkNum);
+			} else {
+				HashSet<Integer> value = new HashSet<Integer>();
+				value.add(chunkNum);
+				this.fileList.put(filename, value);
+			}
+			this.reservedSlot--;				//commit update
+			return;
+			
+			
+//			long timeoutExpiredMs = System.currentTimeMillis() + (this.ackTimeout * 1000);	
+//			while (!ack) {	//waiting for client acknowledge
+//				if (System.currentTimeMillis() < timeoutExpiredMs) {
+//					try {
+//						Thread.sleep(1 * 1000);
+//					} catch (InterruptedException e) {
+//						e.printStackTrace();
+//					}
+//				} else {
+//					IOUtil.deleteFile(this.dataNodePath + filename + "_" + chunkNum);
+//					System.err.println();
+//				}
+//			}
 	}
 	
 
-	public void removeFile(String filename, int chunkNum) throws RemoteException {
+	public void removeChunk(String filename, int chunkNum) throws RemoteException {
 		if (availableChunkSlot >= this.maxChunkSlot) {
 			throw new RemoteException("There is no file on this node.");
 		}
@@ -146,29 +184,45 @@ public class DataNode implements DataNodeInterface {
 
 
 	public void downloadChunk(String filename, int chunkNum, String fromIP) {
-		if (!this.dataNodeList.contains(fromIP)) {
+		if (!this.dataNodeList.contains(fromIP)) {		//cache connection to other data nodes
 			try {
 				Registry dataNodeRegistry = LocateRegistry.getRegistry(fromIP, this.dataNodePort);
 				DataNodeInterface dataNode = (DataNodeInterface) dataNodeRegistry.lookup(dataNodeService);
 				this.dataNodeList.put(fromIP, dataNode);
-			} catch (RemoteException e) {
+			} catch (RemoteException | NotBoundException e) {
 				e.printStackTrace();
-			} catch (NotBoundException e) {
-				e.printStackTrace();
+				System.out.println("Cannot connect to client " + fromIP);
+				return;
 			}
-		}
+		} 
 		
-		try {	
+		try {		//download chunks from other data node
+			availableChunkSlot--;
+			reservedSlot++;
 			byte[] chunk = this.dataNodeList.get(fromIP).getFile(filename, chunkNum);
 			IOUtil.writeBinary(chunk, dataNodePath + filename + "_" + chunkNum);
 			System.out.println(filename + "_" + chunkNum + " has been downloaded...");
-		} catch (RemoteException e) {
+		} catch (IOException e) {
+			availableChunkSlot++;
+			reservedSlot--;
 			e.printStackTrace();
+			System.out.println("IO exception occurs when removing " + filename + "_" + chunkNum);
 		}
 	}
 
 
 	public void terminate() {
 		this.isRunning = false;
+	}
+
+
+	public ConcurrentHashMap<String, HashSet<Integer>> getFileChunkList() {
+		return this.fileList;
+	}
+
+
+	@Override
+	public int getAvailableChunkSlot() {
+		return this.availableChunkSlot;
 	}
 }

@@ -10,20 +10,24 @@ import util.NodeStatus;
 import util.FileStatus;
 
 public interface NameNodeInterface extends Remote {
-	public ConcurrentHashMap<String, FileStatus> getFileStatusTable();
-	public ConcurrentHashMap<String, Integer> getDataNodeAvailableSlotList();
-	public ConcurrentHashMap<String, NodeStatus> getDataNodeStatusList();
-	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFileDistributionTable();
-	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFileDistributionTable(String filename);
-	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(String filename, int chunkAmount) throws RemoteException;
-	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> failureList);
-	public boolean fileDistributionConfirm(String filename);
-	public void updateFileDistributionTable(ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> tableToBeUpdated);
-	public void removeChunkFromFileDistributionTable(String filename, int chunkNum, String dataNodeIP);
-	public void registerDataNode(String dataNodeIP, int availableSlot);
+	public ConcurrentHashMap<String, FileStatus> getFileStatusTable() throws RemoteException;
+	public ConcurrentHashMap<String, Integer> getDataNodeAvailableSlotList() throws RemoteException;
+	public ConcurrentHashMap<String, NodeStatus> getDataNodeStatusList() throws RemoteException;
+	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFileDistributionTable() throws RemoteException;
+	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFileDistributionTable(String filename) throws RemoteException;
+	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(
+			String filename, int chunkAmount) throws RemoteException;
+	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(
+			ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> failureList) throws RemoteException;
+
+	public boolean fileDistributionConfirm(String filename) throws RemoteException;
+	public void updateFileDistributionTable(ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> tableToBeUpdated) throws RemoteException;
+	public void removeChunkFromFileDistributionTable(String filename, int chunkNum, String dataNodeIP) throws RemoteException;
+	public void registerDataNode(String dataNodeIP, int availableSlot) throws RemoteException;
 	
-	public HashSet<String> getHealthyNodes();
-	public boolean fileExist(String filename);
+	public void chunkCopyMadeConfirm(String filename, int chunkNum, String fromIP) throws RemoteException;
+	public HashSet<String> getHealthyNodes() throws RemoteException;
+	public boolean fileExist(String filename) throws RemoteException;
 	
-	public void terminate();
+	public void terminate() throws RemoteException;
 }

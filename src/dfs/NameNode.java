@@ -32,6 +32,7 @@ public class NameNode implements NameNodeInterface {
 	private ConcurrentHashMap<String, NodeStatus> dataNodeStatusList;
 	private ConcurrentHashMap<String, FileStatus> fileStatusTable;
 	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistributionTable;
+	private ConcurrentHashMap<String, Hashtable<String, HashSet<Integer>>> filesChunkOnNodesTable;
 	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> processingFileDistributionTable;
 	private boolean isRunning;
 	
@@ -49,10 +50,12 @@ public class NameNode implements NameNodeInterface {
 	
 	public NameNode() {
 		this.isRunning = true;
-		dataNodeAvailableSlotList = new ConcurrentHashMap<String, Integer>();
+		this.dataNodeAvailableSlotList = new ConcurrentHashMap<String, Integer>();
 		setDataNodeStatusList(new ConcurrentHashMap<String, NodeStatus>());
-		fileStatusTable = new ConcurrentHashMap<String, FileStatus>();
-		fileDistributionTable = new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
+		this.fileStatusTable = new ConcurrentHashMap<String, FileStatus>();
+		this.fileDistributionTable = new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
+		this.filesChunkOnNodesTable = new ConcurrentHashMap<String, Hashtable<String, HashSet<Integer>>>();
+		
 		
 		System.out.println("Loading configuration data...");
 		IOUtil.readConf("conf/dfs.conf", this);
@@ -69,26 +72,35 @@ public class NameNode implements NameNodeInterface {
 			System.out.println("Server has been set up...");
 		} catch (RemoteException e) {
 			e.printStackTrace();
-		} 
+			System.out.println("Server start failed...Shutting down...");
+		}
 	}
 
 	
 	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(
-			ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> failureList) {
-		
-		for (Entry<String, Hashtable<Integer, HashSet<String>>> fileTuple : failureList.entrySet()) {
+			ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> failureList) throws RemoteException {
+		for (Entry<String, Hashtable<Integer, HashSet<String>>> fileTuple : failureList.entrySet()) {	
+			//get filename
 			String filename = fileTuple.getKey();
-			for (Entry<Integer, HashSet<String>> chunkTuple : fileTuple.getValue().entrySet()) {
+			for (Entry<Integer, HashSet<String>> chunkTuple : fileTuple.getValue().entrySet()) { 
+				//get chunk number
 				int chunkNum = chunkTuple.getKey();
-				HashSet<String> newNodeList = new HashSet<String>();
-				for (int i = 0; i < chunkTuple.getValue().size(); i++) {
-					try {
-						newNodeList.add(getMostAvailableSlotDataNode(chunkTuple.getValue()));
-					} catch (RemoteException e) {
-						e.printStackTrace();
-						return null;
-					}
+				HashSet<String> newNodeList = new HashSet<String>();	//new dispatching node list
+				for (String failedNode : chunkTuple.getValue()) {		//reclaim available slots on nodes
+					this.dataNodeAvailableSlotList.put(failedNode, this.dataNodeAvailableSlotList.get(failedNode) + 1);
 				}
+				
+				//re-dispatch chunks to nodes
+				int nodeCount = chunkTuple.getValue().size();
+				for (int i = 0; i < nodeCount; i++) {
+					HashSet<String> excludeList = chunkTuple.getValue();
+					String pickNode = null;
+					pickNode = pickMostAvailableSlotDataNode(excludeList);
+					newNodeList.add(pickNode);
+					excludeList.add(pickNode);
+				}
+				
+				//put back to failureList
 				failureList.get(filename).put(chunkNum, newNodeList);
 			}
 		}
@@ -98,66 +110,72 @@ public class NameNode implements NameNodeInterface {
 	
 	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(
 			String filename, int chunkAmount) throws RemoteException {
-		if (this.fileStatusTable.contains(filename)) {
+		//check and update file status table to avoid duplicated file name
+		if (this.fileStatusTable.contains(filename)) {			
 			throw new RemoteException("File name exist. Please try another.");
 		} else {
-			this.fileStatusTable.put(filename, FileStatus.INPROGRESS);		//updated file status table to avoid duplicated file name
+			this.fileStatusTable.put(filename, FileStatus.INPROGRESS);		
 		}
 		
-		ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> resultTable = 
-				new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
+		//chunkDispatchTable is used to store the dispatch result for this file
 		Hashtable<Integer, HashSet<String>> chunkDispatchTable = new Hashtable<Integer, HashSet<String>>();
-		
-		
-		for (int currentChunk = 0; currentChunk < chunkAmount; currentChunk++) {
+		for (int currentChunk = 0; currentChunk < chunkAmount; currentChunk++) {		//dispatch by chunks
 			int replicaCount = this.replicaNum;
-			HashSet<String> nodeList = new HashSet<String>();
+			HashSet<String> nodeList = new HashSet<String>();	//dispatched nodes list
+			
+			//dispatch by replica
 			while (replicaCount > 0) {
-				if (!chunkDispatchTable.contains(currentChunk)) {
-					try {
-						nodeList.add(getMostAvailableSlotDataNode(nodeList));
-					} catch (RemoteException e) {
-						e.printStackTrace();
-						return null;
-					}
+				//pick the most available data node without those already in nodeList, 
+				//exclude no nodes at first time
+				String pickNode = null;
+				try {
+					pickNode = pickMostAvailableSlotDataNode(nodeList);
+				} catch (RemoteException e) {
+					throw e;	//if all nodes are full, dispatch failed
+				}
+				
+				//check if chunkDispatchTable has current chunk, if not, create that hash set 
+				if (!chunkDispatchTable.contains(currentChunk)) {	
+					nodeList.add(pickNode);
 					chunkDispatchTable.put(currentChunk, nodeList);
-				} else {
-					String selectedDataNode = null;
-					do {
-						try {
-							selectedDataNode = getMostAvailableSlotDataNode(nodeList);
-						} catch (RemoteException e) {
-							e.printStackTrace();
-							return null;
-						}
-					} while (chunkDispatchTable.get(currentChunk).contains(selectedDataNode));
-					chunkDispatchTable.get(currentChunk).add(selectedDataNode);
+				} else {	//if chunk exists, add nodes into it
+					chunkDispatchTable.get(currentChunk).add(pickNode);
 				}
 				replicaCount--;
 			}
 		}
 		
-		resultTable.put(filename, chunkDispatchTable);
+		//store dispatch result to a temporary table, which will be updated to 
+		//fileDistributionTable when dispatch succeed
 		this.processingFileDistributionTable.put(filename, chunkDispatchTable);
 		
+		ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> resultTable = 
+				new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
+		resultTable.put(filename, chunkDispatchTable);
 		System.out.println("Sending out chunk distribution list...");
 		return resultTable;
 	}
 	
 
-	public String getMostAvailableSlotDataNode(HashSet<String> excludeList) throws RemoteException {
+	public String pickMostAvailableSlotDataNode(HashSet<String> excludeList) throws RemoteException {
 		String minLoadDataNode = null;
 		int maxAvailableSlots = Integer.MIN_VALUE;
-		for (Entry<String, Integer> dataNode : this.dataNodeAvailableSlotList.entrySet()) {
-			if (!excludeList.contains(dataNode.getValue()) && dataNode.getValue() > maxAvailableSlots) {
-				minLoadDataNode = dataNode.getKey();
-				maxAvailableSlots = dataNode.getValue();
+		for (Entry<String, Integer> dataNodeTuple : this.dataNodeAvailableSlotList.entrySet()) {
+			String dataNode = dataNodeTuple.getKey();
+			if (this.dataNodeStatusList.get(dataNode) == NodeStatus.HEALTHY 
+					&& !excludeList.contains(dataNodeTuple.getValue()) 
+					&& dataNodeTuple.getValue() > maxAvailableSlots) {
+				minLoadDataNode = dataNodeTuple.getKey();
+				maxAvailableSlots = dataNodeTuple.getValue();
+				//preserve available slot for dispatching
+				this.dataNodeAvailableSlotList.put(minLoadDataNode, maxAvailableSlots - 1);
 			}
 		}
+		
+		//if there is no space for dispatch
 		if (minLoadDataNode == null) {
 			throw new RemoteException("There is no data node available now.");
 		}
-		excludeList.add(minLoadDataNode);
 		return minLoadDataNode;
 	}
 	
@@ -283,5 +301,24 @@ public class NameNode implements NameNodeInterface {
 
 	public void terminate() {
 		this.isRunning = false;
+	}
+
+
+	@Override
+	public void chunkCopyMadeConfirm(String filename, int chunkNum,
+			String fromIP) throws RemoteException {
+		// TODO Auto-generated method stub
+		dd
+	}
+
+
+	public ConcurrentHashMap<String, Hashtable<String, HashSet<Integer>>> getFilesChunkOnNodesTable() {
+		return filesChunkOnNodesTable;
+	}
+
+
+	public void setFilesChunkOnNodesTable(
+			ConcurrentHashMap<String, Hashtable<String, HashSet<Integer>>> filesChunkOnNodesTable) {
+		this.filesChunkOnNodesTable = filesChunkOnNodesTable;
 	}
 }
