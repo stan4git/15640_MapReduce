@@ -1,5 +1,6 @@
 package mapred;
 
+import java.io.IOException;
 import java.rmi.Remote;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
@@ -9,9 +10,9 @@ import format.KVPair;
 
 public interface JobTrackerInterface extends Remote {
 
-	public String submitJob(JobConfiguration jobConf, KVPair mapper, KVPair reducer);
+	public String submitJob(JobConfiguration jobConf, KVPair mapper, KVPair reducer) throws IOException;
 
-	public void localizeJob (KVPair mapper, KVPair reducer, Integer jobID);
+	public void localizeJob (KVPair mapper, KVPair reducer, Integer jobID) throws IOException;
 	
 	public void terminateJob(int jobID);
 
@@ -21,9 +22,9 @@ public interface JobTrackerInterface extends Remote {
 
 	public double getReducerProgress(Integer jobId);
 
-	public KVPair getMapperInfo(int jobID);
+	public KVPair getMapperInfo(int jobID) throws IOException;
 	
-	public KVPair getReducerInfo(int jobID);
+	public KVPair getReducerInfo(int jobID) throws IOException;
 
 	public void startReducePhase(int jobID);
 
@@ -34,4 +35,5 @@ public interface JobTrackerInterface extends Remote {
 	
 	public void responseToHeartbeat (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus);
 
+	public void updateJobStatus(Integer jobId, JobStatus jobStatus);
 }

@@ -1,5 +1,6 @@
 package mapred;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -27,7 +28,6 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	private static final long serialVersionUID = 9023603070698668607L;
 	
 	private static JobTracker jobTracker = null;
-	
 	private static JobScheduler jobScheduler = new JobScheduler();
 	private static NameNodeInterface nameNode = null;
 	
@@ -46,6 +46,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	private static Integer nameNodeRegPort;
 	private static String nameNodeService;
 	
+	// These 2 contains TaksTracker's registry port and service name
 	private static Integer taskTrackerRegPort;
 	private static String taskTrackServiceName;
 	
@@ -67,12 +68,14 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	
 	// node -> status
 	public static HashMap<String, Boolean> node_status;
+	
+	// Each node contains total tasks
 	public static ConcurrentHashMap<String, Integer> node_totalTasks = new ConcurrentHashMap<String, Integer>();
 	
 	// <jobID,<Do Job Node,<ChunkID,Chunk host Node>>>
 	public static ConcurrentHashMap<Integer, HashMap<String, HashMap<Integer, String>>> jobID_mapTasks = new ConcurrentHashMap<Integer, HashMap<String, HashMap<Integer, String>>>();
 	
-	
+	// <jobID,<nodes with partition files, paths>>
 	public static ConcurrentHashMap<Integer, HashMap<String, ArrayList<String>>> jobID_nodes_partitionsPath = new ConcurrentHashMap<Integer, HashMap<String, ArrayList<String>>>();
 	
 	// Associate jobID with configuration information
@@ -93,7 +96,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	}
 	
 	@Override
-	public String submitJob (JobConfiguration jobConf, KVPair mapper, KVPair reducer) {
+	public String submitJob (JobConfiguration jobConf, KVPair mapper, KVPair reducer) throws IOException {
 		
 		// step1 : find if the input file exists on the DFS system.
 		try {
@@ -235,7 +238,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	}
 	
 	@Override
-	public void localizeJob (KVPair mapper, KVPair reducer, Integer jobID) { 
+	public void localizeJob (KVPair mapper, KVPair reducer, Integer jobID) throws IOException { 
 		
 		// KVPair mapper
 		// key: wordCount.wordMapper
@@ -274,14 +277,14 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	}
 	
 	@Override
-	public KVPair getReducerInfo (int jobID) {
+	public KVPair getReducerInfo (int jobID) throws IOException {
 		String reducerClassName = (String)jobID_mapRedName.get(jobID).getValue();
 		String reducerClassPath = (String)jobID_mapRedPath.get(jobID).getValue();
 		return new KVPair(reducerClassName, IOUtil.readFile(reducerClassPath));
 	}
 	
 	@Override
-	public KVPair getMapperInfo(int jobID) {
+	public KVPair getMapperInfo(int jobID) throws IOException {
 		String mapperClassName = (String)jobID_mapRedName.get(jobID).getKey();
 		String mapperClassPath = (String)jobID_mapRedPath.get(jobID).getKey();
 		return new KVPair(mapperClassName, IOUtil.readFile(mapperClassPath));
@@ -457,7 +460,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		return true;
 	}
 	
-	private void initSlaveNodes (String slaveListPath) {
+	private void initSlaveNodes (String slaveListPath) throws IOException {
 		try {
 			String content = new String(IOUtil.readFile(slaveListPath),"UTF-8");
 			String[] lines = content.split("\n");
@@ -469,7 +472,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		}
 	}
 	
-	public static void main (String args[]) {
+	public static void main (String args[]) throws IOException {
 		try {
 			jobTracker = new JobTracker();
 			
@@ -492,6 +495,11 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
+	}
+
+	@Override
+	public void updateJobStatus(Integer jobId, JobStatus jobStatus) {
+		jobID_status.put(jobId, jobStatus);
 	}
 
 }

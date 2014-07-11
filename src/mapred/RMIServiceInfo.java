@@ -10,19 +10,13 @@ package mapred;
  */
 public class RMIServiceInfo {
 	
-	private String jobTrackerIP;
-	private Integer jobTrackerRegPort;
-	private String jobTrackServiceName;
 	private Integer dataNodeRegPort;
 	private String dataNodeService;
 	private Integer partitionNums;
 	private String partitionFilePath;
-	private String nameNodeIP;
-	private Integer nameNodeRegPort;
-	private String nameNodeService;
 	private Integer taskTrackerRegPort;
 	private String taskTrackServiceName;
-	private String jobOutputPath;
+	
 	
 	public void settingForMapper (Integer dataNodeRegPort, String dataNodeService, Integer partitionNums, String partitionFilePath) {
 		
@@ -32,40 +26,10 @@ public class RMIServiceInfo {
 		this.partitionFilePath = partitionFilePath;	
 	}
 	
-	public void settingForReducer (String nameNodeIp, Integer nameNodeRegPort, String nameNodeService, Integer taskTrackerRegPort,
-			String taskTrackServiceName, String jobOutputPath) {
+	public void settingForReducer (Integer taskTrackerRegPort, String taskTrackServiceName) {
 		
-		this.nameNodeIP = nameNodeIp;
-		this.nameNodeRegPort = nameNodeRegPort;
-		this.nameNodeService = nameNodeService;
 		this.taskTrackerRegPort = taskTrackerRegPort;
 		this.taskTrackServiceName = taskTrackServiceName;
-		this.jobOutputPath = jobOutputPath;
-		
-	}
-
-	public String getJobTrackerIP() {
-		return jobTrackerIP;
-	}
-
-	public void setJobTrackerIP(String jobTrackerIP) {
-		this.jobTrackerIP = jobTrackerIP;
-	}
-
-	public Integer getJobTrackerRegPort() {
-		return jobTrackerRegPort;
-	}
-
-	public void setJobTrackerRegPort(Integer jobTrackerRegPort) {
-		this.jobTrackerRegPort = jobTrackerRegPort;
-	}
-
-	public String getJobTrackServiceName() {
-		return jobTrackServiceName;
-	}
-
-	public void setJobTrackServiceName(String jobTrackServiceName) {
-		this.jobTrackServiceName = jobTrackServiceName;
 	}
 
 	public Integer getDataNodeRegPort() {
@@ -100,30 +64,6 @@ public class RMIServiceInfo {
 		this.partitionFilePath = partitionFilePath;
 	}
 
-	public String getNameNodeIP() {
-		return nameNodeIP;
-	}
-
-	public void setNameNodeIP(String nameNodeIP) {
-		this.nameNodeIP = nameNodeIP;
-	}
-
-	public Integer getNameNodeRegPort() {
-		return nameNodeRegPort;
-	}
-
-	public void setNameNodeRegPort(Integer nameNodeRegPort) {
-		this.nameNodeRegPort = nameNodeRegPort;
-	}
-
-	public String getNameNodeService() {
-		return nameNodeService;
-	}
-
-	public void setNameNodeService(String nameNodeService) {
-		this.nameNodeService = nameNodeService;
-	}
-
 	public Integer getTaskTrackerRegPort() {
 		return taskTrackerRegPort;
 	}
@@ -139,13 +79,4 @@ public class RMIServiceInfo {
 	public void setTaskTrackServiceName(String taskTrackServiceName) {
 		this.taskTrackServiceName = taskTrackServiceName;
 	}
-
-	public String getJobOutputPath() {
-		return jobOutputPath;
-	}
-
-	public void setJobOutputPath(String jobOutputPath) {
-		this.jobOutputPath = jobOutputPath;
-	}
-		
 }

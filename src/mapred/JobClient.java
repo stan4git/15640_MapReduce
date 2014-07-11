@@ -1,5 +1,6 @@
 package mapred;
 
+import java.io.IOException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -46,8 +47,9 @@ public class JobClient {
 	 * This method contains two parts: start the job and monitor the job's status
 	 * 
 	 * @param jobConf This object contains the basic info for running the Job
+	 * @throws IOException 
 	 */
-	public void runJob (JobConfiguration jobConf){
+	public void runJob (JobConfiguration jobConf) throws IOException{
 		JobClient jobClient = new JobClient();
 		IOUtil.readConf(mapredPath, jobClient);
 		JobTrackerInterface jobtracker = null;

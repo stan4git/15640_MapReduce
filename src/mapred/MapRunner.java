@@ -1,10 +1,9 @@
 package mapred;
 
-import java.io.UnsupportedEncodingException;
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.rmi.NotBoundException;
-import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.ArrayList;
@@ -30,9 +29,10 @@ public class MapRunner implements Runnable{
 	private Integer partitionNums;
 	private String partitionFilePath;
 	private RMIServiceInfo rmiServiceInfo;
+	private Integer tryNums;
 	
 	public MapRunner (Integer jobID, Integer numOfChunks, JobConfiguration jobConf,
-			ArrayList<KVPair> pairLists, String classname, Integer mapperNum, RMIServiceInfo rmiServiceInfo) {
+			ArrayList<KVPair> pairLists, String classname, Integer mapperNum, RMIServiceInfo rmiServiceInfo, Integer tryNums) {
 		
 		this.jobID = jobID;
 		this.numOfChunks = numOfChunks;
@@ -46,10 +46,13 @@ public class MapRunner implements Runnable{
 		this.partitionNums = rmiServiceInfo.getPartitionNums();
 		this.partitionFilePath = rmiServiceInfo.getPartitionFilePath();
 		this.rmiServiceInfo = rmiServiceInfo;
+		this.tryNums = tryNums;
 	}
 	
 	
-
+	/***
+	 * This method is used to implement the mapper process.
+	 */
 	@SuppressWarnings("unchecked")
 	@Override
 	public void run() {
@@ -94,10 +97,10 @@ public class MapRunner implements Runnable{
 			TaskTracker.updateMapStatus(jobID, true);
 		} catch (ClassNotFoundException | NoSuchMethodException | SecurityException 
 				| InstantiationException | IllegalAccessException 
-				| IllegalArgumentException | InvocationTargetException | RemoteException 
-				| NotBoundException | UnsupportedEncodingException e) {
-			TaskTracker.handleDataNodeFailure(jobID, numOfChunks, jobConf, pairLists,classname,mapperNum, rmiServiceInfo);
+				| IllegalArgumentException | InvocationTargetException | NotBoundException | IOException e) {
+			TaskTracker.handleDataNodeFailure(jobID, numOfChunks, jobConf, pairLists,classname,mapperNum, rmiServiceInfo,tryNums);
 			System.err.println("Mapper fails while fetching chunks !!");
+			System.exit(-1);
 		}
 		
 	}

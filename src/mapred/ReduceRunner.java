@@ -3,7 +3,7 @@
  */
 package mapred;
 
-import java.io.UnsupportedEncodingException;
+import java.io.IOException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
-import dfs.NameNodeInterface;
+import dfs.DFSClient;
 import format.KVPair;
 import format.ReducerOutputCollector;
 import format.OutputFormat;
@@ -23,22 +23,19 @@ import util.IOUtil;
  * @author sidilin
  *
  */
-public class ReduceRunner {
+public class ReduceRunner implements Runnable {
 	
 	private static Reducer reducer;
-	private static NameNodeInterface nameNode;
 	
-	private String nameNodeIP;
-	private Integer nameNodeRegPort;
-	private String nameNodeService;
 	private Integer taskTrackerRegPort;
 	private String taskTrackServiceName;
-	private String jobOutputPath;
 	
 	private int jobID;
 	private int partitionNo;
 	private HashMap<String, ArrayList<String>> nodesWithPartitions;
 	private String className;
+	private String reduceResultPath = "/tmp/output/";
+	
 	
 	
 	public ReduceRunner (int jobID, int partitionNo, HashMap<String, ArrayList<String>> nodesWithPartitions, 
@@ -48,22 +45,24 @@ public class ReduceRunner {
 		this.partitionNo = partitionNo;
 		this.nodesWithPartitions = nodesWithPartitions;
 		this.className = className;
-		
-		this.nameNodeIP = rmiServiceInfo.getNameNodeIP();
-		this.nameNodeRegPort = rmiServiceInfo.getNameNodeRegPort();
-		this.nameNodeService = rmiServiceInfo.getNameNodeService();
 		this.taskTrackerRegPort = rmiServiceInfo.getTaskTrackerRegPort();
 		this.taskTrackServiceName = rmiServiceInfo.getTaskTrackServiceName();
-		this.jobOutputPath = rmiServiceInfo.getJobOutputPath();
+		
 	}
 	
+	/***
+	 * This method is used to implement the reducer process.
+	 */
 	@SuppressWarnings("unchecked")
-	public void start () {
+	@Override
+	public void run () {
 		try {
+			//step1 : get the programmer's Reducer class and Instantiate it
 			Class<Reducer> reduceClass = (Class<Reducer>) Class.forName(className);
 			reducer = reduceClass.newInstance();
 			HashSet<String> pathsForPartition = new HashSet<String>();
 			
+			//step2 : get files for specific partition from data nodes and localize them.
 			for (String node : nodesWithPartitions.keySet()) {
 				try {
 					Registry registry = LocateRegistry.getRegistry(node, taskTrackerRegPort);
@@ -80,6 +79,7 @@ public class ReduceRunner {
 					e.printStackTrace();
 				} 
 			}
+			// step3 : sort the result and format it.
 			ReducerOutputCollector outputCollector = new ReducerOutputCollector();
 			ArrayList<KVPair> formattedInput= Merger.combineValues(pathsForPartition);
 			
@@ -87,25 +87,20 @@ public class ReduceRunner {
 				reducer.reduce((String)kv.getKey(), (ArrayList<String>)kv.getValue(), outputCollector);
 			}
 			
+			// step4 : localize the output.
 			OutputFormat outputFormat = new OutputFormat();
 			String formattedOutput = outputFormat.formatOutput(outputCollector);
 			byte[] outputForDFS = formattedOutput.getBytes("UTF-8");
-			IOUtil.writeBinary(outputForDFS, "job-" + jobID + "-output-" + partitionNo);
+			String fileName = "job-" + jobID + "-output-" + partitionNo;
+			String reduceFileName = reduceResultPath + fileName;
+			IOUtil.writeBinary(outputForDFS, reduceFileName);
 						
-			// Upload the output file into DFS !
-			
-			try {
-				Registry reigstry = LocateRegistry.getRegistry(nameNodeIP, nameNodeRegPort);
-				nameNode = (NameNodeInterface)reigstry.lookup(nameNodeService);
-			} catch (RemoteException | NotBoundException e) {
-				System.err.println("Cannot connect to the name node !!");
-				System.exit(-1);
-			}
-			
+			// step 5 : upload the output file into DFS !
+			DFSClient dfsClient = new DFSClient();
+			dfsClient.putFile(reduceFileName);
 			TaskTracker.updateReduceStatus(jobID, true);
-
 		} catch (ClassNotFoundException | InstantiationException |
-				IllegalAccessException | UnsupportedEncodingException e) {
+				IllegalAccessException | IOException e) {
 			TaskTracker.handleMapperNodeFailure(jobID);
 			System.err.println("Reducer fails while fetching partitions !!");
 			System.exit(-1);

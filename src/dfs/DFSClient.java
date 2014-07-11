@@ -152,7 +152,7 @@ public class DFSClient implements DFSClientInterface {
 	 * @param input String The path of input file.
 	 * @param output String The path of output on DFS.
 	 */
-	private void putFile(String filePath) {
+	public void putFile(String filePath) {
 		String filename = StringHandling.getFileNameFromPath(filePath);
 		ArrayList<Long> split = calculateFileSplit(filePath);
 		

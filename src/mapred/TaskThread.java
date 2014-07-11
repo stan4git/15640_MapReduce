@@ -3,6 +3,7 @@
  */
 package mapred;
 
+import java.io.IOException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -55,12 +56,21 @@ public class TaskThread implements Runnable {
 				JobTracker.handleReducerFailure(jobID, partitionNo);
 			}
 			System.err.println("Cannot connect to the desired TaskTracker!!");
+			System.exit(-1);
 		}
 		
 		if(isMapTask) {
-			taskTracker.registerMapperTask(jobID, jobConf, chunkSets);
+			try {
+				taskTracker.registerMapperTask(jobID, jobConf, chunkSets);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		} else {
-			taskTracker.registerReduceTask(jobID, partitionNo, nodesWithPartitions, numOfPartitions);
+			try {
+				taskTracker.registerReduceTask(jobID, partitionNo, nodesWithPartitions, numOfPartitions);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 

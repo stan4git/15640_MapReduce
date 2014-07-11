@@ -1,5 +1,6 @@
 package mapred;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.rmi.NotBoundException;
@@ -20,6 +21,7 @@ import java.util.concurrent.Executors;
 import dfs.NameNodeInterface;
 import format.KVPair;
 import util.IOUtil;
+import util.JobStatus;
 
 public class TaskTracker extends UnicastRemoteObject implements
 		TaskTrackerInterface {
@@ -49,7 +51,6 @@ public class TaskTracker extends UnicastRemoteObject implements
 	private static String nameNodeIP;
 	private static Integer nameNodeRegPort;
 	private static String nameNodeService;
-	private static String jobOutputPath;
 	private static String jobTrackerIP;
 	private static Integer jobTrackerRegPort;
 	private static String jobTrackServiceName;
@@ -57,6 +58,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	private static Integer taskTrackerRegPort;
 	private static String taskTrackServiceName;
 	private static Integer mapperChunkThreshold;
+	private static Integer jobMaxFailureThreshold;
 	
 	private static String node;
 
@@ -78,7 +80,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	
 	@Override
 	public void registerMapperTask(int jobID, JobConfiguration jobConf,
-			HashMap<Integer, String> chunkSets) {
+			HashMap<Integer, String> chunkSets) throws IOException {
 		System.out.println("This node need to handle the chunk number is: "
 				+ chunkSets.size());
 		int count = 0, mapNums = 0;
@@ -122,11 +124,11 @@ public class TaskTracker extends UnicastRemoteObject implements
 			RMIServiceInfo rmiServiceInfo = new RMIServiceInfo();
 			rmiServiceInfo.settingForMapper(dataNodeRegPort, dataNodeService,partitionNums,partitionFilePath);
 			startMapTask(jobID, chunksAndNodes.size(), jobConf, chunksAndNodes,
-					mapperName, mapperNum, rmiServiceInfo);
+					mapperName, mapperNum, rmiServiceInfo,1);
 		}
 	}
 	
-	public void localizeMapTask(int jobID) {
+	public void localizeMapTask(int jobID) throws IOException {
 		KVPair mapInfo = jobTracker.getMapperInfo(jobID);
 		mapperClassName = mapInfo.getKey().toString().replace('.', '/') + ".class";
 		byte[] mapperClassContent = (byte[]) mapInfo.getValue();
@@ -134,14 +136,14 @@ public class TaskTracker extends UnicastRemoteObject implements
 	}
 
 	public void startMapTask(int jobID, int numOfChunks, JobConfiguration jobConf, 
-			ArrayList<KVPair> pairLists, String classname, Integer mapperNum, RMIServiceInfo rmiServiceInfo) {
+			ArrayList<KVPair> pairLists, String classname, Integer mapperNum, RMIServiceInfo rmiServiceInfo,int tryNums) {
 		
-		MapRunner mapRunner = new MapRunner(jobID, numOfChunks, jobConf, pairLists, classname, mapperNum, rmiServiceInfo);
+		MapRunner mapRunner = new MapRunner(jobID, numOfChunks, jobConf, pairLists, classname, mapperNum, rmiServiceInfo,1);
 		executor.execute(mapRunner);
 	}
 
 	public void registerReduceTask(int jobID, int partitionNo, HashMap<String, ArrayList<String>> nodesWithPartitions, 
-			int numOfPartitions) {
+			int numOfPartitions) throws IOException {
 		// Update task status 
 		TaskStatusInfo taskStatusInfo;
 		if(jobID_taskStatus.containsKey(jobID)) {
@@ -155,12 +157,11 @@ public class TaskTracker extends UnicastRemoteObject implements
 		
 		localizeReduceTask(jobID);
 		RMIServiceInfo rmiServiceInfo = new RMIServiceInfo();
-		rmiServiceInfo.settingForReducer(nameNodeIP, nameNodeRegPort, nameNodeService, taskTrackerRegPort,
-				taskTrackServiceName, jobOutputPath);
+		rmiServiceInfo.settingForReducer(taskTrackerRegPort, taskTrackServiceName);
 		startReduceTask(jobID, partitionNo, nodesWithPartitions, reducerClassName, rmiServiceInfo);
 	}
 
-	public void localizeReduceTask(int jobID) {
+	public void localizeReduceTask(int jobID) throws IOException {
 		KVPair reducerInfo = jobTracker.getReducerInfo(jobID);
 		reducerClassName = reducerInfo.getKey().toString().replace('.', '/') + ".class";
 		byte[] reducerClassContent = (byte[]) reducerInfo.getValue();
@@ -170,11 +171,11 @@ public class TaskTracker extends UnicastRemoteObject implements
 	public void startReduceTask(int jobID, int partitionNo, HashMap<String, ArrayList<String>> nodesWithPartitions, 
 			String className, RMIServiceInfo rmiServiceInfo) {
 		ReduceRunner reduceRunner = new ReduceRunner(jobID, partitionNo, nodesWithPartitions, className, rmiServiceInfo);
-		reduceRunner.start();
+		executor.execute(reduceRunner);
 	}
 	
 	@Override
-	public byte[] getPartitionContent(String path) {
+	public byte[] getPartitionContent(String path) throws IOException {
 		return IOUtil.readFile(path);
 	}
 	
@@ -227,30 +228,38 @@ public class TaskTracker extends UnicastRemoteObject implements
 	}
 	
 	public static void handleDataNodeFailure (Integer jobID, Integer numOfChunks, JobConfiguration jobConf,
-			ArrayList<KVPair> pairLists, String classname, Integer mapperNum, RMIServiceInfo rmiServiceInfo) {
+			ArrayList<KVPair> pairLists, String classname, Integer mapperNum, RMIServiceInfo rmiServiceInfo,int tryNums) {
 		
-		ArrayList<Integer> chunks = new ArrayList<Integer>();
-		ArrayList<KVPair> pairs = new ArrayList<KVPair>();
-		
-		for(KVPair kvPair : pairLists) {
-			chunks.add((Integer)kvPair.getKey());
-		}
-		Hashtable<Integer,HashSet<String>> chunkDistribution = nameNode.getFileDistributionTable().get(jobConf.getInputfile());
-		HashSet<String> healthyNodes = nameNode.getHealthyNodes();
-		
-		for(int i = 0; i < chunks.size(); i++) {
-			if(healthyNodes.contains((String)pairLists.get(i).getValue())) {
-				continue;
+		if(tryNums < jobMaxFailureThreshold) {
+			ArrayList<Integer> chunks = new ArrayList<Integer>();
+			ArrayList<KVPair> pairs = new ArrayList<KVPair>();
+			
+			for(KVPair kvPair : pairLists) {
+				chunks.add((Integer)kvPair.getKey());
 			}
-			HashSet<String> distribution = chunkDistribution.get(chunks.get(i));
-			for(String node : distribution) {
-				if(healthyNodes.contains(node)) {
-					pairs.add(new KVPair(chunks.get(i), node));
+			Hashtable<Integer,HashSet<String>> chunkDistribution = nameNode.getFileDistributionTable().get(jobConf.getInputfile());
+			HashSet<String> healthyNodes = nameNode.getHealthyNodes();
+			
+			for(int i = 0; i < chunks.size(); i++) {
+				if(healthyNodes.contains((String)pairLists.get(i).getValue())) {
+					continue;
 				}
-				break;
+				HashSet<String> distribution = chunkDistribution.get(chunks.get(i));
+				for(String node : distribution) {
+					if(healthyNodes.contains(node)) {
+						pairs.add(new KVPair(chunks.get(i), node));
+					}
+					break;
+				}
 			}
+			taskTracker.startMapTask(jobID, numOfChunks, jobConf, pairs, classname, mapperNum, rmiServiceInfo,tryNums++);
+		} else {
+			jobTracker.updateJobStatus(jobID, JobStatus.FAIL);
+			jobTracker.terminateJob(jobID);
+			System.out.println("Job terminated!");
+			System.exit(-1);
 		}
-		taskTracker.startMapTask(jobID, numOfChunks, jobConf, pairs, classname, mapperNum, rmiServiceInfo);
+		
 	}
 	
 	public static void handleMapperNodeFailure (int jobID) {
@@ -265,7 +274,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	
 	
 
-	public static void main(String args[]) {
+	public static void main(String args[]) throws IOException {
 		try {
 			taskTracker = new TaskTracker();
 			IOUtil.readConf(mapredConf, taskTracker);
@@ -285,6 +294,4 @@ public class TaskTracker extends UnicastRemoteObject implements
 			e.printStackTrace();
 		}
 	}
-
-	
 }
