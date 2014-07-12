@@ -124,8 +124,9 @@ public class NameNode implements NameNodeInterface {
 	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(
 			String filename, int chunkAmount) throws RemoteException {
 		//check and update file status table to avoid duplicated file name
-		if (this.fileStatusTable.contains(filename)) {			
-			throw new RemoteException("File name exist. Please try another.");
+		if (this.fileStatusTable.contains(filename)) {		
+			System.out.println("File name exist. Please try another.");
+			throw new RemoteException();
 		} else {
 			this.fileStatusTable.put(filename, FileStatus.INPROGRESS);		
 		}

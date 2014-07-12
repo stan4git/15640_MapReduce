@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
+import java.io.ObjectOutputStream.PutField;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.rmi.NotBoundException;
@@ -70,24 +71,72 @@ public class DFSClient implements DFSClientInterface {
 			}
 			
 			String[] cmdSplit = command.trim().split(" ");
-			if (cmdSplit.length > 0 && cmdSplit[0].equals("dfs")) {
+			if (cmdSplit.length > 1 && cmdSplit[0].equals("dfs")) {
 				switch (cmdSplit[1]) {
-				case "put":
-					
-					break;
-				case "get":
-					break;
-				case "ls":
-					
-					break;
-				case "node":
-					break;
-				case "rm":
-					break;
-				default:
-					break;
+					case "put":
+						if (cmdSplit.length == 3) {
+							client.putFile(cmdSplit[2]);
+						} else {
+							System.out.println("Error number of parameters.");
+							System.out.println("Usage: dfs put <file_path>");
+						}
+						break;
+					case "get":
+						if (cmdSplit.length == 4) {
+							client.getFile(cmdSplit[2], cmdSplit[3]);
+						} else {
+							System.out.println("Error number of parameters.");
+							System.out.println("Usage: dfs get <file_name> <target_path>");
+						}
+						break;
+					case "files":
+						if (cmdSplit.length == 2) {
+							client.getFileList();
+						} else {
+							System.out.println("Error number of parameters.");
+							System.out.println("Usage: dfs files");
+						}
+						break;
+					case "nodes":
+						if (cmdSplit.length == 2) {
+							client.getNodeList();
+						} else {
+							System.out.println("Error number of parameters.");
+							System.out.println("Usage: dfs nodes");
+						}
+						break;
+					case "rm":
+						if (cmdSplit.length == 3) {
+							client.removeFile(cmdSplit[2]);
+						} else {
+							System.out.println("Error number of parameters.");
+							System.out.println("Usage: dfs rm <file_name>");
+						}
+						break;
+					case "help":
+						System.out.println("\"put\": put a file from local on to DFS.");
+						System.out.println("Usage: dfs put <file_path>");
+						
+						System.out.println("\"get\": get a file from DFS to local.");
+						System.out.println("Usage: dfs get <file_name> <target_path>");
+						
+						System.out.println("\"files\": list file list on DFS.");
+						System.out.println("Usage: dfs files");
+						
+						System.out.println("\"nodes\": list data node list on DFS.");
+						System.out.println("Usage: dfs nodes");
+						
+						System.out.println("\"rm\": remove a file on DFS.");
+						System.out.println("Usage: dfs rm <file_name>");
+						break;
+					default:
+						System.out.println("Unrecognized command. Please use \"dfs help\" to get more details.");
+						break;
 				}
+			} else {
+				System.out.println("Unrecognized command. Please use \"dfs help\" to get more details.");
 			}
+			
 		}
 	}
 	
@@ -184,7 +233,7 @@ public class DFSClient implements DFSClientInterface {
 		try {
 			dispatchList = this.nameNode.generateChunkDistributionList(filename, split.size());
 		} catch (RemoteException e) {
-			System.out.println("There are duplicated file on DFS. Please try another file name.");
+//			System.out.println("There are duplicated file on DFS. Please try another file name.");
 			return;
 		}
 		if (dispatchList != null && dispatchList.size() > 0) {
