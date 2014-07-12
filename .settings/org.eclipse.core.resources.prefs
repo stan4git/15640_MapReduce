@@ -1,3 +1,4 @@
 eclipse.preferences.version=1
+encoding//src/conf/dfs.conf=UTF-8
 encoding//src/mapred/JobTracker.java=UTF-8
 encoding//src/mapred/TaskThread.java=UTF-8

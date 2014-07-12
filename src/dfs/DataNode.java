@@ -8,6 +8,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,17 +22,18 @@ import util.IOUtil;
  * 4. available chunk slot
  * 5. makeCopy for RMI call
  */
-public class DataNode implements DataNodeInterface {
+public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 	private Integer clientRegPort;
 	private String clientServiceName;
 	private Integer maxChunkSlot;
 	private Integer dataNodeRegPort;
-//	private Integer dataNodePort;
+	private Integer dataNodePort;
 	private String dataNodeService;
 	private String dataNodePath;
 	private Integer availableChunkSlot;
 	private String nameNodeIP;
-	private int nameNodeRegPort;
+	private Integer nameNodeRegPort;
+	private Integer nameNodePort;
 	private String nameNodeService;
 	private Registry nameNodeRegistry;
 	private NameNodeInterface nameNode;
@@ -45,6 +47,29 @@ public class DataNode implements DataNodeInterface {
 	public static void main(String[] args) {
 		System.out.println("Starting data node server...");
 		DataNode dataNode = new DataNode();
+		
+		System.out.println("Loading configuration data...");
+		try {
+			IOUtil.readConf(IOUtil.confPath, dataNode);
+			System.out.println("Configuration data loaded successfully...");
+		} catch (IOException e1) {
+			e1.printStackTrace();
+			System.out.println("Loading configuration failed...");
+			System.exit(-1);
+		}
+		
+		try {
+			System.out.println("Setting up registry server...");
+			DataNodeInterface stub = (DataNodeInterface) exportObject(dataNode, dataNode.dataNodePort);
+			Registry dataNodeRegistry = LocateRegistry.createRegistry(dataNode.dataNodeRegPort);
+			dataNodeRegistry.rebind(dataNode.dataNodeService, dataNode);
+		} catch (RemoteException e) {
+			e.printStackTrace();
+			System.err.println("System initialization failed...");
+			System.exit(-1);
+		}
+		
+		
 		dataNode.init();
 		
 		System.out.println("System is running...");
@@ -62,30 +87,12 @@ public class DataNode implements DataNodeInterface {
 		this.dataNodeList = new Hashtable<String, DataNodeInterface>();
 		this.fileList = new ConcurrentHashMap<String, HashSet<Integer>>();
 		
-		System.out.println("Loading configuration data...");
-		try {
-			IOUtil.readConf(IOUtil.confPath, this);
-			System.out.println("Configuration data loaded successfully...");
-		} catch (IOException e1) {
-			e1.printStackTrace();
-			System.out.println("Loading configuration failed...");
-			System.exit(-1);
-		}
+		
 	}
 	
 	public void init() {
 		this.availableChunkSlot = this.maxChunkSlot;
 
-		try {
-			System.out.println("Setting up registry server...");
-			this.dataNodeRegistry = LocateRegistry.createRegistry(this.dataNodeRegPort);
-			this.dataNodeRegistry.rebind(this.dataNodeService, this);
-		} catch (RemoteException e) {
-			e.printStackTrace();
-			System.err.println("System initialization failed...");
-			System.exit(-1);
-		}
-		
 		try {
 			System.out.println("Connecting to name node...");
 			this.nameNodeRegistry = LocateRegistry.getRegistry(this.nameNodeIP, this.nameNodeRegPort);
