@@ -5,10 +5,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
-import java.io.ObjectInputStream.GetField;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.rmi.AlreadyBoundException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -35,11 +33,12 @@ import util.StringHandling;
  * 8. get file
  */
 public class DFSClient implements DFSClientInterface {
+	private static final long serialVersionUID = -7835407889702758301L;
 	private int clientRegPort;
 	private String clientServiceName;
 	private int maxChunkSize;
 	private String nameNodeIP;
-	private int nameNodePort;
+	private int nameNodeRegPort;
 	private String nameNodeService;
 	private int dataNodePort;
 	private String dataNodeService;
@@ -47,13 +46,15 @@ public class DFSClient implements DFSClientInterface {
 	private int ackTimeout;
 	private Registry nameNodeRegistry;
 	private NameNodeInterface nameNode;
-	private ConcurrentHashMap<String, DataNodeInterface> dataNodeList;
+	private ConcurrentHashMap<String, DataNodeInterface> dataNodeServiceList;
 	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> dispatchList;
 	private Registry clientRegistry;
 	
-	@SuppressWarnings("unused")
 	public static void main(String[] args) {
+		System.out.println("Starting client server...");
 		DFSClient client = new DFSClient();
+		client.init();
+		
 		
 		System.out.println("For more information, please use: \"help\"");
 		System.out.println("Type in your command:");
@@ -93,32 +94,35 @@ public class DFSClient implements DFSClientInterface {
 	
 	
 	public DFSClient() {
+		System.out.println("Loading configuration data...");
 		try {
-			System.out.println("Loading configuration data...");
-			try {
-				IOUtil.readConf("conf/dfs.conf", this);
-			} catch (IOException e) {
-				e.printStackTrace();
-				System.out.println("Loading configuration failed...");
-				System.exit(-1);
-			}
-			System.out.println("Configuration data loaded successfully...");
-			
-			clientRegistry = LocateRegistry.createRegistry(this.clientRegPort);
-			clientRegistry.bind(this.clientServiceName, this);
-			System.out.println("Server has been set up...");
-			
-			this.nameNodeRegistry = LocateRegistry.getRegistry(nameNodeIP, nameNodePort);
-			this.nameNode = (NameNodeInterface) nameNodeRegistry.lookup(nameNodeService);
-			System.out.println("Connected to name node...");
-		} catch (RemoteException e) {
+			IOUtil.readConf(IOUtil.confPath, this);
+			System.out.println("Configuration data loaded successfully.");
+		} catch (IOException e) {
 			e.printStackTrace();
-		} catch (NotBoundException e) {
-			e.printStackTrace();
-		} catch (AlreadyBoundException e) {
+			System.err.println("Loading configuration failed...");
+			System.exit(-1);
 		}
 	}
 	
+	
+	public void init() {
+		try {
+			System.out.println("Initializing client registry server...");
+			clientRegistry = LocateRegistry.createRegistry(this.clientRegPort);
+			clientRegistry.rebind(this.clientServiceName, this);
+			System.out.println("Registry server has been set up on port: " + this.clientRegPort + ".");
+			
+			System.out.println("Connecting to name node server...");
+			this.nameNodeRegistry = LocateRegistry.getRegistry(nameNodeIP, nameNodeRegPort);
+			this.nameNode = (NameNodeInterface) nameNodeRegistry.lookup(nameNodeService);
+			System.out.println("Connected to name node.");
+		} catch (RemoteException | NotBoundException e) {
+			e.printStackTrace();
+			System.err.println("System initializing error. Shutting down...");
+			System.exit(-1);
+		}
+	}
 	
 	
 	
@@ -213,8 +217,8 @@ public class DFSClient implements DFSClientInterface {
 				byte[] chunk = null;
 				for (String dataNodeIP : chunkTuple.getValue()) {
 					//Setup remote services of data nodes
-					DataNodeInterface dataNode = connectToDataNode(dataNodeIP);
 					try {
+						DataNodeInterface dataNode = getDataNodeService(dataNodeIP);
 						chunk = dataNode.getFile(filename, chunkNum);
 						IOUtil.writeBinary(chunk, output);
 						break;
@@ -225,7 +229,8 @@ public class DFSClient implements DFSClientInterface {
 						} catch (IOException e1) {
 							System.err.println("Cannot delete " + filename + "_" + chunkNum + " from " + dataNodeIP);
 						}
-						return;
+					} catch (NotBoundException e) {
+						continue;
 					}
 				}
 			}
@@ -251,12 +256,12 @@ public class DFSClient implements DFSClientInterface {
 				int chunkNum = chunkTuple.getKey();
 				byte[] chunk = null;
 				for (String dataNodeIP : chunkTuple.getValue()) {
-					//Setup remote services of data nodes
-					DataNodeInterface dataNode = connectToDataNode(dataNodeIP);
 					try {
+						//Setup remote services of data nodes
+						DataNodeInterface dataNode = getDataNodeService(dataNodeIP);
 						dataNode.removeChunk(filename, chunkNum);
 						nameNode.removeChunkFromFileDistributionTable(filename, chunkNum, dataNodeIP);
-					} catch (RemoteException e) {
+					} catch (Exception e) {
 						System.err.println("Exception occurs when removing files. Please try again.");
 						return;
 					}
@@ -326,10 +331,18 @@ public class DFSClient implements DFSClientInterface {
 				
 				for (String dataNodeIP : chunkTuple.getValue()) {
 					int retryThreshold = this.chunkTranferRetryThreshold;	//limit the times of retry
-					DataNodeInterface node = connectToDataNode(dataNodeIP);	//Setup remote services of data nodes
+					
+					DataNodeInterface node;
+					try {		//Setup remote services of data nodes
+						node = getDataNodeService(dataNodeIP);
+					} catch (RemoteException | NotBoundException e1) {
+						System.err.println("Cannot connect to " + dataNodeIP + ".");
+						e1.printStackTrace();
+						continue;
+					}	
 					
 					//Retry if failed as long as retry threshold not met.
-					while (success || retryThreshold > 0) {		
+					while (!success || retryThreshold > 0) {		
 						try {
 							//start transferring chunk. 
 							node.uploadChunk(filename, chunk, chunkNum, InetAddress.getLocalHost().getHostAddress());
@@ -378,8 +391,8 @@ public class DFSClient implements DFSClientInterface {
 			}
 		}
 		
-		try {
-			nameNode.fileDistributionConfirm(filename);		//acknowledge name node
+		try {	//acknowledge name node
+			nameNode.fileDistributionConfirm(filename);		
 			System.out.println("Acknowledged name node...");
 		} catch (RemoteException e) {
 			e.printStackTrace();
@@ -389,23 +402,23 @@ public class DFSClient implements DFSClientInterface {
 	}
 	
 	
-	private DataNodeInterface connectToDataNode(String dataNode) {
-		DataNodeInterface node = dataNodeList.get(dataNode);		//Setup remote services of data nodes
-		if (node == null) {
-			try {
-				Registry dataNodeRegistry = LocateRegistry.getRegistry(dataNode, dataNodePort);
-				node = (DataNodeInterface) dataNodeRegistry.lookup(dataNodeService);
-				dataNodeList.put(dataNode, node);
-			} catch (RemoteException e) {
-				e.printStackTrace();
-				System.out.println("Exception occurs when connecting to "+ dataNode);
-			} catch (NotBoundException e) {
-				e.printStackTrace();
-				System.out.println("Service \"" + dataNodeService + "\" is not provided by " + dataNode);
-			}
-		}
-		return node;
-	}
+//	private DataNodeInterface connectToDataNode(String dataNode) {
+//		DataNodeInterface node = dataNodeServiceList.get(dataNode);		//Setup remote services of data nodes
+//		if (node == null) {
+//			try {
+//				Registry dataNodeRegistry = LocateRegistry.getRegistry(dataNode, dataNodePort);
+//				node = (DataNodeInterface) dataNodeRegistry.lookup(dataNodeService);
+//				dataNodeServiceList.put(dataNode, node);
+//			} catch (RemoteException e) {
+//				e.printStackTrace();
+//				System.out.println("Exception occurs when connecting to "+ dataNode);
+//			} catch (NotBoundException e) {
+//				e.printStackTrace();
+//				System.out.println("Service \"" + dataNodeService + "\" is not provided by " + dataNode);
+//			}
+//		}
+//		return node;
+//	}
 	
 	
 	public void sendChunkReceivedACK(String fromIP, String filename, int chunkNum) {
@@ -424,5 +437,20 @@ public class DFSClient implements DFSClientInterface {
 			}
 		}
 		System.err.println("Dispatch record not found.");
+	}
+	
+	
+	private DataNodeInterface getDataNodeService(String dataNodeIP) throws RemoteException, NotBoundException {
+		if (!this.dataNodeServiceList.contains(dataNodeIP)) {
+			try {
+				Registry dataNodeRegistry = LocateRegistry.getRegistry(dataNodeIP, this.dataNodePort);
+				DataNodeInterface dataNode = (DataNodeInterface) dataNodeRegistry.lookup(this.dataNodeService);
+				this.dataNodeServiceList.put(dataNodeIP, dataNode);
+			} catch (RemoteException | NotBoundException e) {
+				System.err.println("Cannot connect to " + dataNodeIP + "...");
+				throw e;
+			}
+		}
+		return this.dataNodeServiceList.get(dataNodeIP);
 	}
 }

@@ -38,10 +38,10 @@ public class NodeMonitor implements Runnable {
 	
 	public void run() {
 		try {
-			IOUtil.readConf("conf/dfs.conf", this);
+			IOUtil.readConf(IOUtil.confPath, this);
 		} catch (IOException e1) {
 			e1.printStackTrace();
-			System.out.println("Loading configuration failed...");
+			System.err.println("Loading configuration failed.");
 			System.exit(-1);
 		}
 		

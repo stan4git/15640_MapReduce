@@ -22,19 +22,20 @@ import util.IOUtil;
  * 5. makeCopy for RMI call
  */
 public class DataNode implements DataNodeInterface {
-	private Integer clientPort;
+	private Integer clientRegPort;
 	private String clientServiceName;
 	private Integer maxChunkSlot;
 	private Integer dataNodeRegPort;
-	private Integer dataNodePort;
+//	private Integer dataNodePort;
 	private String dataNodeService;
 	private String dataNodePath;
 	private Integer availableChunkSlot;
 	private String nameNodeIP;
-	private int nameNodePort;
+	private int nameNodeRegPort;
 	private String nameNodeService;
 	private Registry nameNodeRegistry;
 	private NameNodeInterface nameNode;
+	private Registry dataNodeRegistry;
 	private Hashtable<String, DataNodeInterface> dataNodeList;
 	private ConcurrentHashMap<String, HashSet<Integer>> fileList;
 	private boolean isRunning;
@@ -42,18 +43,9 @@ public class DataNode implements DataNodeInterface {
 	private int reservedSlot;
 	
 	public static void main(String[] args) {
-		Registry dataNodeRegistry;
-		DataNode dataNode;
-		try {
-			dataNode = new DataNode();
-			System.out.println("Configuring server...");
-			dataNodeRegistry = LocateRegistry.createRegistry(dataNode.dataNodeRegPort);
-			dataNodeRegistry.rebind(dataNode.dataNodeService, dataNode);
-		} catch (RemoteException e) {
-			e.printStackTrace();
-			System.err.println("System initialization failed...");
-			return;
-		}
+		System.out.println("Starting data node server...");
+		DataNode dataNode = new DataNode();
+		dataNode.init();
 		
 		System.out.println("System is running...");
 		while (dataNode.isRunning) {
@@ -65,33 +57,47 @@ public class DataNode implements DataNodeInterface {
 	}
 	
 	
-	public DataNode() throws RemoteException {
+	public DataNode() {
 		this.isRunning = true;
-		this.availableChunkSlot = this.maxChunkSlot;
 		this.dataNodeList = new Hashtable<String, DataNodeInterface>();
 		this.fileList = new ConcurrentHashMap<String, HashSet<Integer>>();
 		
 		System.out.println("Loading configuration data...");
 		try {
-			IOUtil.readConf("conf/dfs.conf", this);
+			IOUtil.readConf(IOUtil.confPath, this);
+			System.out.println("Configuration data loaded successfully...");
 		} catch (IOException e1) {
 			e1.printStackTrace();
 			System.out.println("Loading configuration failed...");
 			System.exit(-1);
 		}
-		System.out.println("Configuration data loaded successfully...");
-		System.out.println(this.dataNodeRegPort);
+	}
+	
+	public void init() {
+		this.availableChunkSlot = this.maxChunkSlot;
+
+		try {
+			System.out.println("Setting up registry server...");
+			this.dataNodeRegistry = LocateRegistry.createRegistry(this.dataNodeRegPort);
+			this.dataNodeRegistry.rebind(this.dataNodeService, this);
+		} catch (RemoteException e) {
+			e.printStackTrace();
+			System.err.println("System initialization failed...");
+			System.exit(-1);
+		}
 		
 		try {
-			this.nameNodeRegistry = LocateRegistry.getRegistry(this.nameNodeIP, this.nameNodePort);
+			System.out.println("Connecting to name node...");
+			this.nameNodeRegistry = LocateRegistry.getRegistry(this.nameNodeIP, this.nameNodeRegPort);
 			this.nameNode = (NameNodeInterface) this.nameNodeRegistry.lookup(this.nameNodeService);
-				this.nameNode.registerDataNode(InetAddress.getLocalHost().getHostAddress(), this.availableChunkSlot);
+			this.nameNode.registerDataNode(InetAddress.getLocalHost().getHostAddress(), this.availableChunkSlot);
 		} catch (RemoteException | NotBoundException | UnknownHostException e) {
+			e.printStackTrace();
 			System.out.println("Cannot connect to name node...");
-			throw new RemoteException();
+			System.exit(-1);
 		}
-		return;
 	}
+	
 	
 	
 	public void uploadChunk(String filename, byte[] chunk, int chunkNum, String fromIP)
@@ -115,7 +121,7 @@ public class DataNode implements DataNodeInterface {
 			}
 			
 			try {	
-				Registry clientRegistry = LocateRegistry.getRegistry(fromIP, this.clientPort);		
+				Registry clientRegistry = LocateRegistry.getRegistry(fromIP, this.clientRegPort);		
 				DFSClientInterface client = (DFSClientInterface) clientRegistry.lookup(this.clientServiceName);
 				client.sendChunkReceivedACK(InetAddress.getLocalHost().getHostAddress(), filename, chunkNum);	//send out ack to client
 				System.out.println("Client acknowledged.");
@@ -206,7 +212,7 @@ public class DataNode implements DataNodeInterface {
 	public void downloadChunk(String filename, int chunkNum, String fromIP) throws RemoteException {
 		if (!this.dataNodeList.contains(fromIP)) {		//cache connection to other data nodes
 			try {
-				Registry dataNodeRegistry = LocateRegistry.getRegistry(fromIP, this.dataNodePort);
+				Registry dataNodeRegistry = LocateRegistry.getRegistry(fromIP, this.dataNodeRegPort);
 				DataNodeInterface dataNode = (DataNodeInterface) dataNodeRegistry.lookup(dataNodeService);
 				this.dataNodeList.put(fromIP, dataNode);
 			} catch (RemoteException | NotBoundException e) {

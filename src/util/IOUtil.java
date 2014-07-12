@@ -24,6 +24,9 @@ import java.util.ArrayList;
  * @author sidilin
  */
 public class IOUtil {
+	public static String confPath = "C:/temp/dfs.conf";
+	
+	
 	/**
 	 * This method is used to write the contents into the specific file
 	 * 
@@ -273,7 +276,7 @@ public class IOUtil {
 		} catch (IOException e) {
 			throw new IOException(e.toString());
 		} 
-		String lines[] = content.split("\n");
+		String[] lines = content.trim().split("\r\n");
 		for (String line : lines) {
 			String temp[] = new String[2];
 			int position = line.lastIndexOf("=");

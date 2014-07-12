@@ -39,8 +39,10 @@ public class NameNode implements NameNodeInterface {
 	
 	
 	public static void main(String[] args) {
-		System.out.println("Starting up name node server...");
+		System.out.println("Starting name node server...");
 		NameNode nameNode = new NameNode();
+		nameNode.init();
+		
 		System.out.println("System is running...");
 		while (nameNode.isRunning) {
 			
@@ -52,38 +54,41 @@ public class NameNode implements NameNodeInterface {
 	public NameNode() {
 		this.isRunning = true;
 		this.dataNodeAvailableSlotList = new ConcurrentHashMap<String, Integer>();
-		setDataNodeStatusList(new ConcurrentHashMap<String, NodeStatus>());
+		this.dataNodeStatusList = new ConcurrentHashMap<String, NodeStatus>();
 		this.fileStatusTable = new ConcurrentHashMap<String, FileStatus>();
 		this.fileDistributionTable = new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
 		this.filesChunkOnNodesTable = new ConcurrentHashMap<String, Hashtable<String, HashSet<Integer>>>();
 		
-		
 		System.out.println("Loading configuration data...");
 		try {
-			//IOUtil.readConf("conf/dfs.conf", this);
-			IOUtil.readConf("/Users/menglonghe/HemlWorkspace/15640_MapReduce/src/conf/dfs.conf", this);
+			IOUtil.readConf(IOUtil.confPath, this);
+			System.out.println("Configuration data loaded successfully.");
 		} catch (IOException e1) {
 			e1.printStackTrace();
-			System.err.println("Failed loading configurations...");
+			System.err.println("Failed loading configurations. System shutting down...");
 			System.exit(-1);
-		}
-		System.out.println("Configuration data loaded successfully...");
-		
-		NodeMonitor nodeMonitor = new NodeMonitor(this);
-		Thread monitoring = new Thread(nodeMonitor);
-		monitoring.start();
-		System.out.println("Start monitoring...");
-		
-		try {
-			this.nameNodeRegistry = LocateRegistry.createRegistry(this.nameNodeRegPort);
-			this.nameNodeRegistry.rebind(nameNodeService, this);
-			System.out.println("Server has been set up...");
-		} catch (RemoteException e) {
-			e.printStackTrace();
-			System.out.println("Server start failed...Shutting down...");
 		}
 	}
 
+	
+	public void init() {
+		System.out.println("Initializing monitoring server...");
+		NodeMonitor nodeMonitor = new NodeMonitor(this);
+		Thread monitoring = new Thread(nodeMonitor);
+		monitoring.start();
+		System.out.println("Monitoring...");
+		
+		try {
+			this.nameNodeRegistry = LocateRegistry.createRegistry(this.nameNodeRegPort);
+			this.nameNodeRegistry.rebind(this.nameNodeService, this);
+			System.out.println("Service \"" + this.nameNodeService + "\" has been set up on port: " + this.nameNodeRegPort + ".");
+		} catch (RemoteException e) {
+			e.printStackTrace();
+			System.out.println("Server start failed. Shutting down...");
+			System.exit(-1);
+		}
+	}
+	
 	
 	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(
 			ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> failureList) throws RemoteException {
@@ -237,6 +242,7 @@ public class NameNode implements NameNodeInterface {
 	
 	public void registerDataNode(String dataNodeIP, int availableSlot) {
 		this.dataNodeAvailableSlotList.put(dataNodeIP, availableSlot);
+		this.dataNodeStatusList.put(dataNodeIP, NodeStatus.HEALTHY);
 		System.out.println(dataNodeIP + " has been added to data node list...");
 	}
 
