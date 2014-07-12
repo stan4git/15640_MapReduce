@@ -31,12 +31,12 @@ public class NameNode implements NameNodeInterface {
 	private String nameNodeService;
 	private int replicaNum;
 	private Registry nameNodeRegistry;
-	private ConcurrentHashMap<String, Integer> dataNodeAvailableSlotList;
-	private ConcurrentHashMap<String, NodeStatus> dataNodeStatusList;
-	private ConcurrentHashMap<String, FileStatus> fileStatusTable;
-	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistributionTable;
-	private ConcurrentHashMap<String, Hashtable<String, HashSet<Integer>>> filesChunkOnNodesTable;
-	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> processingFileDistributionTable;
+	private ConcurrentHashMap<String, Integer> dataNodeAvailableSlotList = new ConcurrentHashMap<String, Integer>();
+	private ConcurrentHashMap<String, NodeStatus> dataNodeStatusList = new ConcurrentHashMap<String, NodeStatus>();
+	private ConcurrentHashMap<String, FileStatus> fileStatusTable = new ConcurrentHashMap<String, FileStatus>();
+	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistributionTable = new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
+	private ConcurrentHashMap<String, Hashtable<String, HashSet<Integer>>> filesChunkOnNodesTable = new ConcurrentHashMap<String, Hashtable<String, HashSet<Integer>>>();
+	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> processingFileDistributionTable = new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
 	private boolean isRunning;
 	
 	
@@ -55,11 +55,6 @@ public class NameNode implements NameNodeInterface {
 	
 	public NameNode() {
 		this.isRunning = true;
-		this.dataNodeAvailableSlotList = new ConcurrentHashMap<String, Integer>();
-		this.dataNodeStatusList = new ConcurrentHashMap<String, NodeStatus>();
-		this.fileStatusTable = new ConcurrentHashMap<String, FileStatus>();
-		this.fileDistributionTable = new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
-		this.filesChunkOnNodesTable = new ConcurrentHashMap<String, Hashtable<String, HashSet<Integer>>>();
 		
 		System.out.println("Loading configuration data...");
 		try {
@@ -243,7 +238,7 @@ public class NameNode implements NameNodeInterface {
 	}
 
 	
-	public void registerDataNode(String dataNodeIP, int availableSlot) {
+	public void registerDataNode(String dataNodeIP, int availableSlot) throws RemoteException{
 		this.dataNodeAvailableSlotList.put(dataNodeIP, availableSlot);
 		this.dataNodeStatusList.put(dataNodeIP, NodeStatus.HEALTHY);
 		System.out.println(dataNodeIP + " has been added to data node list...");

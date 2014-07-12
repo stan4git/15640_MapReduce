@@ -24,7 +24,7 @@ import java.util.ArrayList;
  * @author sidilin
  */
 public class IOUtil {
-	public static String confPath = "/Users/menglonghe/HemlWorkspace/15640_MapReduce/src/conf/dfs.conf";
+	public static String confPath = "/Users/lch_zyj/Documents/workspace/15640_MapReduce/src/conf/dfs.conf";
 	
 	
 	/**
