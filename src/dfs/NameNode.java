@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Map.Entry;
@@ -24,47 +25,62 @@ import util.NodeStatus;
  * 8. hashmap<node : hashSet<file list>>
  * 9. file list
  */
-public class NameNode implements NameNodeInterface {
+public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 
 	private static final long serialVersionUID = 455874693232909953L;
-	private int nameNodeRegPort;
-	private String nameNodeService;
-	private int replicaNum;
-	private Registry nameNodeRegistry;
+	private static Integer nameNodeRegPort;
+	private static String nameNodeService;
+	private Integer replicaNum;
+	private static Registry nameNodeRegistry;
+	private static Integer nameNodePort;
 	private ConcurrentHashMap<String, Integer> dataNodeAvailableSlotList = new ConcurrentHashMap<String, Integer>();
 	private ConcurrentHashMap<String, NodeStatus> dataNodeStatusList = new ConcurrentHashMap<String, NodeStatus>();
 	private ConcurrentHashMap<String, FileStatus> fileStatusTable = new ConcurrentHashMap<String, FileStatus>();
 	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistributionTable = new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
 	private ConcurrentHashMap<String, Hashtable<String, HashSet<Integer>>> filesChunkOnNodesTable = new ConcurrentHashMap<String, Hashtable<String, HashSet<Integer>>>();
 	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> processingFileDistributionTable = new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
-	private boolean isRunning;
+	private static boolean isRunning;
 	
-	
-	public static void main(String[] args) {
-		System.out.println("Starting name node server...");
-		NameNode nameNode = new NameNode();
-		nameNode.init();
-		
-		System.out.println("System is running...");
-		while (nameNode.isRunning) {
-			
-		}
-		System.out.println("System is shuting down...");
+	protected NameNode() throws RemoteException {
+		super();
 	}
 	
-	
-	public NameNode() {
-		this.isRunning = true;
+	public static void main(String[] args) throws RemoteException {
+		System.out.println("Starting name node server...");
+		NameNode nameNode = new NameNode();
+		
+		isRunning = true;
 		
 		System.out.println("Loading configuration data...");
 		try {
-			IOUtil.readConf(IOUtil.confPath, this);
+			IOUtil.readConf(IOUtil.confPath, nameNode);
 			System.out.println("Configuration data loaded successfully.");
 		} catch (IOException e1) {
 			e1.printStackTrace();
 			System.err.println("Failed loading configurations. System shutting down...");
 			System.exit(-1);
 		}
+		
+		
+		NameNodeInterface stub;
+		try {
+			stub = (NameNodeInterface)exportObject(nameNode,nameNodePort);
+			nameNodeRegistry = LocateRegistry.createRegistry(nameNodeRegPort);
+			nameNodeRegistry.rebind(nameNodeService, stub);
+			System.out.println("Service \"" + nameNodeService + "\" has been set up on port: " + nameNodeRegPort + ".");
+		} catch (RemoteException e) {
+			e.printStackTrace();
+			System.out.println("Server start failed. Shutting down...");
+			System.exit(-1);
+		} 
+		
+		nameNode.init();
+		
+		System.out.println("System is running...");
+		while (isRunning) {
+			
+		}
+		System.out.println("System is shuting down...");
 	}
 
 	
@@ -74,16 +90,6 @@ public class NameNode implements NameNodeInterface {
 		Thread monitoring = new Thread(nodeMonitor);
 		monitoring.start();
 		System.out.println("Monitoring...");
-		
-		try {
-			this.nameNodeRegistry = LocateRegistry.createRegistry(this.nameNodeRegPort);
-			this.nameNodeRegistry.rebind(this.nameNodeService, this);
-			System.out.println("Service \"" + this.nameNodeService + "\" has been set up on port: " + this.nameNodeRegPort + ".");
-		} catch (RemoteException e) {
-			e.printStackTrace();
-			System.out.println("Server start failed. Shutting down...");
-			System.exit(-1);
-		}
 	}
 	
 	
@@ -314,7 +320,7 @@ public class NameNode implements NameNodeInterface {
 	
 
 	public void terminate() {
-		this.isRunning = false;
+		isRunning = false;
 	}
 
 
