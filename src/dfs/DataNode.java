@@ -25,6 +25,7 @@ import util.IOUtil;
 
 public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 
+	private static final long serialVersionUID = 7965875955130649094L;
 	private Integer clientRegPort;
 	private String clientServiceName;
 	private Integer maxChunkSlot;
@@ -48,8 +49,15 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 	
 	public static void main(String[] args) {
 		System.out.println("Starting data node server...");
-		DataNode dataNode = new DataNode();
+		DataNode dataNode = null;
+		try {
+			dataNode = new DataNode();
+		} catch (RemoteException e2) {
+			e2.printStackTrace();
+			System.exit(-1);
+		}
 		
+		//read configuration file
 		System.out.println("Loading configuration data...");
 		try {
 			IOUtil.readConf(IOUtil.confPath, dataNode);
@@ -60,17 +68,16 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 			System.exit(-1);
 		}
 		
-		try {
+		try {	//set up registry
 			System.out.println("Setting up registry server...");
 			DataNodeInterface stub = (DataNodeInterface) exportObject(dataNode, dataNode.dataNodePort);
 			Registry dataNodeRegistry = LocateRegistry.createRegistry(dataNode.dataNodeRegPort);
-			dataNodeRegistry.rebind(dataNode.dataNodeService, dataNode);
+			dataNodeRegistry.rebind(dataNode.dataNodeService, stub);
 		} catch (RemoteException e) {
 			e.printStackTrace();
 			System.err.println("System initialization failed...");
 			System.exit(-1);
 		}
-		
 		
 		dataNode.init();
 		
@@ -84,17 +91,14 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 	}
 	
 	
-	public DataNode() {
+	public DataNode() throws RemoteException {
 		this.isRunning = true;
 		this.dataNodeList = new Hashtable<String, DataNodeInterface>();
 		this.fileList = new ConcurrentHashMap<String, HashSet<Integer>>();
-		
-		
 	}
 	
 	public void init() {
 		this.availableChunkSlot = this.maxChunkSlot;
-
 		try {
 			System.out.println("Connecting to name node...");
 			this.nameNodeRegistry = LocateRegistry.getRegistry(this.nameNodeIP, this.nameNodeRegPort);
