@@ -25,6 +25,8 @@ import util.NodeStatus;
  * 9. file list
  */
 public class NameNode implements NameNodeInterface {
+
+	private static final long serialVersionUID = 455874693232909953L;
 	private int nameNodeRegPort;
 	private String nameNodeService;
 	private int replicaNum;

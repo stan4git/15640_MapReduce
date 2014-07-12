@@ -5,7 +5,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
-import java.io.ObjectOutputStream.PutField;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.rmi.NotBoundException;
@@ -303,7 +302,7 @@ public class DFSClient implements DFSClientInterface {
 		if (fileDistribution.contains(filename)) {
 			for (Entry<Integer, HashSet<String>> chunkTuple : fileDistribution.get(filename).entrySet()) {
 				int chunkNum = chunkTuple.getKey();
-				byte[] chunk = null;
+				//byte[] chunk = null;
 				for (String dataNodeIP : chunkTuple.getValue()) {
 					try {
 						//Setup remote services of data nodes

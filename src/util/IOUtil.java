@@ -24,7 +24,7 @@ import java.util.ArrayList;
  * @author sidilin
  */
 public class IOUtil {
-	public static String confPath = "C:/temp/dfs.conf";
+	public static String confPath = "/Users/menglonghe/HemlWorkspace/15640_MapReduce/src/conf/dfs.conf";
 	
 	
 	/**
@@ -276,7 +276,7 @@ public class IOUtil {
 		} catch (IOException e) {
 			throw new IOException(e.toString());
 		} 
-		String[] lines = content.trim().split("\r\n");
+		String[] lines = content.trim().split("\n");
 		for (String line : lines) {
 			String temp[] = new String[2];
 			int position = line.lastIndexOf("=");

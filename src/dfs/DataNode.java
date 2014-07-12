@@ -22,6 +22,8 @@ import util.IOUtil;
  * 5. makeCopy for RMI call
  */
 public class DataNode implements DataNodeInterface {
+
+	private static final long serialVersionUID = -4403918897865371489L;
 	private Integer clientRegPort;
 	private String clientServiceName;
 	private Integer maxChunkSlot;
@@ -39,7 +41,7 @@ public class DataNode implements DataNodeInterface {
 	private Hashtable<String, DataNodeInterface> dataNodeList;
 	private ConcurrentHashMap<String, HashSet<Integer>> fileList;
 	private boolean isRunning;
-	private int ackTimeout;
+	//private int ackTimeout;
 	private int reservedSlot;
 	
 	public static void main(String[] args) {
