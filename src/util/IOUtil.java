@@ -295,11 +295,11 @@ public class IOUtil {
 					field.set(obj, Double.parseDouble(temp[1]));
 				}
 			} catch (NoSuchFieldException e) {
-				throw new IOException(e.toString());
+				continue;
 			} catch (SecurityException e) {
 				throw new IOException(e.toString());
 			} catch (NumberFormatException e) {
-				throw new IOException(e.toString());
+				continue;
 			} catch (IllegalArgumentException e) {
 				throw new IOException(e.toString());
 			} catch (IllegalAccessException e) {

@@ -60,7 +60,8 @@ public class NameNode implements NameNodeInterface {
 		
 		System.out.println("Loading configuration data...");
 		try {
-			IOUtil.readConf("conf/dfs.conf", this);
+			//IOUtil.readConf("conf/dfs.conf", this);
+			IOUtil.readConf("/Users/menglonghe/HemlWorkspace/15640_MapReduce/src/conf/dfs.conf", this);
 		} catch (IOException e1) {
 			e1.printStackTrace();
 			System.err.println("Failed loading configurations...");
