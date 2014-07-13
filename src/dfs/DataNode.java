@@ -26,7 +26,7 @@ import util.IOUtil;
 public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 
 	private static final long serialVersionUID = 7965875955130649094L;
-	private Integer clientPort;
+	private Integer clientRegPort;
 	private String clientServiceName;
 	private Integer maxChunkSlot;
 	private Integer dataNodeRegPort;
@@ -35,7 +35,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 	private String dataNodePath;
 	private Integer availableChunkSlot;
 	private String nameNodeIP;
-	private Integer nameNodePort;
+	private Integer nameNodeRegPort;
 	private String nameNodeService;
 	private Registry nameNodeRegistry;
 	private NameNodeInterface nameNode;
@@ -101,7 +101,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 		this.availableChunkSlot = this.maxChunkSlot;
 		try {
 			System.out.println("Connecting to name node...");
-			this.nameNodeRegistry = LocateRegistry.getRegistry(this.nameNodeIP, this.nameNodePort);
+			this.nameNodeRegistry = LocateRegistry.getRegistry(this.nameNodeIP, this.nameNodeRegPort);
 			this.nameNode = (NameNodeInterface) this.nameNodeRegistry.lookup(this.nameNodeService);
 			this.nameNode.registerDataNode(InetAddress.getLocalHost().getHostAddress(), this.availableChunkSlot);
 		} catch (RemoteException | NotBoundException | UnknownHostException e) {
@@ -134,7 +134,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 			}
 			
 			try {	
-				Registry clientRegistry = LocateRegistry.getRegistry(fromIP, this.clientPort);		
+				Registry clientRegistry = LocateRegistry.getRegistry(fromIP, this.clientRegPort);		
 				DFSClientInterface client = (DFSClientInterface) clientRegistry.lookup(this.clientServiceName);
 				client.sendChunkReceivedACK(InetAddress.getLocalHost().getHostAddress(), filename, chunkNum);	//send out ack to client
 				System.out.println("Client acknowledged.");
@@ -225,7 +225,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 	public void downloadChunk(String filename, int chunkNum, String fromIP) throws RemoteException {
 		if (!this.dataNodeList.contains(fromIP)) {		//cache connection to other data nodes
 			try {
-				Registry dataNodeRegistry = LocateRegistry.getRegistry(fromIP, this.dataNodePort);
+				Registry dataNodeRegistry = LocateRegistry.getRegistry(fromIP, this.dataNodeRegPort);
 				DataNodeInterface dataNode = (DataNodeInterface) dataNodeRegistry.lookup(dataNodeService);
 				this.dataNodeList.put(fromIP, dataNode);
 			} catch (RemoteException | NotBoundException e) {

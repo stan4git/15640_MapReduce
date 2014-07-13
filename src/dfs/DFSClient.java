@@ -40,9 +40,9 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	private String clientServiceName;
 	private int maxChunkSize;
 	private String nameNodeIP;
-	private int nameNodePort;
+	private int nameNodeRegPort;
 	private String nameNodeService;
-	private int dataNodePort;
+	private int dataNodeRegPort;
 	private String dataNodeService;
 	private int chunkTranferRetryThreshold;
 	private int ackTimeout;
@@ -179,7 +179,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	public void init() {
 		try {
 			System.out.println("Connecting to name node server...");
-			this.nameNodeRegistry = LocateRegistry.getRegistry(nameNodeIP, nameNodePort);
+			this.nameNodeRegistry = LocateRegistry.getRegistry(nameNodeIP, nameNodeRegPort);
 			this.nameNode = (NameNodeInterface) nameNodeRegistry.lookup(nameNodeService);
 			System.out.println("Connected to name node.");
 		} catch (NotBoundException | RemoteException e) {
@@ -508,7 +508,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	private DataNodeInterface getDataNodeService(String dataNodeIP) throws RemoteException, NotBoundException {
 		if (!this.dataNodeServiceList.contains(dataNodeIP)) {
 			try {
-				Registry dataNodeRegistry = LocateRegistry.getRegistry(dataNodeIP, this.dataNodePort);
+				Registry dataNodeRegistry = LocateRegistry.getRegistry(dataNodeIP, this.dataNodeRegPort);
 				DataNodeInterface dataNode = (DataNodeInterface) dataNodeRegistry.lookup(this.dataNodeService);
 				this.dataNodeServiceList.put(dataNodeIP, dataNode);
 			} catch (RemoteException | NotBoundException e) {
