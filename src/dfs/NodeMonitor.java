@@ -218,6 +218,7 @@ public class NodeMonitor implements Runnable {
 	}
 	
 	
+	@SuppressWarnings("unused")
 	private void terminate() {
 		this.isRunning = false;
 	}

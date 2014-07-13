@@ -39,12 +39,12 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 	private String nameNodeService;
 	private Registry nameNodeRegistry;
 	private NameNodeInterface nameNode;
-	private Registry dataNodeRegistry;
+	private static Registry dataNodeRegistry;
 	private Hashtable<String, DataNodeInterface> dataNodeList = new Hashtable<String, DataNodeInterface>();
 	private ConcurrentHashMap<String, HashSet<Integer>> fileList = new ConcurrentHashMap<String, HashSet<Integer>>();
 	private boolean isRunning;
 	//private int ackTimeout;
-	private int reservedSlot;
+	private int reservedSlot = 0;
 	
 	public static void main(String[] args) {
 		System.out.println("Starting data node server...");
@@ -71,7 +71,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 			System.out.println("Setting up registry server...");
 			unexportObject(dataNode, false);
 			DataNodeInterface stub = (DataNodeInterface) exportObject(dataNode, dataNode.dataNodePort);
-			Registry dataNodeRegistry = LocateRegistry.createRegistry(dataNode.dataNodeRegPort);
+			dataNodeRegistry = LocateRegistry.createRegistry(dataNode.dataNodeRegPort);
 			dataNodeRegistry.rebind(dataNode.dataNodeService, stub);
 		} catch (RemoteException e) {
 			e.printStackTrace();
