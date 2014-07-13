@@ -62,9 +62,9 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 		}
 		
 		
-		NameNodeInterface stub;
+		NameNodeInterface stub = null;
 		try {
-			stub = (NameNodeInterface)exportObject(nameNode,nameNodePort);
+			stub = (NameNodeInterface) exportObject(nameNode,nameNodePort);
 			nameNodeRegistry = LocateRegistry.createRegistry(nameNodeRegPort);
 			nameNodeRegistry.rebind(nameNodeService, stub);
 			System.out.println("Service \"" + nameNodeService + "\" has been set up on port: " + nameNodeRegPort + ".");
