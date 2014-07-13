@@ -63,8 +63,11 @@ public class NodeMonitor implements Runnable {
 			String dataNodeIP = nodeStatus.getKey();
 			DataNodeInterface dataNodeService = null;
 			try {
+				System.out.println("Connecting " + dataNodeIP + "...");
 				dataNodeService = getDataNodeService(dataNodeIP);
+				System.out.println("Connected to " + dataNodeIP + ".");
 			} catch (Exception e2) {
+				System.err.println("Cannot connect to " + dataNodeIP + ".");
 				return;
 			}
 			
@@ -72,23 +75,30 @@ public class NodeMonitor implements Runnable {
 			while (retryThreshold > 0) {
 				retryThreshold--;
 				try {
+					System.out.println("Heartbeating " + dataNodeIP + "...");
 					dataNodeService.heartbeat();
+					System.out.println(dataNodeIP + " is functioning.");
+					System.out.println("Updating " + dataNodeIP + "'s status...");
 					this.nameNodeInstance.getDataNodeStatusList().put(dataNodeIP, NodeStatus.HEALTHY);
+					System.out.println(dataNodeIP + "updated.");
 					break;
 				} catch (RemoteException e) {
+					System.err.println(dataNodeIP + " is down. Recovering data...");
 					if (retryThreshold <= 0) {
 						try {
 							ensureReplica(dataNodeIP, this.nameNodeInstance.getFilesChunkOnNodesTable().get(dataNodeIP));
 						} catch (RemoteException e1) {
 							e1.printStackTrace();
-							System.err.println("Failed to recover from " + dataNodeIP + "'s failure...");
+							System.err.println("Cannot recover data from " + dataNodeIP + "'s failure...");
 							return;
 						}
 						
 						//clean up the dead node information
+						System.out.println("Cleaning up " + dataNodeIP + "'s information...");
 						this.nameNodeInstance.getDataNodeStatusList().remove(dataNodeIP);
 						this.nameNodeInstance.getDataNodeAvailableSlotList().remove(dataNodeIP);
 						this.nameNodeInstance.getFilesChunkOnNodesTable().remove(dataNodeIP);
+						System.out.println(dataNodeIP + " has been removed from name node.");
 						return;
 					}
 				}
@@ -103,21 +113,27 @@ public class NodeMonitor implements Runnable {
 			String dataNodeIP = nodeTuple.getKey();
 			DataNodeInterface dataNodeService = null;
 			try {
+				System.out.println("Connecting " + dataNodeIP + "...");
 				dataNodeService = getDataNodeService(dataNodeIP);
+				System.out.println("Connected to " + dataNodeIP + ".");
 			} catch (Exception e) {
 				e.printStackTrace();
+				System.err.println("Cannot connect to " + dataNodeIP + ".");
 				return;
 			}
 			
 			int nodeValue;
 			try {
+				System.out.println("Updating " + dataNodeIP + "'s available list...");
 				nodeValue = dataNodeService.getAvailableChunkSlot();
+				System.out.println(dataNodeIP + "has " + nodeValue + " available slots...");
 			} catch (RemoteException e) {
 				e.printStackTrace();
 				continue;
 			}
 			int nameNodeValue = nodeTuple.getValue();
 			int newValue = (nodeValue < nameNodeValue) ? nodeValue : nameNodeValue;
+			System.out.println("Updating available slots table...");
 			nameNodeInstance.getDataNodeAvailableSlotList().put(dataNodeIP, newValue);
 		}
 		return;
