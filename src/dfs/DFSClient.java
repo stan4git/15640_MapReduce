@@ -249,6 +249,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		
 		//get dispatching list from name node
 		try {
+			System.out.println("Requesting distribution list from name node: " + nameNodeIP + "...");
 			dispatchList = this.nameNode.generateChunkDistributionList(filename, split.size());
 		} catch (RemoteException e) {
 			System.err.println("Exception occurs when fetching distribution table...");
@@ -429,7 +430,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 						} catch (RemoteException e) {
 							retryThreshold--;
 							e.printStackTrace();
-							System.out.println("Exception occurs when uploading file. Retrying for " + 
+							System.err.println("Exception occurs when uploading file. Retrying for " + 
 									(this.chunkTranferRetryThreshold - retryThreshold + 1) + " times...");
 						} catch (InterruptedException e) {
 							System.err.println("Timer error.");
@@ -460,7 +461,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		
 		try {	//acknowledge name node
 			nameNode.fileDistributionConfirm(filename);		
-			System.out.println("Acknowledged name node...");
+			System.out.println("Acknowledged name node " + nameNodeIP + "...");
 		} catch (RemoteException e) {
 			e.printStackTrace();
 			System.out.println("Cannot acknowledge name node.");
