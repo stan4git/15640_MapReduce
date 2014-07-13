@@ -366,6 +366,7 @@ public class IOUtil {
 		try {
 			raFile = new RandomAccessFile(filePath, "r");
 			long currentPointer = 0L;
+			long fileSize = raFile.length();
 			String tmp = null;
 			Long lastPointer = 0L;
 			do {
@@ -379,12 +380,14 @@ public class IOUtil {
 						currentPointer += increment;
 					} else {
 						split.add(currentPointer);
-						lastPointer = currentPointer + 1;
+						System.out.println("Scanning file... " + (int)((1.0d * currentPointer / fileSize) * 100) + "% finished.");
+						lastPointer = currentPointer;
 						currentPointer += increment;
 					}
 				} else {	//reach the end of file
-					if (currentPointer != lastPointer) {
+					if (tmp == null && currentPointer != lastPointer) {
 						split.add(currentPointer);
+						System.out.println("Finished scanning file.");
 					}
 				}
 			} while (tmp != null);

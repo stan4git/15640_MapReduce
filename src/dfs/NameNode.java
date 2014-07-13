@@ -177,16 +177,16 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 
 	public String pickMostAvailableSlotDataNode(HashSet<String> excludeList) throws RemoteException {
 		String minLoadDataNode = null;
-		int maxAvailableSlots = Integer.MIN_VALUE;
+		int mostAvailableSlots = Integer.MIN_VALUE;
 		for (Entry<String, Integer> dataNodeTuple : this.dataNodeAvailableSlotList.entrySet()) {
 			String dataNode = dataNodeTuple.getKey();
 			if (this.dataNodeStatusList.get(dataNode) == NodeStatus.HEALTHY 
-					&& !excludeList.contains(dataNodeTuple.getValue()) 
-					&& dataNodeTuple.getValue() > maxAvailableSlots) {
+					&& !excludeList.contains(dataNode) 
+					&& dataNodeTuple.getValue() > mostAvailableSlots) {
 				minLoadDataNode = dataNodeTuple.getKey();
-				maxAvailableSlots = dataNodeTuple.getValue();
+				mostAvailableSlots = dataNodeTuple.getValue();
 				//preserve available slot for dispatching
-				this.dataNodeAvailableSlotList.put(minLoadDataNode, maxAvailableSlots - 1);
+				this.dataNodeAvailableSlotList.put(minLoadDataNode, mostAvailableSlots - 1);
 			}
 		}
 		

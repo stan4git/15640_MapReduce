@@ -251,7 +251,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		try {
 			dispatchList = this.nameNode.generateChunkDistributionList(filename, split.size());
 		} catch (RemoteException e) {
-//			System.out.println("There are duplicated file on DFS. Please try another file name.");
+			System.err.println("Exception occurs when fetching distribution table...");
 			return;
 		}
 		if (dispatchList != null && dispatchList.size() > 0) {
