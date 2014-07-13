@@ -20,6 +20,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import util.FileStatus;
+import util.FunctionalUtil;
 import util.IOUtil;
 import util.StringHandling;
 
@@ -381,7 +382,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		
 		
 		//guaranteed to dispatch all the chunks. if failed, get new dispatch list and keep dispatching
-		ConcurrentHashMap<String,Hashtable<Integer,HashSet<String>>> dispatchListDeepCopy = IOUtil.deepCopy(dispatchList);
+		ConcurrentHashMap<String,Hashtable<Integer,HashSet<String>>> dispatchListDeepCopy = FunctionalUtil.deepCopy(dispatchList);
 		while (dispatchListDeepCopy.get(filename).size() > 0) {
 			for (Entry<Integer, HashSet<String>> chunkTuple : dispatchListDeepCopy.get(filename).entrySet()) {
 				int chunkNum = chunkTuple.getKey();
