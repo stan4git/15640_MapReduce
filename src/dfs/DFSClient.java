@@ -40,7 +40,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	private String clientServiceName;
 	private int maxChunkSize;
 	private String nameNodeIP;
-	private int nameNodeRegPort;
+	private int nameNodePort;
 	private String nameNodeService;
 	private int dataNodePort;
 	private String dataNodeService;
@@ -172,14 +172,13 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	
 	
 	public DFSClient() throws RemoteException {
-		
 	}
 	
 	
 	public void init() {
 		try {
 			System.out.println("Connecting to name node server...");
-			this.nameNodeRegistry = LocateRegistry.getRegistry(nameNodeIP, nameNodeRegPort);
+			this.nameNodeRegistry = LocateRegistry.getRegistry(nameNodeIP, nameNodePort);
 			this.nameNode = (NameNodeInterface) nameNodeRegistry.lookup(nameNodeService);
 			System.out.println("Connected to name node.");
 		} catch (NotBoundException | RemoteException e) {
