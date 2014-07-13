@@ -69,6 +69,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 		
 		try {	//set up registry
 			System.out.println("Setting up registry server...");
+			unexportObject(dataNode, false);
 			DataNodeInterface stub = (DataNodeInterface) exportObject(dataNode, dataNode.dataNodePort);
 			Registry dataNodeRegistry = LocateRegistry.createRegistry(dataNode.dataNodeRegPort);
 			dataNodeRegistry.rebind(dataNode.dataNodeService, stub);

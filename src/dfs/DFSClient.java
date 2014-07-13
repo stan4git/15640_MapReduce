@@ -74,6 +74,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		
 		try {
 			System.out.println("Initializing client registry server...");
+			unexportObject(client, false);
 			DFSClientInterface stub = (DFSClientInterface) exportObject(client, client.clientPort);
 			Registry clientRegistry = LocateRegistry.createRegistry(client.clientRegPort);
 			clientRegistry.rebind(client.clientServiceName, stub);
