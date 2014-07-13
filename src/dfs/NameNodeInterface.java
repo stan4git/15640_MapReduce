@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import util.NodeStatus;
 import util.FileStatus;
 
-public interface NameNodeInterface extends Remote, Serializable {
+public interface NameNodeInterface extends Remote {
 	public ConcurrentHashMap<String, FileStatus> getFileStatusTable() throws RemoteException;
 	public ConcurrentHashMap<String, Integer> getDataNodeAvailableSlotList() throws RemoteException;
 	public ConcurrentHashMap<String, NodeStatus> getDataNodeStatusList() throws RemoteException;
