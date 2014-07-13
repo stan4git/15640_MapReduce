@@ -14,7 +14,7 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -49,7 +49,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	private Registry nameNodeRegistry;
 	private NameNodeInterface nameNode;
 	private ConcurrentHashMap<String, DataNodeInterface> dataNodeServiceList = new ConcurrentHashMap<String, DataNodeInterface>();
-	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> dispatchList = new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
+	private ConcurrentHashMap<String, ConcurrentHashMap<Integer, HashSet<String>>> dispatchList = new ConcurrentHashMap<String, ConcurrentHashMap<Integer, HashSet<String>>>();
 	private Registry clientRegistry;
 	
 	public static void main(String[] args) {
@@ -274,7 +274,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	 * @param file String The path of input file on DFS.
 	 */
 	private void getFile(String filename, String output) {
-		ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistribution;
+		ConcurrentHashMap<String, ConcurrentHashMap<Integer, HashSet<String>>> fileDistribution;
 		try {
 			fileDistribution = this.nameNode.getFileDistributionTable();
 		} catch (RemoteException e2) {
@@ -314,7 +314,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	 * @param file String The path of file to be deleted.
 	 */
 	private void removeFile(String filename) {
-		ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistribution;
+		ConcurrentHashMap<String, ConcurrentHashMap<Integer, HashSet<String>>> fileDistribution;
 		try {
 			fileDistribution = this.nameNode.getFileDistributionTable();
 		} catch (RemoteException e1) {
@@ -399,8 +399,10 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 					continue;
 				}
 				
-				
-				for (String dataNodeIP : chunkTuple.getValue()) {
+				Iterator<String> iter = chunkTuple.getValue().iterator();
+				synchronized (iter) {
+				while (iter.hasNext()) {
+					String dataNodeIP = iter.next();
 					int retryThreshold = this.chunkTranferRetryThreshold;	//limit the times of retry
 					
 					DataNodeInterface node;
@@ -450,15 +452,19 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 					}
 				}
 			}
+			}
 			
 			if (this.dispatchList.get(filename).size() == 0) {
 				//dispatch finished
 				this.dispatchList = null;
+				System.out.println("Dispatch finished.");
 				break;
 			} else {
 				//Send back failure list to name node for new dispatching list.
 				try {
+					System.out.println("Re-generating new dispatch list...");
 					this.dispatchList = nameNode.generateChunkDistributionList(this.dispatchList);
+					System.out.println("New distribution list is received.");
 				} catch (RemoteException e) {
 					System.err.println("System run out of storage space!");
 					return;
