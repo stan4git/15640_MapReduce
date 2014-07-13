@@ -208,7 +208,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		System.out.println("=======================Start of list=======================");
 		System.out.println("File Name\tFile Status");
 		for (Entry<String, FileStatus> row : list.entrySet()) {
-			System.out.println(row.getKey() + "\t" + row.getValue());
+			System.out.println(row.getKey() + "	" + row.getValue());
 		}
 		System.out.println("=======================End of list=======================");
 		return;
@@ -316,30 +316,22 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	private void removeFile(String filename) {
 		ConcurrentHashMap<String, ConcurrentHashMap<Integer, HashSet<String>>> fileDistribution;
 		try {
-			System.out.println("Fetching file distribution table of \"" + filename + "\"from name node...");
 			fileDistribution = this.nameNode.getFileDistributionTable();
-			System.out.println("\"" + filename + "\" distribution table is received.");
 		} catch (RemoteException e1) {
 			e1.printStackTrace();
-			System.out.println("Cannot remove file \"" + filename + "\".");
+			System.out.println("Cannot remove file...");
 			return;
 		}
-		
-		System.out.println("Removing \"" + filename + "\" on data nodes...");
-		if (fileDistribution.containsKey(filename)) {
+		if (fileDistribution.contains(filename)) {
 			for (Entry<Integer, HashSet<String>> chunkTuple : fileDistribution.get(filename).entrySet()) {
 				int chunkNum = chunkTuple.getKey();
 				//byte[] chunk = null;
 				for (String dataNodeIP : chunkTuple.getValue()) {
 					try {
 						//Setup remote services of data nodes
-						System.out.println("Connecting to data node \"" + dataNodeIP + "\"...");
 						DataNodeInterface dataNode = getDataNodeService(dataNodeIP);
-						System.out.println("Removing chunk " + chunkNum + " of file \"" + filename + "\" on " + dataNodeIP + "...");
 						dataNode.removeChunk(filename, chunkNum);
-						System.out.println("Updating file distribution table on name node...");
 						nameNode.removeChunkFromFileDistributionTable(filename, chunkNum, dataNodeIP);
-						System.out.println("Chunk " + chunkNum + " of file \"" + filename + "\" on " + dataNodeIP + " has been deleted.");
 					} catch (Exception e) {
 						System.err.println("Exception occurs when removing files. Please try again.");
 						return;
@@ -347,7 +339,6 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 				}
 			}
 		}
-		System.out.println("\"" + filename + "\" has been deleted from DFS.");
 	}
 	
 	
@@ -390,15 +381,9 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		
 		
 		//guaranteed to dispatch all the chunks. if failed, get new dispatch list and keep dispatching 
-//		while (dispatchList.get(filename).size() > 0) {
-			ConcurrentHashMap<String, ConcurrentHashMap<Integer, HashSet<String>>> tmpList = new ConcurrentHashMap<String, ConcurrentHashMap<Integer, HashSet<String>>>(dispatchList);
-			Iterator<Entry<Integer, HashSet<String>>> itor = tmpList.get(filename).entrySet().iterator();
-			while(itor.hasNext()) {
-				Entry<Integer, HashSet<String>> chunkTuple = itor.next();
-//			}
-//			for (Entry<Integer, HashSet<String>> chunkTuple : dispatchList.get(filename).entrySet()) {
+		while (dispatchList.get(filename).size() > 0) {
+			for (Entry<Integer, HashSet<String>> chunkTuple : dispatchList.get(filename).entrySet()) {
 				int chunkNum = chunkTuple.getKey();
-				System.out.println("Dispatching chunk " + chunkNum + " ...");
 				boolean success = false;
 				int chunkSize = 0;
 				
@@ -414,17 +399,15 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 					continue;
 				}
 				
-				Iterator<String> iterator = chunkTuple.getValue().iterator();
-				while(iterator.hasNext()) {
-					 String dataNodeIP = iterator.next();
-//				}
-//				for (String dataNodeIP : chunkTuple.getValue()) {
+				Iterator<String> iter = chunkTuple.getValue().iterator();
+				synchronized (iter) {
+				while (iter.hasNext()) {
+					String dataNodeIP = iter.next();
 					int retryThreshold = this.chunkTranferRetryThreshold;	//limit the times of retry
 					
 					DataNodeInterface node;
 					try {		//Setup remote services of data nodes
 						node = getDataNodeService(dataNodeIP);
-						System.out.println("Connected to " + dataNodeIP + ".");
 					} catch (RemoteException | NotBoundException e1) {
 						System.err.println("Cannot connect to " + dataNodeIP + ".");
 						e1.printStackTrace();
@@ -432,61 +415,62 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 					}	
 					
 					//Retry if failed as long as retry threshold not met.
-//					while (!success && retryThreshold > 0) {		
+					while (!success && retryThreshold > 0) {		
 						try {
 							//start transferring chunk. 
 							System.out.println("Dispatching chunk" + chunkNum + " of file \"" + filename + "\" to " + dataNodeIP + "...");
-							node.uploadChunk(filename, chunk, chunkNum, InetAddress.getLocalHost().getHostAddress());							System.out.println("Chunk" + chunkNum + " of file \"" + filename + "\" has been uploaded to " + dataNodeIP + ".");
-//							success = true;
-//							
-//							//waiting for dataNode acknowledge
-//							long timeoutExpiredMs = System.currentTimeMillis() + (this.ackTimeout * 1000);	
-//							while (this.dispatchList.get(filename).get(chunkNum).contains(dataNodeIP)) {	
-//								if (System.currentTimeMillis() >= timeoutExpiredMs) break;
-//								Thread.sleep(1 * 1000);
-//							}
-//							
-//							//check if data node acknowledged received
-//							if (this.dispatchList.get(filename).get(chunkNum).contains(dataNodeIP)) {		
-//								retryThreshold--;
-//								System.out.println("Upload timeout. Retrying for " +
-//										(this.chunkTranferRetryThreshold - retryThreshold + 1) + " times...");
-//							}
+							node.uploadChunk(filename, chunk, chunkNum, InetAddress.getLocalHost().getHostAddress());
+							System.out.println("Chunk" + chunkNum + " of file \"" + filename + "\" has been uploaded to " + dataNodeIP + ".");
+							success = true;
+							
+							//waiting for dataNode acknowledge
+							long timeoutExpiredMs = System.currentTimeMillis() + (this.ackTimeout * 1000);	
+							while (this.dispatchList.get(filename).get(chunkNum).contains(dataNodeIP)) {	
+								if (System.currentTimeMillis() >= timeoutExpiredMs) break;
+								Thread.sleep(1 * 1000);
+							}
+							
+							//check if data node acknowledged received
+							if (this.dispatchList.get(filename).get(chunkNum).contains(dataNodeIP)) {		
+								retryThreshold--;
+								System.out.println("Upload timeout. Retrying for " +
+										(this.chunkTranferRetryThreshold - retryThreshold + 1) + " times...");
+							}
 						} catch (RemoteException e) {
 							retryThreshold--;
 							e.printStackTrace();
 							System.err.println("Exception occurs when uploading file. Retrying for " + 
 									(this.chunkTranferRetryThreshold - retryThreshold + 1) + " times...");
-//						} catch (InterruptedException e) {
-//							System.err.println("Timer error.");
+						} catch (InterruptedException e) {
+							System.err.println("Timer error.");
 						} catch (UnknownHostException e) {
 							e.printStackTrace();
 						}
-//					}
-					
-//					if (retryThreshold == 0) {		//after retries, print out error message
-//						System.err.print("Upload chunk" + chunkNum + " to " + dataNodeIP + " failed.");
-//					}
+					}
+					if (retryThreshold == 0) {		//after retries, print out error message
+						System.err.print("Upload chunk" + chunkNum + " to " + dataNodeIP + " failed.");
+					}
 				}
 			}
+			}
 			
-//			if (this.dispatchList.get(filename).size() == 0) {
-//				//dispatch finished
-//				this.dispatchList = null;
-//				System.out.println("Dispatch finished.");
-//				break;
-//			} else {
-//				//Send back failure list to name node for new dispatching list.
-//				try {
-//					System.out.println("Re-generating new dispatch list...");
-//					this.dispatchList = nameNode.generateChunkDistributionList(this.dispatchList);
-//					System.out.println("New distribution list is received.");
-//				} catch (RemoteException e) {
-//					System.err.println("System run out of storage space!");
-//					return;
-//				}
-//			}
-//		}
+			if (this.dispatchList.get(filename).size() == 0) {
+				//dispatch finished
+				this.dispatchList = null;
+				System.out.println("Dispatch finished.");
+				break;
+			} else {
+				//Send back failure list to name node for new dispatching list.
+				try {
+					System.out.println("Re-generating new dispatch list...");
+					this.dispatchList = nameNode.generateChunkDistributionList(this.dispatchList);
+					System.out.println("New distribution list is received.");
+				} catch (RemoteException e) {
+					System.err.println("System run out of storage space!");
+					return;
+				}
+			}
+		}
 		
 		try {	//acknowledge name node
 			nameNode.fileDistributionConfirm(filename);		
@@ -523,17 +507,17 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 			if (this.dispatchList.containsKey(filename)) {
 				if (this.dispatchList.get(filename).containsKey(chunkNum)) {
 					if (this.dispatchList.get(filename).get(chunkNum).contains(fromIP)) {
-//						if (this.dispatchList.get(filename).get(chunkNum).size() == 1) {
-//							this.dispatchList.get(filename).remove(chunkNum);
-//						} else {
-//							this.dispatchList.get(filename).get(chunkNum).remove(fromIP);
-//						}
+						if (this.dispatchList.get(filename).get(chunkNum).size() == 1) {
+							this.dispatchList.get(filename).remove(chunkNum);
+						} else {
+							this.dispatchList.get(filename).get(chunkNum).remove(fromIP);
+						}
 						return;
 					}
 				}
 			}
 		}
-		System.err.println("From \"" + fromIP + "\": " + filename + "_" + chunkNum + " not found.");
+		System.err.println("Dispatch record not found.");
 		return;
 	}
 	
