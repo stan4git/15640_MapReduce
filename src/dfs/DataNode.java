@@ -135,7 +135,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 				Registry clientRegistry = LocateRegistry.getRegistry(fromIP, this.clientRegPort);		
 				DFSClientInterface client = (DFSClientInterface) clientRegistry.lookup(this.clientServiceName);
 				client.sendChunkReceivedACK(InetAddress.getLocalHost().getHostAddress(), filename, chunkNum);	//send out ack to client
-				System.out.println("Client " + fromIP + "acknowledged.");
+				System.out.println("Client " + fromIP + " acknowledged.");
 			} catch (NotBoundException | UnknownHostException e) {
 				e.printStackTrace();
 				System.err.println("Unable to connect to client server...");
