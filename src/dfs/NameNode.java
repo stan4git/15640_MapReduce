@@ -64,6 +64,7 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 		
 		NameNodeInterface stub = null;
 		try {
+			unexportObject(nameNode, false);
 			stub = (NameNodeInterface) exportObject(nameNode,nameNodePort);
 			nameNodeRegistry = LocateRegistry.createRegistry(nameNodeRegPort);
 			nameNodeRegistry.rebind(nameNodeService, stub);
