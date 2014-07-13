@@ -251,10 +251,13 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		try {
 			System.out.println("Requesting distribution list from name node: " + nameNodeIP + "...");
 			dispatchList = this.nameNode.generateChunkDistributionList(filename, split.size());
+			System.out.println("Dispatch list received.");
 		} catch (RemoteException e) {
 			System.err.println("Exception occurs when fetching distribution table...");
 			return;
 		}
+		
+		System.out.println("Dispatching file...");
 		if (dispatchList != null && dispatchList.size() > 0) {
 			dispatchChunks(filePath, split);
 			dispatchList = null;
@@ -410,17 +413,21 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 					}	
 					
 					//Retry if failed as long as retry threshold not met.
-					while (!success || retryThreshold > 0) {		
+					while (!success && retryThreshold > 0) {		
 						try {
 							//start transferring chunk. 
+							System.out.println("Dispatching chunk" + chunkNum + " of file \"" + filename + "\" to " + dataNodeIP + "...");
 							node.uploadChunk(filename, chunk, chunkNum, InetAddress.getLocalHost().getHostAddress());
+							System.out.println("Chunk" + chunkNum + " of file \"" + filename + "\" has been uploaded to " + dataNodeIP + ".");
 							success = true;
-							long timeoutExpiredMs = System.currentTimeMillis() + (this.ackTimeout * 1000);	
+							
 							//waiting for dataNode acknowledge
+							long timeoutExpiredMs = System.currentTimeMillis() + (this.ackTimeout * 1000);	
 							while (this.dispatchList.get(filename).get(chunkNum).contains(dataNodeIP)) {	
 								if (System.currentTimeMillis() >= timeoutExpiredMs) break;
 								Thread.sleep(1 * 1000);
 							}
+							
 							//check if data node acknowledged received
 							if (this.dispatchList.get(filename).get(chunkNum).contains(dataNodeIP)) {		
 								retryThreshold--;
@@ -491,8 +498,8 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	
 	public void sendChunkReceivedACK(String fromIP, String filename, int chunkNum) {
 		if (this.dispatchList != null) {
-			if (this.dispatchList.contains(filename)) {
-				if (this.dispatchList.get(filename).contains(chunkNum)) {
+			if (this.dispatchList.containsKey(filename)) {
+				if (this.dispatchList.get(filename).containsKey(chunkNum)) {
 					if (this.dispatchList.get(filename).get(chunkNum).contains(fromIP)) {
 						if (this.dispatchList.get(filename).get(chunkNum).size() == 1) {
 							this.dispatchList.get(filename).remove(chunkNum);
@@ -505,6 +512,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 			}
 		}
 		System.err.println("Dispatch record not found.");
+		return;
 	}
 	
 	
