@@ -484,6 +484,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			jobTracker.initSlaveNodes(SlaveListPath);
 			
 			// 3. Build the RMI Registry Server and bind the service to the registry server
+			unexportObject(jobTracker, false);
 			JobTrackerInterface stub = (JobTrackerInterface) exportObject (jobTracker, jobTrackerPort);
 			Registry registry = LocateRegistry.createRegistry(jobTrackerRegPort);
 			registry.rebind(jobTrackServiceName, stub);

@@ -280,6 +280,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 			IOUtil.readConf(mapredConf, taskTracker);
 			IOUtil.readConf(dfsConf, taskTracker);
 
+			unexportObject(taskTracker, false);
 			TaskTrackerInterface stub = (TaskTrackerInterface) exportObject(taskTracker, taskPort);
 			Registry registry = LocateRegistry.createRegistry(taskTrackerRegPort);
 			registry.rebind(taskTrackServiceName, stub);
