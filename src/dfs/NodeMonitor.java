@@ -6,6 +6,7 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -140,7 +141,7 @@ public class NodeMonitor implements Runnable {
 	}
 	
 	
-	public void ensureReplica(String deadNode, ConcurrentHashMap<String, HashSet<Integer>> missingChunkList) throws RemoteException {
+	public void ensureReplica(String deadNode, Hashtable<String, HashSet<Integer>> missingChunkList) throws RemoteException {
 		for (Entry<String, HashSet<Integer>> fileTuple : missingChunkList.entrySet()) {
 			String filename = fileTuple.getKey();
 			

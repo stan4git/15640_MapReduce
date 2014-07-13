@@ -36,9 +36,9 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 	private ConcurrentHashMap<String, Integer> dataNodeAvailableSlotList = new ConcurrentHashMap<String, Integer>();
 	private ConcurrentHashMap<String, NodeStatus> dataNodeStatusList = new ConcurrentHashMap<String, NodeStatus>();
 	private ConcurrentHashMap<String, FileStatus> fileStatusTable = new ConcurrentHashMap<String, FileStatus>();
-	private ConcurrentHashMap<String, ConcurrentHashMap<Integer, HashSet<String>>> fileDistributionTable = new ConcurrentHashMap<String, ConcurrentHashMap<Integer, HashSet<String>>>();
-	private ConcurrentHashMap<String, ConcurrentHashMap<String, HashSet<Integer>>> filesChunkOnNodesTable = new ConcurrentHashMap<String, ConcurrentHashMap<String, HashSet<Integer>>>();
-	private ConcurrentHashMap<String, ConcurrentHashMap<Integer, HashSet<String>>> processingFileDistributionTable = new ConcurrentHashMap<String, ConcurrentHashMap<Integer, HashSet<String>>>();
+	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistributionTable = new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
+	private ConcurrentHashMap<String, Hashtable<String, HashSet<Integer>>> filesChunkOnNodesTable = new ConcurrentHashMap<String, Hashtable<String, HashSet<Integer>>>();
+	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> processingFileDistributionTable = new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
 	private static boolean isRunning;
 	
 	protected NameNode() throws RemoteException {
@@ -93,9 +93,9 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 	}
 	
 	
-	public ConcurrentHashMap<String, ConcurrentHashMap<Integer, HashSet<String>>> generateChunkDistributionList(
-			ConcurrentHashMap<String, ConcurrentHashMap<Integer, HashSet<String>>> failureList) throws RemoteException {
-		for (Entry<String, ConcurrentHashMap<Integer, HashSet<String>>> fileTuple : failureList.entrySet()) {	
+	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(
+			ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> failureList) throws RemoteException {
+		for (Entry<String, Hashtable<Integer, HashSet<String>>> fileTuple : failureList.entrySet()) {	
 			//get filename
 			String filename = fileTuple.getKey();
 			for (Entry<Integer, HashSet<String>> chunkTuple : fileTuple.getValue().entrySet()) { 
@@ -124,7 +124,7 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 	}
 	
 	
-	public ConcurrentHashMap<String, ConcurrentHashMap<Integer, HashSet<String>>> generateChunkDistributionList(
+	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(
 			String filename, int chunkAmount) throws RemoteException {
 		//check and update file status table to avoid duplicated file name
 		if (this.fileStatusTable.contains(filename)) {		
@@ -135,7 +135,7 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 		}
 		
 		//chunkDispatchTable is used to store the dispatch result for this file
-		ConcurrentHashMap<Integer, HashSet<String>> chunkDispatchTable = new ConcurrentHashMap<Integer, HashSet<String>>();
+		Hashtable<Integer, HashSet<String>> chunkDispatchTable = new Hashtable<Integer, HashSet<String>>();
 		for (int currentChunk = 0; currentChunk < chunkAmount; currentChunk++) {		//dispatch by chunks
 			int replicaCount = this.replicaNum;
 			HashSet<String> nodeList = new HashSet<String>();	//dispatched nodes list
@@ -166,8 +166,8 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 		//fileDistributionTable when dispatch succeed
 		this.processingFileDistributionTable.put(filename, chunkDispatchTable);
 		
-		ConcurrentHashMap<String, ConcurrentHashMap<Integer, HashSet<String>>> resultTable = 
-				new ConcurrentHashMap<String, ConcurrentHashMap<Integer, HashSet<String>>>();
+		ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> resultTable = 
+				new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
 		resultTable.put(filename, chunkDispatchTable);
 		System.out.println("Sending out chunk distribution list...");
 		return resultTable;
@@ -222,8 +222,8 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 
 	
 	public void updateFileDistributionTable(
-			ConcurrentHashMap<String, ConcurrentHashMap<Integer, HashSet<String>>> tableToBeUpdated) {
-		for (Entry<String, ConcurrentHashMap<Integer, HashSet<String>>> fileTuple : tableToBeUpdated.entrySet()) {
+			ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> tableToBeUpdated) {
+		for (Entry<String, Hashtable<Integer, HashSet<String>>> fileTuple : tableToBeUpdated.entrySet()) {
 			String filename = fileTuple.getKey();
 			if (!this.fileDistributionTable.contains(filename)) {
 				fileDistributionTable.put(filename, fileTuple.getValue());
@@ -286,7 +286,7 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 
 
 	public void setFileDistributionTable(
-			ConcurrentHashMap<String, ConcurrentHashMap<Integer, HashSet<String>>> fileDistributionTable) {
+			ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistributionTable) {
 		this.fileDistributionTable = fileDistributionTable;
 	}
 
@@ -305,7 +305,7 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 	}
 	
 	
-	public ConcurrentHashMap<String, ConcurrentHashMap<Integer, HashSet<String>>> getFileDistributionTable() {
+	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFileDistributionTable() {
 		return this.fileDistributionTable;
 	}
 	
@@ -324,13 +324,13 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 	}
 
 
-	public ConcurrentHashMap<String, ConcurrentHashMap<String, HashSet<Integer>>> getFilesChunkOnNodesTable() {
+	public ConcurrentHashMap<String, Hashtable<String, HashSet<Integer>>> getFilesChunkOnNodesTable() {
 		return filesChunkOnNodesTable;
 	}
 
 
 	public void setFilesChunkOnNodesTable(
-			ConcurrentHashMap<String, ConcurrentHashMap<String, HashSet<Integer>>> filesChunkOnNodesTable) {
+			ConcurrentHashMap<String, Hashtable<String, HashSet<Integer>>> filesChunkOnNodesTable) {
 		this.filesChunkOnNodesTable = filesChunkOnNodesTable;
 	}
 }
