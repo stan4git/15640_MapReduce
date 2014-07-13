@@ -44,7 +44,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 	private ConcurrentHashMap<String, HashSet<Integer>> fileList = new ConcurrentHashMap<String, HashSet<Integer>>();
 	private boolean isRunning;
 	//private int ackTimeout;
-	private int reservedSlot = 0;
+	private int reservedSlot;
 	
 	public static void main(String[] args) {
 		System.out.println("Starting data node server...");
