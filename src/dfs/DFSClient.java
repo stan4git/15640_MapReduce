@@ -228,8 +228,9 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		System.out.println("Fetching data node list from remote server...");
 		System.out.println("Data nodes in DFS are:");
 		System.out.println("=======================Start of list=======================");
+		System.out.println("Data Node\tAvailable Slots");
 		for (Entry<String, Integer> row : list.entrySet()) {
-			System.out.print(row.getKey() + "	" + row.getValue());
+			System.out.println(row.getKey() + "	" + row.getValue());
 		}
 		System.out.println("=======================End of list=======================");
 		return;
