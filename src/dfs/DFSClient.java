@@ -48,8 +48,8 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	private int ackTimeout;
 	private Registry nameNodeRegistry;
 	private NameNodeInterface nameNode;
-	private ConcurrentHashMap<String, DataNodeInterface> dataNodeServiceList;
-	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> dispatchList;
+	private ConcurrentHashMap<String, DataNodeInterface> dataNodeServiceList = new ConcurrentHashMap<String, DataNodeInterface>();
+	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> dispatchList = new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
 	private Registry clientRegistry;
 	
 	public static void main(String[] args) {
