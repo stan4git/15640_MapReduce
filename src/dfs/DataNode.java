@@ -122,7 +122,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 			
 			try {		//write file on to local storage
 				IOUtil.writeBinary(chunk, this.dataNodePath + filename + "_" + chunkNum);		
-				System.out.println("\"" + filename + "\"" + "_" + chunkNum + " has been stored to " + "\"" + this.dataNodePath + "\".");
+				System.out.println("\"" + filename + "" + "_" + chunkNum + "\" has been stored to " + "\"" + this.dataNodePath + "\".");
 			} catch (IOException e) {
 				this.availableChunkSlot++;
 				this.reservedSlot--;
@@ -132,6 +132,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 			}
 			
 			try {	
+				System.out.println("Connecting to " + fromIP + "...");
 				Registry clientRegistry = LocateRegistry.getRegistry(fromIP, this.clientRegPort);		
 				DFSClientInterface client = (DFSClientInterface) clientRegistry.lookup(this.clientServiceName);
 				client.sendChunkReceivedACK(InetAddress.getLocalHost().getHostAddress(), filename, chunkNum);	//send out ack to client
