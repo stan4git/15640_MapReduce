@@ -206,6 +206,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		System.out.println("Fetching file list from remote server...");
 		System.out.println("Files on DFS are:");
 		System.out.println("=======================Start of list=======================");
+		System.out.println("File Name\tFile Status");
 		for (Entry<String, FileStatus> row : list.entrySet()) {
 			System.out.println(row.getKey() + "	" + row.getValue());
 		}
