@@ -61,11 +61,11 @@ public class NodeMonitor implements Runnable {
 	public void updateNodeStatus() {
 		for (Entry<String, NodeStatus> nodeStatus : nameNodeInstance.getDataNodeStatusList().entrySet()) {
 			String dataNodeIP = nodeStatus.getKey();
+			System.out.println("Updating " + dataNodeIP + ".");
 			DataNodeInterface dataNodeService = null;
 			try {
-				System.out.println("Connecting " + dataNodeIP + "...");
+//				System.out.println("Connecting " + dataNodeIP + "...");
 				dataNodeService = getDataNodeService(dataNodeIP);
-				System.out.println("Connected to " + dataNodeIP + ".");
 			} catch (Exception e2) {
 				System.err.println("Cannot connect to " + dataNodeIP + ".");
 				return;
@@ -75,12 +75,12 @@ public class NodeMonitor implements Runnable {
 			while (retryThreshold > 0) {
 				retryThreshold--;
 				try {
-					System.out.println("Heartbeating " + dataNodeIP + "...");
+//					System.out.println("Heartbeating " + dataNodeIP + "...");
 					dataNodeService.heartbeat();
-					System.out.println(dataNodeIP + " is functioning.");
-					System.out.println("Updating " + dataNodeIP + "'s status...");
+//					System.out.println(dataNodeIP + " is functioning.");
+//					System.out.println("Updating " + dataNodeIP + "'s status...");
 					this.nameNodeInstance.getDataNodeStatusList().put(dataNodeIP, NodeStatus.HEALTHY);
-					System.out.println(dataNodeIP + "updated.");
+//					System.out.println(dataNodeIP + "updated.");
 					break;
 				} catch (RemoteException e) {
 					System.err.println(dataNodeIP + " is down. Recovering data...");
