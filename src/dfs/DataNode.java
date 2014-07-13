@@ -40,8 +40,8 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 	private Registry nameNodeRegistry;
 	private NameNodeInterface nameNode;
 	private Registry dataNodeRegistry;
-	private Hashtable<String, DataNodeInterface> dataNodeList;
-	private ConcurrentHashMap<String, HashSet<Integer>> fileList;
+	private Hashtable<String, DataNodeInterface> dataNodeList = new Hashtable<String, DataNodeInterface>();
+	private ConcurrentHashMap<String, HashSet<Integer>> fileList = new ConcurrentHashMap<String, HashSet<Integer>>();
 	private boolean isRunning;
 	//private int ackTimeout;
 	private int reservedSlot;
@@ -93,8 +93,6 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 	
 	public DataNode() throws RemoteException {
 		this.isRunning = true;
-		this.dataNodeList = new Hashtable<String, DataNodeInterface>();
-		this.fileList = new ConcurrentHashMap<String, HashSet<Integer>>();
 	}
 	
 	public void init() {
