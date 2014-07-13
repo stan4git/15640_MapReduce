@@ -24,7 +24,7 @@ public class NodeMonitor implements Runnable {
 	private NameNode nameNodeInstance;
 	private boolean isRunning;
 	private ConcurrentHashMap<String, DataNodeInterface> dataNodeServiceList;
-	private int dataNodePort;
+	private int dataNodeRegPort;
 	private String dataNodeService;
 	private int heartbeatCheckThreshold;
 	private int heartbeatInterval;
@@ -37,8 +37,10 @@ public class NodeMonitor implements Runnable {
 	
 	
 	public void run() {
+		this.isRunning = true;
 		try {
 			IOUtil.readConf(IOUtil.confPath, this);
+			System.out.println("Monitoring...");
 		} catch (IOException e1) {
 			e1.printStackTrace();
 			System.err.println("Loading configuration failed.");
@@ -188,7 +190,7 @@ public class NodeMonitor implements Runnable {
 	private DataNodeInterface getDataNodeService(String dataNodeIP) throws Exception {
 		if (!this.dataNodeServiceList.contains(dataNodeIP)) {
 			try {
-				Registry dataNodeRegistry = LocateRegistry.getRegistry(dataNodeIP, this.dataNodePort);
+				Registry dataNodeRegistry = LocateRegistry.getRegistry(dataNodeIP, this.dataNodeRegPort);
 				DataNodeInterface dataNode = (DataNodeInterface) dataNodeRegistry.lookup(this.dataNodeService);
 				this.dataNodeServiceList.put(dataNodeIP, dataNode);
 			} catch (RemoteException | NotBoundException e) {

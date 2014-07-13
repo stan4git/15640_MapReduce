@@ -90,7 +90,6 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 		NodeMonitor nodeMonitor = new NodeMonitor(this);
 		Thread monitoring = new Thread(nodeMonitor);
 		monitoring.start();
-		System.out.println("Monitoring...");
 	}
 	
 	
