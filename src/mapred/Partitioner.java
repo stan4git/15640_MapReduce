@@ -10,9 +10,15 @@ import format.KVPair;
  * path) 2. get hashcode of each key
  */
 public class Partitioner {
-
-	public static StringBuffer[] partition(
-			ArrayList<KVPair> collection,
+	/**
+	 * This method is used to partition the contents into the 
+	 * specific numbers
+	 * 
+	 * @param collection the contents which was used to partition
+	 * @param partitionNum the specific partition number
+	 * @return StringBuffer array to store the partitions
+	 */
+	public static StringBuffer[] partition(ArrayList<KVPair> collection,
 			Integer partitionNum) {
 
 		HashMap<Object, Object> hashcodes = new HashMap<Object, Object>();
@@ -20,12 +26,13 @@ public class Partitioner {
 
 		System.out.println("uniqueKeys: " + collection.size());
 
-		for (int i = 0; i < partitionNum; i++){
+		for (int i = 0; i < partitionNum; i++) {
 			partitions[i] = new StringBuffer("");
 		}
 
 		for (KVPair kvPair : collection) {
-			hashcodes.put(kvPair.getKey(), (kvPair.getValue().toString().hashCode()) % partitionNum);
+			hashcodes.put(kvPair.getKey(),
+					(kvPair.getValue().toString().hashCode()) % partitionNum);
 		}
 
 		for (KVPair kvPair : collection) {

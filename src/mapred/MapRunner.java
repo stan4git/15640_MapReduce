@@ -16,22 +16,37 @@ import format.InputFormat;
 import format.KVPair;
 import format.MapperOutputCollector;
 
+/**
+ * This class is used to start a thread to run the distributed mapper work
+ * 
+ * @author menglonghe
+ * @author sidilin
+ * 
+ */
 public class MapRunner implements Runnable{
 	private Mapper mapper;
 	private Integer jobID;
+	// the total number of chunks
 	private Integer numOfChunks;
 	private JobConfiguration jobConf;
+	// the chunks and the source nodes
 	private ArrayList<KVPair> pairLists;
 	private String classname;
+	// mapper number of this job on this node
 	private Integer mapperNum;
 	
 	private Integer dataNodeRegPort;
 	private String dataNodeService;
+	// the partition number which was set in the configuration file
 	private Integer partitionNums;
+	// the path for the partition files
 	private String partitionFilePath;
+	// the bean to wrap all the info about the RMI
 	private RMIServiceInfo rmiServiceInfo;
+	// the try numbers
 	private Integer tryNums;
 	
+	// the default constructor
 	public MapRunner (Integer jobID, Integer numOfChunks, JobConfiguration jobConf,
 			ArrayList<KVPair> pairLists, String classname, Integer mapperNum, RMIServiceInfo rmiServiceInfo, Integer tryNums) {
 		

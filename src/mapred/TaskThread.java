@@ -12,22 +12,30 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
+ * This class is a thread to connect to the specific task 
+ * node and handling some failures.
+ * 
  * @author menglonghe
  * @author sidilin
  *
  */
 public class TaskThread implements Runnable {
-	
+	// current node
 	private String curNode;
 	private int jobID;
 	private JobConfiguration jobConf;
+	// chunk - > nodes
 	private HashMap<Integer,String> chunkSets;
 	private boolean isMapTask;
+	// the partition number
 	private int partitionNo;
+	// a table which indicates the nodes and partitions
 	private HashMap<String, ArrayList<String>> nodesWithPartitions;
+	// number of partitions
 	private int numOfPartitions;
 	
 	private TaskTrackerInterface taskTracker;
+	// task tracker's registry port and service name
 	private static Integer taskTrackerRegPort;
 	private static String taskTrackServiceName;
 	

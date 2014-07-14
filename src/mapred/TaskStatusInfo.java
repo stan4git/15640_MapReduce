@@ -12,10 +12,13 @@ package mapred;
  *
  */
 public class TaskStatusInfo {
-	
+	// total map tasks on the node of the specific job
 	private int totalMapTasks;
+	// the unfinished map tasks on the node of the specific job
 	private int unfinishedMapTasks;
+	// total reduce tasks on the node of the specific job
 	private int totalReduceTasks;
+	// the unfinished reduce tasks on the node of the specific job
 	private int unfinishedReduceTasks;
 	
 	public int getTotalMapTasks() {

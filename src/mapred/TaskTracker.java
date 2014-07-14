@@ -23,7 +23,15 @@ import format.KVPair;
 import util.IOUtil;
 import util.JobStatus;
 import util.PathConfiguration;
-
+/**
+ * This class is used to initialize the Task Tracker which was 
+ * used to monitor the tasks running on the node and communicate 
+ * with the JobTracker server.
+ * 
+ * @author menglonghe
+ * @author sidilin
+ *
+ */
 public class TaskTracker extends UnicastRemoteObject implements
 		TaskTrackerInterface {
 
@@ -35,32 +43,51 @@ public class TaskTracker extends UnicastRemoteObject implements
 	
 	// Create a thread pool
 	private static ExecutorService executor = Executors.newCachedThreadPool();
-
+	// jobID - > partition files path
 	public static ConcurrentHashMap<Integer, ArrayList<String>> jobID_parFilePath = new ConcurrentHashMap<Integer, ArrayList<String>>();
+	// jobID - > Task status
 	public static ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus = new ConcurrentHashMap<Integer, TaskStatusInfo>();
+	// <jobID,<node,List<map ID>>
 	public static ConcurrentHashMap<Integer, HashMap<String, ArrayList<Integer>>> jobID_node_mapID = new ConcurrentHashMap<Integer, HashMap<String, ArrayList<Integer>>>();
-	
+	// reducer and mapper class's name
 	private static String reducerClassName;
 	private static String mapperClassName;
+	
+	// dataNode's registry port and service
 	private static Integer dataNodeRegPort;
 	private static String dataNodeService;
+	
+	// partition numbers
 	private static Integer partitionNums;
+	
+	// partition file's path
 	private static String partitionFilePath;
+	
+	// namenode's registry port, IP and service name
 	private static String nameNodeIP;
 	private static Integer nameNodeRegPort;
 	private static String nameNodeService;
+	
+	// jobTracker's IP, registry port and service name
 	private static String jobTrackerIP;
 	private static Integer jobTrackerRegPort;
 	private static String jobTrackServiceName;
+	
+	// TaskTracker's service port, registry port and service name
 	private static Integer taskPort;
 	private static Integer taskTrackerRegPort;
 	private static String taskTrackServiceName;
+	
+	// the number of chunks of each mapper can handle
 	private static Integer mapperChunkThreshold;
+	// the maximum failure times of one job
 	private static Integer jobMaxFailureThreshold;
+	// the reduce file path
 	private static String reduceResultPath;
 	
 	private static String node;
 
+	// default consturctor
 	protected TaskTracker() throws RemoteException {
 		super();
 
@@ -85,6 +112,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 		int count = 0, mapNums = 0;
 		Hashtable<Integer, ArrayList<KVPair>> mappers = new Hashtable<Integer, ArrayList<KVPair>>();
 		ArrayList<KVPair> pairs = null;
+		// step1: split of the chunks into the different map workers
 		for (Integer chunkNum : chunkSets.keySet()) {
 			if (count == mapperChunkThreshold) {
 				mappers.put(mapNums, pairs);
@@ -104,7 +132,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 		}
 
 		System.out.println("It needs " + mapNums + "mappers!");
-		
+		// step2: update some related info
 		TaskStatusInfo taskStatusInfo;
 		if(jobID_taskStatus.containsKey(jobID)) {
 			taskStatusInfo = jobID_taskStatus.get(jobID);
@@ -115,12 +143,14 @@ public class TaskTracker extends UnicastRemoteObject implements
 		taskStatusInfo.setUnfinishedMapTasks(taskStatusInfo.getUnfinishedMapTasks() + mapNums);
 		jobID_taskStatus.put(jobID, taskStatusInfo);
 		
+		// step3: download the Mapper class from the jobTracker
 		try {
 			localizeMapTask(jobID);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 
+		// step4: start different map workers according to the table
 		for (Integer mapperNum : mappers.keySet()) {
 			ArrayList<KVPair> chunksAndNodes = mappers.get(mapperNum);
 			String mapperName = null;
@@ -136,6 +166,11 @@ public class TaskTracker extends UnicastRemoteObject implements
 		}
 	}
 	
+	/**
+	 * this method is used to download and write the mapper task into local disk
+	 * @param jobID
+	 * @throws IOException
+	 */
 	public void localizeMapTask(int jobID) throws IOException {
 		KVPair mapInfo = jobTracker.getMapperInfo(jobID);
 		mapperClassName = mapInfo.getKey().toString().replace('.', '/') + ".class";
@@ -143,6 +178,17 @@ public class TaskTracker extends UnicastRemoteObject implements
 		IOUtil.writeBinary(mapperClassContent, mapperClassName);
 	}
 
+	/**
+	 * This method is used to start the map task using the Thread pool to load the mapper Runner
+	 * @param jobID
+	 * @param numOfChunks
+	 * @param jobConf
+	 * @param pairLists
+	 * @param classname
+	 * @param mapperNum
+	 * @param rmiServiceInfo
+	 * @param tryNums
+	 */
 	public void startMapTask(int jobID, int numOfChunks, JobConfiguration jobConf, 
 			ArrayList<KVPair> pairLists, String classname, Integer mapperNum, RMIServiceInfo rmiServiceInfo,int tryNums) {
 		
@@ -150,9 +196,10 @@ public class TaskTracker extends UnicastRemoteObject implements
 		executor.execute(mapRunner);
 	}
 
+	@Override
 	public void registerReduceTask(int jobID, int partitionNo, HashMap<String, ArrayList<String>> nodesWithPartitions, 
 			int numOfPartitions) throws RemoteException {
-		// Update task status 
+		// step1: Update task status 
 		TaskStatusInfo taskStatusInfo;
 		if(jobID_taskStatus.containsKey(jobID)) {
 			taskStatusInfo = jobID_taskStatus.get(jobID);
@@ -162,17 +209,23 @@ public class TaskTracker extends UnicastRemoteObject implements
 		taskStatusInfo.setTotalReduceTasks(taskStatusInfo.getTotalReduceTasks() + numOfPartitions);
 		taskStatusInfo.setUnfinishedReduceTasks(taskStatusInfo.getUnfinishedReduceTasks() + numOfPartitions);
 		jobID_taskStatus.put(jobID, taskStatusInfo);
-		
+		// step2: download the Reducer class from the jobTracker
 		try {
 			localizeReduceTask(jobID);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		// step3: start the reduce work
 		RMIServiceInfo rmiServiceInfo = new RMIServiceInfo();
 		rmiServiceInfo.settingForReducer(taskTrackerRegPort, taskTrackServiceName);
 		startReduceTask(jobID, partitionNo, nodesWithPartitions, reducerClassName, rmiServiceInfo,reduceResultPath);
 	}
 
+	/**
+	 * This method is used to download the Reducer class from the jobTracker
+	 * @param jobID
+	 * @throws IOException
+	 */
 	public void localizeReduceTask(int jobID) throws IOException {
 		KVPair reducerInfo = jobTracker.getReducerInfo(jobID);
 		reducerClassName = reducerInfo.getKey().toString().replace('.', '/') + ".class";
@@ -180,6 +233,15 @@ public class TaskTracker extends UnicastRemoteObject implements
 		IOUtil.writeBinary(reducerClassContent, reducerClassName);
 	}
 
+	/**
+	 * This method is used to start the reduce task using the Thread pool to load the Reduce Runner
+	 * @param jobID
+	 * @param partitionNo
+	 * @param nodesWithPartitions
+	 * @param className
+	 * @param rmiServiceInfo
+	 * @param reduceResultPath
+	 */
 	public void startReduceTask(int jobID, int partitionNo, HashMap<String, ArrayList<String>> nodesWithPartitions, 
 			String className, RMIServiceInfo rmiServiceInfo, String reduceResultPath) {
 		ReduceRunner reduceRunner = new ReduceRunner(jobID, partitionNo, nodesWithPartitions, className, rmiServiceInfo,reduceResultPath);
@@ -191,6 +253,12 @@ public class TaskTracker extends UnicastRemoteObject implements
 		return IOUtil.readFile(path);
 	}
 	
+	/**
+	 * This method is used to update the mapper status
+	 * @param jobID
+	 * @param isSuccessful
+	 * @throws RemoteException
+	 */
 	public static void updateMapStatus(Integer jobID, boolean isSuccessful) throws RemoteException {
 		if(isSuccessful) {
 			TaskStatusInfo taskStatusInfo = TaskTracker.jobID_taskStatus.get(jobID);
@@ -203,7 +271,11 @@ public class TaskTracker extends UnicastRemoteObject implements
 			} 
 		}
 	}
-	
+	/**
+	 * This method is used to update the reducer's status
+	 * @param jobID
+	 * @param isSuccessful
+	 */
 	public static void updateReduceStatus(Integer jobID, boolean isSuccessful) {
 		if(isSuccessful) {
 			TaskStatusInfo taskStatusInfo = TaskTracker.jobID_taskStatus.get(jobID);
@@ -221,6 +293,11 @@ public class TaskTracker extends UnicastRemoteObject implements
 		}
 	}
 	
+	/**
+	 * This method is used to update the Job ID and related file paths
+	 * @param jobID
+	 * @param filePaths
+	 */
 	public static void updateFilePaths(Integer jobID, ArrayList<String> filePaths) {
 		ArrayList<String> parFilePath = null;
 		if(!jobID_parFilePath.containsKey(jobID)) {
@@ -231,6 +308,10 @@ public class TaskTracker extends UnicastRemoteObject implements
 		parFilePath.addAll(filePaths);
 	}
 	
+	/**
+	 * This method is used to send the heartbeat to the jobTracker to 
+	 * update the info in real-time
+	 */
 	private void transmitHeartBeat() {
 		System.out.println("Sending task progress to JobTracker...");
 		TimerTask timerTask = new TimerTask() {
@@ -247,6 +328,21 @@ public class TaskTracker extends UnicastRemoteObject implements
 		new Timer().scheduleAtFixedRate (timerTask, 0, 5000);
 	}
 	
+	/**
+	 * This method is used to handle the failure about the situation: the node is down.
+	 * It redistribute the chunks and restart some new threads to run the work to the 
+	 * end. It at most run the times set in the configuration files.
+	 * 
+	 * @param jobID
+	 * @param numOfChunks
+	 * @param jobConf
+	 * @param pairLists
+	 * @param classname
+	 * @param mapperNum
+	 * @param rmiServiceInfo
+	 * @param tryNums
+	 * @throws RemoteException
+	 */
 	public static void handleDataNodeFailure (Integer jobID, Integer numOfChunks, JobConfiguration jobConf,
 			ArrayList<KVPair> pairLists, String classname, Integer mapperNum, RMIServiceInfo rmiServiceInfo,int tryNums) throws RemoteException {
 		
@@ -282,6 +378,12 @@ public class TaskTracker extends UnicastRemoteObject implements
 		
 	}
 	
+	/**
+	 * This method is used to handle the map work node is down
+	 * just terminate all the information about the job
+	 * 
+	 * @param jobID
+	 */
 	public static void handleMapperNodeFailure (int jobID) {
 		try {
 			jobTracker.terminateJob(jobID);
@@ -290,6 +392,9 @@ public class TaskTracker extends UnicastRemoteObject implements
 		}
 	}
 	
+	/**
+	 * This method is used to clear some info when some job is down
+	 */
 	public void remove (int jobID) {
 		jobID_parFilePath.remove(jobID);
 		jobID_taskStatus.remove(jobID);

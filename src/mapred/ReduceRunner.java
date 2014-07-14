@@ -19,6 +19,8 @@ import format.OutputFormat;
 import util.IOUtil;
 
 /**
+ * This class is a thread to run the Reducer work
+ * 
  * @author menglonghe
  * @author sidilin
  *
@@ -26,18 +28,30 @@ import util.IOUtil;
 public class ReduceRunner implements Runnable {
 	
 	private static Reducer reducer;
-	
+	// Task Tracker RMI info
 	private Integer taskTrackerRegPort;
 	private String taskTrackServiceName;
 	
 	private int jobID;
+	// the partition number
 	private int partitionNo;
+	// nodes - > partitions
 	private HashMap<String, ArrayList<String>> nodesWithPartitions;
+	// the reduce class name
 	private String className;
+	// the written path for the reducing phrase
 	private String reduceResultPath;
 	
 	
-	
+	/**
+	 * The default constructor
+	 * @param jobID
+	 * @param partitionNo
+	 * @param nodesWithPartitions
+	 * @param className
+	 * @param rmiServiceInfo
+	 * @param reduceResultPath
+	 */
 	public ReduceRunner (int jobID, int partitionNo, HashMap<String, ArrayList<String>> nodesWithPartitions, 
 			String className, RMIServiceInfo rmiServiceInfo, String reduceResultPath) {
 		 

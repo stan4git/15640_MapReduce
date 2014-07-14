@@ -4,20 +4,34 @@
 package mapred;
 
 /**
+ * This class is used to reserve the RMI related info
+ * including dataNode's Registry port, service name, partition numbers,
+ * partition file path, taskNode's registry port and service name.
+ * 
  * @author menglonghe
  * @author sidilin
  *
  */
 public class RMIServiceInfo {
 	
+	// datanode's registry port and service name
 	private Integer dataNodeRegPort;
 	private String dataNodeService;
+	// partition number
 	private Integer partitionNums;
+	// partition file path
 	private String partitionFilePath;
+	// task node's registry port and service name
 	private Integer taskTrackerRegPort;
 	private String taskTrackServiceName;
 	
-	
+	/**
+	 * This method is used to set the info for mapper
+	 * @param dataNodeRegPort
+	 * @param dataNodeService
+	 * @param partitionNums
+	 * @param partitionFilePath
+	 */
 	public void settingForMapper (Integer dataNodeRegPort, String dataNodeService, Integer partitionNums, String partitionFilePath) {
 		
 		this.dataNodeRegPort = dataNodeRegPort;
@@ -26,6 +40,11 @@ public class RMIServiceInfo {
 		this.partitionFilePath = partitionFilePath;	
 	}
 	
+	/**
+	 * This method is used to set the info for the reducer
+	 * @param taskTrackerRegPort
+	 * @param taskTrackServiceName
+	 */
 	public void settingForReducer (Integer taskTrackerRegPort, String taskTrackServiceName) {
 		
 		this.taskTrackerRegPort = taskTrackerRegPort;
