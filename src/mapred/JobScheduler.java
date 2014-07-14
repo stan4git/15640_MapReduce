@@ -40,6 +40,8 @@ public class JobScheduler {
 	private static String nameNodeIP;
 	private static Integer nameNodeRegPort;
 	private static String nameNodeService;
+	
+	private static JobScheduler jobScheduler = new JobScheduler();
 
 	public JobScheduler() {
 		try {
@@ -55,7 +57,6 @@ public class JobScheduler {
 	 * @throws IOException 
 	 */
 	public void init() throws IOException {
-		JobScheduler jobScheduler = new JobScheduler();
 		IOUtil.readConf(PathConfiguration.DFSConfPath, jobScheduler);
 		IOUtil.readConf(PathConfiguration.MapReducePath, jobScheduler);
 		Registry reigstry;
