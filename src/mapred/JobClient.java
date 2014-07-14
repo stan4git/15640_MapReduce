@@ -33,13 +33,13 @@ public class JobClient {
 	private static Integer jobTrackerRegPort;
 	// 3. JobTracker registry service name
 	private static String jobTrackServiceName;
-	// 5. RMI's Registry instance
+	// 4. RMI's Registry instance
 	private static Registry registry;
-	// 6. Maximum failure times
+	// 5. Maximum failure times
 	private static Integer jobMaxFailureThreshold;
-	// 7. Job Id that get from JobTracker
+	// 6. Job Id that get from JobTracker
 	private static Integer jobId;
-	// 8. actual failure time
+	// 7. actual failure time
 	private static Integer failureTimes = 1;
 	
 	/**
@@ -108,6 +108,7 @@ public class JobClient {
 				System.out.printf("Mapper: %fpercent; Reducer: %fpercent\n", mapperPercentage*100, reducePercentage*100);
 			} else if(status.equals("FAIL")) {
 				System.err.println("Job failed!");
+				// allow to try several times according to the programmer's setting
 				if(failureTimes < jobMaxFailureThreshold) {
 					System.out.println("Restarting job!");
 					res = jobtracker.submitJob(jobConf,mapper,reducer);
@@ -122,6 +123,7 @@ public class JobClient {
 					break;
 				}
 			}
+			// Monitoring every 3 seconds
 			try {
 				Thread.sleep(3000);
 			} catch (InterruptedException e) {

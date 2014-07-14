@@ -38,6 +38,7 @@ public class JobScheduler {
 	private static Integer nameNodeRegPort;
 	private static String nameNodeService;
 
+	// default constructor
 	public JobScheduler(String nameNodeIPVal,Integer nameNodeRegPortVal,String nameNodeServiceVal,
 			Integer maxTaskPerNodeVal,Double localWeightVal,Double globalWeightVal) {
 		nameNodeIP = nameNodeIPVal;

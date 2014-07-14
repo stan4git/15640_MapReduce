@@ -14,6 +14,10 @@ import java.io.Serializable;
 public class JobConfiguration implements Serializable{
 
 	private static final long serialVersionUID = 3646892553272150095L;
+	/**
+	 * The configuration parameters including : Mapper class, Reducer class,
+	 * input file, output file, input Format and output Format
+	 */
 	private Class<?> mapperClass;
 	private Class<?> reducerClass;
 	

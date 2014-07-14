@@ -23,13 +23,20 @@ import util.IOUtil;
 import util.JobStatus;
 import util.PathConfiguration;
 import format.KVPair;
-
+/**
+ * This class has to be deployed on the master node. It coordinates all the slave node, 
+ * dispatch the tasks to the nodes, monitoring all the status of nodes and jobs.
+ * 
+ * @author menglonghe
+ * @author sidilin
+ *
+ */
 public class JobTracker extends UnicastRemoteObject implements JobTrackerInterface {
 
 	private static final long serialVersionUID = 9023603070698668607L;
 	
 	private static JobTracker jobTracker = null;
-	private static JobScheduler jobScheduler;
+	private static JobScheduler jobScheduler = null;
 	private static NameNodeInterface nameNode = null;
 	
 	// These 3 contains JobTracker's registry IP,registry port, service port and service name
@@ -80,23 +87,25 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	// <jobID,<nodes with partition files, paths>>
 	public static ConcurrentHashMap<Integer, HashMap<String, ArrayList<String>>> jobID_nodes_partitionsPath = new ConcurrentHashMap<Integer, HashMap<String, ArrayList<String>>>();
 	
-	// Associate jobID with configuration information
+	// jobID - > MapReduce Name and MapReduce Path
 	public static ConcurrentHashMap<Integer, KVPair> jobID_mapRedName = new ConcurrentHashMap<Integer, KVPair>();
 	public static ConcurrentHashMap<Integer, KVPair> jobID_mapRedPath = new ConcurrentHashMap<Integer, KVPair>();
-	
+	// job's status
 	public static ConcurrentHashMap<Integer, JobStatus> jobID_status = new ConcurrentHashMap<Integer, JobStatus>();
+	// jobId - > JobConfiguration Instance
 	public static ConcurrentHashMap<Integer, JobConfiguration> jobID_configuration = new ConcurrentHashMap<Integer, JobConfiguration>();
-	
+	// jobId - > map Failure times
 	public static ConcurrentHashMap<Integer, Integer> jobID_mapFailureTimes = new ConcurrentHashMap<Integer, Integer>();
+	// jobId - > reduce Failure times
 	public static ConcurrentHashMap<Integer, Integer> jobID_reduceFailureTimes = new ConcurrentHashMap<Integer, Integer>();
-	
+	// The maximum failure tiems for each job
 	public static Integer jobMaxFailureThreshold;
 	
 	protected JobTracker() throws RemoteException {
 		super();
 		globaljobID = 0;
 	}
-	
+
 	@Override
 	public String submitJob (JobConfiguration jobConf, KVPair mapper, KVPair reducer) throws IOException {
 		
@@ -158,10 +167,10 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	}
 	
 	public static void handleMapperFailure (int jobID, String node, Set<Integer> chunks) throws RemoteException {
-		// step1: 调Stan, 设为unhealthy
-		// step2: 重新分配该node上的chunks
-		// step3: 更新分配表
-		// step4: 重新启动一个TaskThread.
+		// step1: set the node's status to unhealthy
+		// step2: redistribute the chunks on this node
+		// setp3: update the distribution table
+		// step4: start a new TaskThread.
 		if(node_totalTasks.get(node) != null) {
 			node_totalTasks.remove(node);
 		}
@@ -206,10 +215,10 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	}
 	
 	public static void handleReducerFailure (int jobID, int partitionNo) throws RemoteException {
-		// step1: 调Stan, 设为unhealthy
-		// step2: 重新分配该node上的任务
-		// step3: 更新分配表
-		// step4: 重新启动一个TaskThread.
+		// step1: set the node's status to unhealthy
+		// step2: redistribute the chunks on this node
+		// setp3: update the distribution table
+		// step4: start a new TaskThread.
 		
 //TODO	nameNode.setNodeStatus(node, false);
 		int failureTimes = jobID_mapFailureTimes.get(jobID);
@@ -233,6 +242,9 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		}
 	}
 
+	/**
+	 * This method is used to increase the global Job ID
+	 */
 	public void updateGlobaljobID(){
 		synchronized(globaljobID){
 			globaljobID++;
@@ -326,13 +338,6 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		
 		return null;
 	}
-
-	/**
-	 * This method is used to calculate the percentage of finished reducer tasks.
-	 * 
-	 * @param jobID - the jobID of the reducer tasks      
-	 * @return the percentage of finished reducer tasks  
-	 */
 	
 	@Override
 	public double getMapperProgress (Integer jobID) {
@@ -346,13 +351,6 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		
 		return 1 - (double)unfinishedMapTasks / (double)totalMapTasks;
 	}
-
-	/**
-	 * This method is used to calculate the percentage of finished reducer tasks.
-	 * 
-	 * @param jobID - the jobID of the reducer tasks      
-	 * @return the percentage of finished reducer tasks  
-	 */
 	
 	@Override
 	public double getReducerProgress (Integer jobID) {
@@ -440,6 +438,11 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		node_totalTasks.put(node, unfinishedMapTasks + unfinishedReduceTasks);
 	}
 	
+	/**
+	 * This method is used to judge whether the Mapper has finished on specific job ID
+	 * @param jobID
+	 * @return
+	 */
 	public boolean isMapperJobFinished(int jobID){
 		HashMap<String,TaskStatusInfo> node_status = jobID_node_taskStatus.get(jobID);
 		for(String nodeIP : node_status.keySet()) {
@@ -451,6 +454,11 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		return true;
 	}
 	
+	/**
+	 * This method is used to judge whether the Reducer has finished on specific job ID
+	 * @param jobID
+	 * @return
+	 */
 	public boolean isReducerJobFinished(int jobID){
 		HashMap<String,TaskStatusInfo> node_status = jobID_node_taskStatus.get(jobID);
 		for(String nodeIP : node_status.keySet()) {
@@ -472,6 +480,12 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
 		}
+	}
+	
+
+	@Override
+	public void updateJobStatus(Integer jobId, JobStatus jobStatus) {
+		jobID_status.put(jobId, jobStatus);
 	}
 	
 	public static void main (String args[]) throws IOException {
@@ -501,11 +515,6 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
-	}
-
-	@Override
-	public void updateJobStatus(Integer jobId, JobStatus jobStatus) {
-		jobID_status.put(jobId, jobStatus);
 	}
 
 }
