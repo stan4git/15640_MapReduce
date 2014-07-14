@@ -21,6 +21,7 @@ import java.util.concurrent.Executors;
 import dfs.NameNodeInterface;
 import util.IOUtil;
 import util.JobStatus;
+import util.PathConfiguration;
 import format.KVPair;
 
 public class JobTracker extends UnicastRemoteObject implements JobTrackerInterface {
@@ -30,11 +31,6 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	private static JobTracker jobTracker = null;
 	private static JobScheduler jobScheduler = new JobScheduler();
 	private static NameNodeInterface nameNode = null;
-	
-	// several configuration files' paths : DFS/map reduce/ slaveList
-	private static String DFSConfPath = "conf/dfs.conf";
-	private static String MapReducePath = "conf/mapred.conf";
-	private static String SlaveListPath = "conf/slaveList";
 	
 	// These 3 contains JobTracker's registry IP,registry port, service port and service name
 	private static Integer jobTrackerPort;
@@ -477,11 +473,11 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			jobTracker = new JobTracker();
 			
 			// 1. Read DFS and MapReduce's configuration files and fill the properties to the jobTrack object
-			IOUtil.readConf(DFSConfPath, jobTracker);
-			IOUtil.readConf(MapReducePath, jobTracker);
+			IOUtil.readConf(PathConfiguration.DFSConfPath, jobTracker);
+			IOUtil.readConf(PathConfiguration.MapReducePath, jobTracker);
 			
 			// 2. Initialize slave nodes
-			jobTracker.initSlaveNodes(SlaveListPath);
+			jobTracker.initSlaveNodes(PathConfiguration.SlaveListPath);
 			
 			// 3. Build the RMI Registry Server and bind the service to the registry server
 			unexportObject(jobTracker, false);

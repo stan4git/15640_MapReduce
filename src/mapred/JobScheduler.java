@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.Hashtable;
 
 import util.IOUtil;
+import util.PathConfiguration;
 import dfs.NameNodeInterface;
 
 /**
@@ -40,10 +41,6 @@ public class JobScheduler {
 	private static Integer nameNodeRegPort;
 	private static String nameNodeService;
 
-	// DFS configuration and MapReduce configuration file path
-	private static String DFSConfPath = "conf/dfs.conf";
-	private static String MapReduceConfPath = "conf/mapred.conf";
-
 	public JobScheduler() {
 		try {
 			init();
@@ -59,8 +56,8 @@ public class JobScheduler {
 	 */
 	public void init() throws IOException {
 		JobScheduler jobScheduler = new JobScheduler();
-		IOUtil.readConf(DFSConfPath, jobScheduler);
-		IOUtil.readConf(MapReduceConfPath, jobScheduler);
+		IOUtil.readConf(PathConfiguration.DFSConfPath, jobScheduler);
+		IOUtil.readConf(PathConfiguration.MapReducePath, jobScheduler);
 		Registry reigstry;
 		try {
 			reigstry = LocateRegistry.getRegistry(nameNodeIP, nameNodeRegPort);

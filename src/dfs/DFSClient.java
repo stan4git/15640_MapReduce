@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import util.FileStatus;
 import util.FunctionalUtil;
 import util.IOUtil;
+import util.PathConfiguration;
 import util.StringHandling;
 
 /**
@@ -65,7 +66,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		
 		System.out.println("Loading configuration data...");
 		try {
-			IOUtil.readConf(IOUtil.confPath, client);
+			IOUtil.readConf(PathConfiguration.DFSConfPath, client);
 			System.out.println("Configuration data loaded successfully.");
 		} catch (IOException e) {
 			e.printStackTrace();

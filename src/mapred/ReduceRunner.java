@@ -34,12 +34,12 @@ public class ReduceRunner implements Runnable {
 	private int partitionNo;
 	private HashMap<String, ArrayList<String>> nodesWithPartitions;
 	private String className;
-	private String reduceResultPath = "/tmp/output/";
+	private String reduceResultPath;
 	
 	
 	
 	public ReduceRunner (int jobID, int partitionNo, HashMap<String, ArrayList<String>> nodesWithPartitions, 
-			String className, RMIServiceInfo rmiServiceInfo) {
+			String className, RMIServiceInfo rmiServiceInfo, String reduceResultPath) {
 		 
 		this.jobID = jobID;
 		this.partitionNo = partitionNo;
@@ -47,7 +47,7 @@ public class ReduceRunner implements Runnable {
 		this.className = className;
 		this.taskTrackerRegPort = rmiServiceInfo.getTaskTrackerRegPort();
 		this.taskTrackServiceName = rmiServiceInfo.getTaskTrackServiceName();
-		
+		this.reduceResultPath = reduceResultPath;
 	}
 	
 	/***

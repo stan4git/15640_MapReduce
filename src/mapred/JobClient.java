@@ -9,6 +9,7 @@ import java.rmi.registry.Registry;
 import format.KVPair;
 import util.IOUtil;
 import util.JobStatus;
+import util.PathConfiguration;
 
 /**
  * This class is designed to provide the user to initiate a job and monitor
@@ -32,8 +33,6 @@ public class JobClient {
 	private static Integer jobTrackerRegPort;
 	// 3. JobTracker registry service name
 	private static String jobTrackServiceName;
-	// 4. map reduce's configuration file path
-	private static String mapredPath = "conf/mapred.conf";
 	// 5. RMI's Registry instance
 	private static Registry registry;
 	// 6. Maximum failure times
@@ -51,7 +50,7 @@ public class JobClient {
 	 */
 	public void runJob (JobConfiguration jobConf) throws IOException{
 		JobClient jobClient = new JobClient();
-		IOUtil.readConf(mapredPath, jobClient);
+		IOUtil.readConf(PathConfiguration.MapReducePath, jobClient);
 		JobTrackerInterface jobtracker = null;
 		
 		// Get the Remote Object Reference from JobTracker

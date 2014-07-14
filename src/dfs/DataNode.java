@@ -14,6 +14,7 @@ import java.util.Hashtable;
 import java.util.concurrent.ConcurrentHashMap;
 
 import util.IOUtil;
+import util.PathConfiguration;
 
 /**
  * 1. heart beat (RMI)
@@ -59,7 +60,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 		//read configuration file
 		System.out.println("Loading configuration data...");
 		try {
-			IOUtil.readConf(IOUtil.confPath, dataNode);
+			IOUtil.readConf(PathConfiguration.DFSConfPath, dataNode);
 			System.out.println("Configuration data loaded successfully...");
 		} catch (IOException e1) {
 			e1.printStackTrace();

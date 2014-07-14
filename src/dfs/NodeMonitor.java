@@ -39,7 +39,7 @@ public class NodeMonitor implements Runnable {
 	public void run() {
 		this.isRunning = true;
 		try {
-			IOUtil.readConf(IOUtil.confPath, this);
+			IOUtil.readConf(PathConfiguration.DFSConfPath, this);
 			System.out.println("Monitoring...");
 		} catch (IOException e1) {
 			e1.printStackTrace();

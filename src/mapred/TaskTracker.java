@@ -22,6 +22,7 @@ import dfs.NameNodeInterface;
 import format.KVPair;
 import util.IOUtil;
 import util.JobStatus;
+import util.PathConfiguration;
 
 public class TaskTracker extends UnicastRemoteObject implements
 		TaskTrackerInterface {
@@ -34,9 +35,6 @@ public class TaskTracker extends UnicastRemoteObject implements
 	
 	// Create a thread pool
 	private static ExecutorService executor = Executors.newCachedThreadPool();
-
-	private static final String mapredConf = "conf/mapred.conf";
-	private static final String dfsConf = "conf/dfs.conf";
 
 	public static ConcurrentHashMap<Integer, ArrayList<String>> jobID_parFilePath = new ConcurrentHashMap<Integer, ArrayList<String>>();
 	public static ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus = new ConcurrentHashMap<Integer, TaskStatusInfo>();
@@ -59,6 +57,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	private static String taskTrackServiceName;
 	private static Integer mapperChunkThreshold;
 	private static Integer jobMaxFailureThreshold;
+	private static String reduceResultPath;
 	
 	private static String node;
 
@@ -158,7 +157,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 		localizeReduceTask(jobID);
 		RMIServiceInfo rmiServiceInfo = new RMIServiceInfo();
 		rmiServiceInfo.settingForReducer(taskTrackerRegPort, taskTrackServiceName);
-		startReduceTask(jobID, partitionNo, nodesWithPartitions, reducerClassName, rmiServiceInfo);
+		startReduceTask(jobID, partitionNo, nodesWithPartitions, reducerClassName, rmiServiceInfo,reduceResultPath);
 	}
 
 	public void localizeReduceTask(int jobID) throws IOException {
@@ -169,8 +168,8 @@ public class TaskTracker extends UnicastRemoteObject implements
 	}
 
 	public void startReduceTask(int jobID, int partitionNo, HashMap<String, ArrayList<String>> nodesWithPartitions, 
-			String className, RMIServiceInfo rmiServiceInfo) {
-		ReduceRunner reduceRunner = new ReduceRunner(jobID, partitionNo, nodesWithPartitions, className, rmiServiceInfo);
+			String className, RMIServiceInfo rmiServiceInfo, String reduceResultPath) {
+		ReduceRunner reduceRunner = new ReduceRunner(jobID, partitionNo, nodesWithPartitions, className, rmiServiceInfo,reduceResultPath);
 		executor.execute(reduceRunner);
 	}
 	
@@ -277,8 +276,8 @@ public class TaskTracker extends UnicastRemoteObject implements
 	public static void main(String args[]) throws IOException {
 		try {
 			taskTracker = new TaskTracker();
-			IOUtil.readConf(mapredConf, taskTracker);
-			IOUtil.readConf(dfsConf, taskTracker);
+			IOUtil.readConf(PathConfiguration.MapReducePath, taskTracker);
+			IOUtil.readConf(PathConfiguration.DFSConfPath, taskTracker);
 
 			unexportObject(taskTracker, false);
 			TaskTrackerInterface stub = (TaskTrackerInterface) exportObject(taskTracker, taskPort);

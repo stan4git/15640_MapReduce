@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import util.FileStatus;
 import util.IOUtil;
 import util.NodeStatus;
+import util.PathConfiguration;
 
 /**
  * 1. node list - from conf
@@ -53,7 +54,7 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 		
 		System.out.println("Loading configuration data...");
 		try {
-			IOUtil.readConf(IOUtil.confPath, nameNode);
+			IOUtil.readConf(PathConfiguration.DFSConfPath, nameNode);
 			System.out.println("Configuration data loaded successfully.");
 		} catch (IOException e1) {
 			e1.printStackTrace();

@@ -23,8 +23,6 @@ import java.util.ArrayList;
  * @author sidilin
  */
 public class IOUtil {
-	public static String confPath = "/Users/conf/dfs.conf";
-	
 	
 	/**
 	 * This method is used to write the contents into the specific file
