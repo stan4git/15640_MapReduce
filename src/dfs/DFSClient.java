@@ -386,7 +386,6 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		while (dispatchListDeepCopy.get(filename).size() > 0) {
 			for (Entry<Integer, HashSet<String>> chunkTuple : dispatchListDeepCopy.get(filename).entrySet()) {
 				int chunkNum = chunkTuple.getKey();
-				boolean success = false;
 				int chunkSize = 0;
 				
 				try {			//obtain the chuck to be sent
@@ -403,7 +402,8 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 
 				for(String dataNodeIP : chunkTuple.getValue()){
 					int retryThreshold = this.chunkTranferRetryThreshold;	//limit the times of retry
-					
+					boolean success = false;
+
 					DataNodeInterface node;
 					try {		//Setup remote services of data nodes
 						node = getDataNodeService(dataNodeIP);
@@ -415,6 +415,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 					
 					//Retry if failed as long as retry threshold not met.
 					while (!success && retryThreshold > 0) {		
+						
 						try {
 							//start transferring chunk. 
 							System.out.println("Dispatching chunk" + chunkNum + " of file \"" + filename + "\" to " + dataNodeIP + "...");
@@ -424,13 +425,13 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 							
 							//waiting for dataNode acknowledge
 							long timeoutExpiredMs = System.currentTimeMillis() + (this.ackTimeout * 1000);	
-							while (this.dispatchList.get(filename).get(chunkNum).contains(dataNodeIP)) {	
+							while (this.dispatchList.containsKey(filename) && this.dispatchList.get(filename).containsKey(chunkNum) && this.dispatchList.get(filename).get(chunkNum).contains(dataNodeIP)) {	
 								if (System.currentTimeMillis() >= timeoutExpiredMs) break;
 								Thread.sleep(1 * 1000);
 							}
 							
 							//check if data node acknowledged received
-							if (this.dispatchList.get(filename).get(chunkNum).contains(dataNodeIP)) {		
+							if (this.dispatchList.containsKey(filename) && this.dispatchList.get(filename).containsKey(chunkNum) && this.dispatchList.get(filename).get(chunkNum).contains(dataNodeIP)) {	
 								retryThreshold--;
 								System.out.println("Upload timeout. Retrying for " +
 										(this.chunkTranferRetryThreshold - retryThreshold + 1) + " times...");
