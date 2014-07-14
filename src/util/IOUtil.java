@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -308,7 +307,14 @@ public class IOUtil {
 		}
 	}
 	
-	
+	/**
+	 * Read a chunk from a local file.
+	 * @param file RandomAccessFile The file to be read.
+	 * @param startPosition Long The starting point of this chunk.
+	 * @param size int The size of this chunk. 
+	 * @return bytep[] Content of this chunk.
+	 * @throws IOException
+	 */
 	public static byte[] readChunk(RandomAccessFile file, long startPosition, int size) throws IOException {
 		byte tmp = -1;
 		byte[] chunk = new byte[size];
@@ -321,35 +327,12 @@ public class IOUtil {
 		
 		return chunk;
 	}
-	
-	
-	public static void writeChunk(byte[] chunk, String filePath) throws IOException {
-		File file = new File(filePath);
-		if (!file.exists()) {
-			try {
-				file.createNewFile();
-			} catch (IOException e) {
-				throw new IOException(e.toString());
-			}
-		}
-		FileWriter fos = null;
-		try {
-			fos = new FileWriter(file);
-			fos.append(new String(chunk));
-		} catch (FileNotFoundException e) {
-			throw new IOException(e.toString());
-		} catch (IOException e) {
-			throw new IOException(e.toString());
-		} finally {
-			try {
-				fos.close();
-			} catch (IOException e) {
-				throw new IOException(e.toString());
-			}
-		}
-	}
-	
-	
+
+	/**
+	 * Remove a file from local storage.
+	 * @param filePath String File path to be deleted.
+	 * @throws IOException
+	 */
 	public static void deleteFile(String filePath) throws IOException{
 		File file = new File(filePath);
 		file.delete();
@@ -357,6 +340,13 @@ public class IOUtil {
 	}
 	
 	
+	/**
+	 * Calculate how many splits are there for a specific file. It contains the starting point and EOF.
+	 * @param filePath String The path of the file.
+	 * @param chunkSize String The chunk size to be used.
+	 * @return ArrayList<Long> An array indicates all the offsets of start points of chunks.
+	 * @throws IOException
+	 */
 	public static ArrayList<Long> calculateFileSplit(String filePath, int chunkSize) throws IOException {
 		RandomAccessFile raFile = null;
 		ArrayList<Long> split = new ArrayList<Long>();
@@ -366,6 +356,7 @@ public class IOUtil {
 			long fileSize = raFile.length();
 			String tmp = null;
 			Long lastPointer = 0L;
+			split.add(0L);
 			do {
 				tmp = raFile.readLine();
 				if (tmp != null && tmp.length() > 0) {
@@ -373,7 +364,7 @@ public class IOUtil {
 					if (increment > chunkSize) {
 						throw new IOException("Data row is too long...");
 					}
-					if (currentPointer - lastPointer + increment <= chunkSize) {
+					if (currentPointer - lastPointer + increment <= chunkSize) { 
 						currentPointer += increment;
 					} else {
 						split.add(currentPointer);

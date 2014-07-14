@@ -26,14 +26,8 @@ import util.PathConfiguration;
 import util.StringHandling;
 
 /**
- * 1. put file to dfs.
- * 2. list file
- * 3. list node
- * 4. delete file on dfs
- * 5. calculate split/offset
- * 6. collect data receiving status
- * 7. call other datanode's heart beat
- * 8. get file
+ * This is the main thread of DFS client server.
+ * It contains a command line tool and methods to interact with DFS.
  */
 public class DFSClient extends UnicastRemoteObject implements DFSClientInterface {
 	private static final long serialVersionUID = -7835407889702758301L;
@@ -53,6 +47,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	private ConcurrentHashMap<String, DataNodeInterface> dataNodeServiceList = new ConcurrentHashMap<String, DataNodeInterface>();
 	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> dispatchList = new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
 	//private Registry clientRegistry;
+	
 	
 	public static void main(String[] args) {
 		System.out.println("Starting client server...");
@@ -173,11 +168,12 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	}
 	
 	
-	
 	public DFSClient() throws RemoteException {
 	}
 	
-	
+	/**
+	 * Setup connection to name node.
+	 */
 	public void init() {
 		try {
 			System.out.println("Connecting to name node server...");
@@ -390,10 +386,8 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 				int chunkSize = 0;
 				
 				try {			//obtain the chuck to be sent
-					chunkSize = (chunkNum == 0) ?
-							(int) (splitStartPointOffset.get(chunkNum) - 0L) : 
-							(int) (splitStartPointOffset.get(chunkNum) - splitStartPointOffset.get(chunkNum - 1));
-					int startPos = (int) ((chunkNum == 0) ? 0 : splitStartPointOffset.get(chunkNum - 1) + 1);
+					chunkSize = (int) (splitStartPointOffset.get(chunkNum + 1) - splitStartPointOffset.get(chunkNum));
+					long startPos = splitStartPointOffset.get(chunkNum);
 					chunk = IOUtil.readChunk(file, startPos, chunkSize);
 				} catch (IOException e1) {
 					e1.printStackTrace();
@@ -482,7 +476,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		return;
 	}
 	
-	
+	@Override
 	public void sendChunkReceivedACK(String fromIP, String filename, int chunkNum) {
 		if (this.dispatchList != null) {
 			if (this.dispatchList.containsKey(filename)) {
@@ -502,7 +496,13 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		return;
 	}
 	
-	
+	/**
+	 * Cache all the connections to data node.
+	 * @param dataNodeIP String The IP address of data node.
+	 * @return DataNodeInterface The remote object reference of data node.
+	 * @throws RemoteException
+	 * @throws NotBoundException
+	 */
 	private DataNodeInterface getDataNodeService(String dataNodeIP) throws RemoteException, NotBoundException {
 		if (!this.dataNodeServiceList.contains(dataNodeIP)) {
 			try {

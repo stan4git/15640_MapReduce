@@ -13,12 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import util.*;
 
 /**
- * 1. check heart beat of dataNode
- * 2. check replica amount
- * 3. check write - confirm copy is made
- * 4. assign to node with most available - mention in report
- * 5. copy from next datanode
- * 6. check point
+ * This is a monitor thread that updates status of all data nodes connected to name node.
  */
 public class NodeMonitor implements Runnable {
 	private NameNode nameNodeInstance;
@@ -58,7 +53,10 @@ public class NodeMonitor implements Runnable {
 		}
 	}
 	
-	
+	/**
+	 * Update status of each data nodes.
+	 * If data node down, ensure there are enough data copies and clean up data node information. 
+	 */
 	public void updateNodeStatus() {
 		for (Entry<String, NodeStatus> nodeStatus : nameNodeInstance.getDataNodeStatusList().entrySet()) {
 			String dataNodeIP = nodeStatus.getKey();
@@ -97,7 +95,9 @@ public class NodeMonitor implements Runnable {
 		}
 	}
 	
-	
+	/**
+	 * Update available slots information of each data node.
+	 */
 	public void updateAvailableSlot() {
 		for (Entry<String, Integer> nodeTuple : nameNodeInstance.getDataNodeAvailableSlotList().entrySet()) {
 			String dataNodeIP = nodeTuple.getKey();
@@ -129,7 +129,12 @@ public class NodeMonitor implements Runnable {
 		return;
 	}
 	
-	
+	/**
+	 * Ensure there are enough data replicas on DFS.
+	 * @param deadNode String The dead data node.
+	 * @param missingChunkList Hashtable<String, HashSet<Integer>> A table indicates all the data on this dead data node.
+	 * @throws Exception
+	 */
 	public void ensureReplica(String deadNode, Hashtable<String, HashSet<Integer>> missingChunkList) throws Exception {
 		for (Entry<String, HashSet<Integer>> fileTuple : missingChunkList.entrySet()) {
 			String filename = fileTuple.getKey();
@@ -191,7 +196,12 @@ public class NodeMonitor implements Runnable {
 	}
 	
 	
-	
+	/**
+	 * Cached all the data node connection for quick access.
+	 * @param dataNodeIP String The IP address of data node.
+	 * @return A remote object reference of data node service.
+	 * @throws Exception
+	 */
 	private DataNodeInterface getDataNodeService(String dataNodeIP) throws Exception {
 		if (!this.dataNodeServiceList.contains(dataNodeIP)) {
 			try {
@@ -206,7 +216,9 @@ public class NodeMonitor implements Runnable {
 		return this.dataNodeServiceList.get(dataNodeIP);
 	}
 	
-	
+	/**
+	 * Terminate this thread.
+	 */
 	@SuppressWarnings("unused")
 	private void terminate() {
 		this.isRunning = false;

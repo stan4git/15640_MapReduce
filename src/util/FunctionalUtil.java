@@ -6,7 +6,11 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class FunctionalUtil {
-	
+	/**
+	 * Make a deep copy of nested map object.
+	 * @param original The original table to be copied.
+	 * @return A new deep copy of original table.
+	 */
 	public static <K1, K2, V> ConcurrentHashMap<K1, Hashtable<K2, HashSet<V>>> deepCopy(
 			ConcurrentHashMap<K1, Hashtable<K2, HashSet<V>>> original) {
 		ConcurrentHashMap<K1, Hashtable<K2, HashSet<V>>> copy = new ConcurrentHashMap<K1, Hashtable<K2, HashSet<V>>>();
@@ -23,6 +27,11 @@ public class FunctionalUtil {
 		return copy;
 	}
 
+	/**
+	 * Create a hash set deep copy.
+	 * @param ori HashSet<V> The original hash set.
+	 * @return HashSet<V> A deep copy of original hash set.
+	 */
 	public static <V> HashSet<V> deepCopyHashSet(HashSet<V> ori) {
 		HashSet<V> copySet = new HashSet<V>();
 		for (V v : ori) {

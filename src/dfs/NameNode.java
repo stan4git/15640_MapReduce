@@ -16,15 +16,9 @@ import util.NodeStatus;
 import util.PathConfiguration;
 
 /**
- * 1. node list - from conf
- * 2. node status monitoring (heart beat, RMI call)
- * 3. load replica number from configuration file
- * 4. hashmap<file name : hashmap<chunk num : hashset<node list>>>
- * 5. dfsScheduler (node picking, checkpoint) -- also as stub for client invocation
- * 6. connection mapping
- * 7. registry server
- * 8. hashmap<node : hashSet<file list>>
- * 9. file list
+ * This is the main thread class of name node.
+ * It setups a thread to provide name node service and a monitor thread to update
+ * status of all data nodes.
  */
 public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 
@@ -49,7 +43,6 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 	public static void main(String[] args) throws RemoteException {
 		System.out.println("Starting name node server...");
 		NameNode nameNode = new NameNode();
-		
 		isRunning = true;
 		
 		System.out.println("Loading configuration data...");
@@ -85,7 +78,9 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 		System.out.println("System is shuting down...");
 	}
 
-	
+	/**
+	 * Create a monitor thread to update data nodes status.
+	 */
 	public void init() {
 		System.out.println("Initializing monitoring server...");
 		NodeMonitor nodeMonitor = new NodeMonitor(this);
@@ -93,7 +88,7 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 		monitoring.start();
 	}
 	
-	
+	@Override
 	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(
 			ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> failureList) throws RemoteException {
 		for (Entry<String, Hashtable<Integer, HashSet<String>>> fileTuple : failureList.entrySet()) {	
@@ -124,7 +119,7 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 		return failureList;
 	}
 	
-	
+	@Override
 	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(
 			String filename, int chunkAmount) throws RemoteException {
 		//check and update file status table to avoid duplicated file name
@@ -174,7 +169,12 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 		return resultTable;
 	}
 	
-
+	/**
+	 * Pick a data node that is most available for data storage.
+	 * @param excludeList HashSet<String> A list of data nodes to be excluded from selection.
+	 * @return String A data node selected.
+	 * @throws RemoteException
+	 */
 	public String pickMostAvailableSlotDataNode(HashSet<String> excludeList) throws RemoteException {
 		String minLoadDataNode = null;
 		int mostAvailableSlots = Integer.MIN_VALUE;
@@ -197,7 +197,7 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 		return minLoadDataNode;
 	}
 	
-
+	@Override
 	public boolean fileDistributionConfirm(String filename) {
 		this.fileDistributionTable.put(filename, this.processingFileDistributionTable.get(filename));
 		this.processingFileDistributionTable.remove(filename);
@@ -214,7 +214,7 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 //		return returnList;
 //	}
 
-	
+	@Override
 	public void removeChunkFromFileDistributionTable(String filename, int chunkNum, String dataNodeIP) {
 		this.fileDistributionTable.get(filename).get(chunkNum).remove(dataNodeIP);
 		System.out.println("Chunk" + chunkNum + " of file \"" +filename + "\" on " + dataNodeIP + " has been removed from file distribution table...");
@@ -222,36 +222,36 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 	}
 
 	
-	public void updateFileDistributionTable(
-			ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> tableToBeUpdated) {
-		for (Entry<String, Hashtable<Integer, HashSet<String>>> fileTuple : tableToBeUpdated.entrySet()) {
-			String filename = fileTuple.getKey();
-			if (!this.fileDistributionTable.contains(filename)) {
-				fileDistributionTable.put(filename, fileTuple.getValue());
-				fileStatusTable.put(filename, FileStatus.INPROGRESS);
-			} else {
-				for (Entry<Integer, HashSet<String>> chunkTuple : fileTuple.getValue().entrySet()) {
-					int chunkNum = chunkTuple.getKey();
-					if (!fileDistributionTable.get(filename).contains(chunkNum)) {
-						fileDistributionTable.get(filename).put(chunkNum,chunkTuple.getValue());
-					} else {
-						fileDistributionTable.get(filename).get(chunkNum).addAll(chunkTuple.getValue());
-					}
-				}
-			}
-		}
-		System.out.println("File distribution table has been successfully updated...");
-		return;
-	}
+//	public void updateFileDistributionTable(
+//			ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> tableToBeUpdated) {
+//		for (Entry<String, Hashtable<Integer, HashSet<String>>> fileTuple : tableToBeUpdated.entrySet()) {
+//			String filename = fileTuple.getKey();
+//			if (!this.fileDistributionTable.contains(filename)) {
+//				fileDistributionTable.put(filename, fileTuple.getValue());
+//				fileStatusTable.put(filename, FileStatus.INPROGRESS);
+//			} else {
+//				for (Entry<Integer, HashSet<String>> chunkTuple : fileTuple.getValue().entrySet()) {
+//					int chunkNum = chunkTuple.getKey();
+//					if (!fileDistributionTable.get(filename).contains(chunkNum)) {
+//						fileDistributionTable.get(filename).put(chunkNum,chunkTuple.getValue());
+//					} else {
+//						fileDistributionTable.get(filename).get(chunkNum).addAll(chunkTuple.getValue());
+//					}
+//				}
+//			}
+//		}
+//		System.out.println("File distribution table has been successfully updated...");
+//		return;
+//	}
 
-	
+	@Override
 	public void registerDataNode(String dataNodeIP, int availableSlot) throws RemoteException{
 		this.dataNodeAvailableSlotList.put(dataNodeIP, availableSlot);
 		this.dataNodeStatusList.put(dataNodeIP, NodeStatus.HEALTHY);
 		System.out.println(dataNodeIP + " has been added to data node list...");
 	}
 
-
+	@Override
 	public HashSet<String> getHealthyNodes() {
 		HashSet<String> returnList = new HashSet<String>();
 		for (Entry<String, NodeStatus> node : this.getDataNodeStatusList().entrySet()) {
@@ -261,74 +261,60 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 		}
 		return returnList;
 	}
-
-
+	
+	@Override
 	public ConcurrentHashMap<String, NodeStatus> getDataNodeStatusList() {
 		return dataNodeStatusList;
 	}
 
-	
 	public void setDataNodeAvailableSlotList(
 			ConcurrentHashMap<String, Integer> dataNodeAvailableSlotList) {
 		this.dataNodeAvailableSlotList = dataNodeAvailableSlotList;
 	}
-
 
 	public void setDataNodeStatusList(
 			ConcurrentHashMap<String, NodeStatus> dataNodeStatusList) {
 		this.dataNodeStatusList = dataNodeStatusList;
 	}
 
-
 	public void setFileStatusTable(
 			ConcurrentHashMap<String, FileStatus> fileStatusTable) {
 		this.fileStatusTable = fileStatusTable;
 	}
-
 
 	public void setFileDistributionTable(
 			ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistributionTable) {
 		this.fileDistributionTable = fileDistributionTable;
 	}
 
-	
+	@Override
 	public boolean fileExist(String filename) {
 		return this.fileDistributionTable.contains(filename);
 	}
 
-	
-	/**
-	 * Return all the nodes registered in DFS.
-	 * @return A map consist of each node's ip address and file chunks on it.
-	 */
+	@Override
 	public ConcurrentHashMap<String, Integer> getDataNodeAvailableSlotList() {
 		return this.dataNodeAvailableSlotList;
 	}
 	
-	
+	@Override
 	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFileDistributionTable() {
 		return this.fileDistributionTable;
 	}
 	
-	
-	/**
-	 * Return all the files uploaded to DFS without path.
-	 * @return A map consist of file name and file status.
-	 */
+	@Override
 	public ConcurrentHashMap<String, FileStatus> getFileStatusTable() {
 		return this.fileStatusTable;
 	}
 	
-
+	@Override
 	public void terminate() {
 		isRunning = false;
 	}
 
-
 	public ConcurrentHashMap<String, Hashtable<String, HashSet<Integer>>> getFilesChunkOnNodesTable() {
 		return filesChunkOnNodesTable;
 	}
-
 
 	public void setFilesChunkOnNodesTable(
 			ConcurrentHashMap<String, Hashtable<String, HashSet<Integer>>> filesChunkOnNodesTable) {
