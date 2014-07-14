@@ -9,9 +9,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
-
-import util.IOUtil;
-import util.PathConfiguration;
 import dfs.NameNodeInterface;
 
 /**
@@ -30,7 +27,7 @@ public class JobScheduler {
 
 	private static NameNodeInterface nameNode = null;
 
-	// The maximum task numbers including mapper and reducer per node
+	 //The maximum task numbers including mapper and reducer per node
 	private static Integer maxTaskPerNode;
 	// the weight of local nodes and global nodes
 	private static Double localWeight;
@@ -40,10 +37,15 @@ public class JobScheduler {
 	private static String nameNodeIP;
 	private static Integer nameNodeRegPort;
 	private static String nameNodeService;
-	
-	private static JobScheduler jobScheduler = new JobScheduler();
 
-	public JobScheduler() {
+	public JobScheduler(String nameNodeIPVal,Integer nameNodeRegPortVal,String nameNodeServiceVal,
+			Integer maxTaskPerNodeVal,Double localWeightVal,Double globalWeightVal) {
+		nameNodeIP = nameNodeIPVal;
+		nameNodeRegPort = nameNodeRegPortVal;
+		nameNodeService = nameNodeServiceVal;
+		maxTaskPerNode = maxTaskPerNodeVal;
+		localWeight = localWeightVal;
+		globalWeight = globalWeightVal;
 		try {
 			init();
 		} catch (IOException e) {
@@ -52,13 +54,11 @@ public class JobScheduler {
 	}
 
 	/**
-	 * This is a method to initialize the class. It contains reading the
-	 * configuration files and get the ROR from the namenode.
+	 * This is a method to initialize the class. 
+	 * It gets the ROR from the namenode.
 	 * @throws IOException 
 	 */
 	public void init() throws IOException {
-		IOUtil.readConf(PathConfiguration.DFSConfPath, jobScheduler);
-		IOUtil.readConf(PathConfiguration.MapReducePath, jobScheduler);
 		Registry reigstry;
 		try {
 			reigstry = LocateRegistry.getRegistry(nameNodeIP, nameNodeRegPort);

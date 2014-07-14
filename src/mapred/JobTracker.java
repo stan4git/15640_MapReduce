@@ -29,13 +29,19 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	private static final long serialVersionUID = 9023603070698668607L;
 	
 	private static JobTracker jobTracker = null;
-	private static JobScheduler jobScheduler = new JobScheduler();
+	private static JobScheduler jobScheduler;
 	private static NameNodeInterface nameNode = null;
 	
 	// These 3 contains JobTracker's registry IP,registry port, service port and service name
 	private static Integer jobTrackerPort;
 	private static Integer jobTrackerRegPort;
 	private static String jobTrackServiceName;
+	
+	// The maximum task numbers including mapper and reducer per node
+	private static Integer maxTaskPerNode;
+	// the weight of local nodes and global nodes
+	private static Double localWeight;
+	private static Double globalWeight;
 	
 	// These 3 contains NameNode's registry IP,registry port and service name
 	private static String nameNodeIP;
@@ -479,7 +485,10 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			// 2. Initialize slave nodes
 			jobTracker.initSlaveNodes(PathConfiguration.SlaveListPath);
 			
-			// 3. Build the RMI Registry Server and bind the service to the registry server
+			// 3. Initialize the JobScheduler
+			jobScheduler = new JobScheduler(nameNodeIP,nameNodeRegPort,nameNodeService,maxTaskPerNode,localWeight,globalWeight);
+			
+			// 4. Build the RMI Registry Server and bind the service to the registry server
 			unexportObject(jobTracker, false);
 			JobTrackerInterface stub = (JobTrackerInterface) exportObject (jobTracker, jobTrackerPort);
 			Registry registry = LocateRegistry.createRegistry(jobTrackerRegPort);

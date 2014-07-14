@@ -15,13 +15,13 @@ public interface JobTrackerInterface extends Remote {
 
 	public void localizeJob (KVPair mapper, KVPair reducer, Integer jobID) throws IOException;
 	
-	public void terminateJob(int jobID);
+	public void terminateJob(int jobID) throws RemoteException;
 
-	public JobStatus checkJobStatus(Integer jobId);
+	public JobStatus checkJobStatus(Integer jobId) throws RemoteException;
 
-	public double getMapperProgress(Integer jobId);
+	public double getMapperProgress(Integer jobId) throws RemoteException;
 
-	public double getReducerProgress(Integer jobId);
+	public double getReducerProgress(Integer jobId) throws RemoteException;
 
 	public KVPair getMapperInfo(int jobID) throws IOException;
 	
@@ -32,9 +32,9 @@ public interface JobTrackerInterface extends Remote {
 	public void notifyMapperFinish(String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus, 
 			ConcurrentHashMap<Integer, ArrayList<String>> jobID_parFilePath) throws RemoteException;
 	
-	public void notifyReducerFinish (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus);
+	public void notifyReducerFinish (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus) throws RemoteException;
 	
-	public void responseToHeartbeat (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus);
+	public void responseToHeartbeat (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus) throws RemoteException;
 
-	public void updateJobStatus(Integer jobId, JobStatus jobStatus);
+	public void updateJobStatus(Integer jobId, JobStatus jobStatus) throws RemoteException;
 }

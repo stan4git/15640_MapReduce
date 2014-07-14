@@ -79,7 +79,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	
 	@Override
 	public void registerMapperTask(int jobID, JobConfiguration jobConf,
-			HashMap<Integer, String> chunkSets) throws IOException {
+			HashMap<Integer, String> chunkSets) throws RemoteException {
 		System.out.println("This node need to handle the chunk number is: "
 				+ chunkSets.size());
 		int count = 0, mapNums = 0;
@@ -115,11 +115,20 @@ public class TaskTracker extends UnicastRemoteObject implements
 		taskStatusInfo.setUnfinishedMapTasks(taskStatusInfo.getUnfinishedMapTasks() + mapNums);
 		jobID_taskStatus.put(jobID, taskStatusInfo);
 		
-		localizeMapTask(jobID);
+		try {
+			localizeMapTask(jobID);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
 		for (Integer mapperNum : mappers.keySet()) {
 			ArrayList<KVPair> chunksAndNodes = mappers.get(mapperNum);
-			String mapperName = jobTracker.getMapperInfo(jobID).getKey().toString();
+			String mapperName = null;
+			try {
+				mapperName = jobTracker.getMapperInfo(jobID).getKey().toString();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 			RMIServiceInfo rmiServiceInfo = new RMIServiceInfo();
 			rmiServiceInfo.settingForMapper(dataNodeRegPort, dataNodeService,partitionNums,partitionFilePath);
 			startMapTask(jobID, chunksAndNodes.size(), jobConf, chunksAndNodes,
@@ -142,7 +151,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	}
 
 	public void registerReduceTask(int jobID, int partitionNo, HashMap<String, ArrayList<String>> nodesWithPartitions, 
-			int numOfPartitions) throws IOException {
+			int numOfPartitions) throws RemoteException {
 		// Update task status 
 		TaskStatusInfo taskStatusInfo;
 		if(jobID_taskStatus.containsKey(jobID)) {
@@ -154,7 +163,11 @@ public class TaskTracker extends UnicastRemoteObject implements
 		taskStatusInfo.setUnfinishedReduceTasks(taskStatusInfo.getUnfinishedReduceTasks() + numOfPartitions);
 		jobID_taskStatus.put(jobID, taskStatusInfo);
 		
-		localizeReduceTask(jobID);
+		try {
+			localizeReduceTask(jobID);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		RMIServiceInfo rmiServiceInfo = new RMIServiceInfo();
 		rmiServiceInfo.settingForReducer(taskTrackerRegPort, taskTrackServiceName);
 		startReduceTask(jobID, partitionNo, nodesWithPartitions, reducerClassName, rmiServiceInfo,reduceResultPath);
@@ -174,7 +187,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	}
 	
 	@Override
-	public byte[] getPartitionContent(String path) throws IOException {
+	public byte[] getPartitionContent(String path) throws RemoteException,IOException {
 		return IOUtil.readFile(path);
 	}
 	
@@ -199,7 +212,11 @@ public class TaskTracker extends UnicastRemoteObject implements
 			TaskTracker.jobID_taskStatus.put(jobID, taskStatusInfo);
 			
 			if(curUnfinishedReduceTasks == 0) {
-				jobTracker.notifyReducerFinish(node, jobID_taskStatus);
+				try {
+					jobTracker.notifyReducerFinish(node, jobID_taskStatus);
+				} catch (RemoteException e) {
+					e.printStackTrace();
+				}
 			} 
 		}
 	}
@@ -220,7 +237,11 @@ public class TaskTracker extends UnicastRemoteObject implements
 
 			@Override
 			public void run() {
-				jobTracker.responseToHeartbeat(node, jobID_taskStatus);
+				try {
+					jobTracker.responseToHeartbeat(node, jobID_taskStatus);
+				} catch (RemoteException e) {
+					e.printStackTrace();
+				}
 			}	
 		};
 		new Timer().scheduleAtFixedRate (timerTask, 0, 5000);
@@ -262,7 +283,11 @@ public class TaskTracker extends UnicastRemoteObject implements
 	}
 	
 	public static void handleMapperNodeFailure (int jobID) {
-		jobTracker.terminateJob(jobID);
+		try {
+			jobTracker.terminateJob(jobID);
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public void remove (int jobID) {
