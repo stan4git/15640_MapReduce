@@ -10,7 +10,7 @@ public class WordCount {
 
 	public static void main(String[] args) {
 		JobConfiguration conf = new JobConfiguration();
-		conf.setInputfile("input");
+		conf.setInputfile("input.txt");
 		conf.setOutputfile("output.txt");
 		conf.setInputFormat(LineFormat.class);
 		conf.setOutputFormat(OutputFormat.class);
