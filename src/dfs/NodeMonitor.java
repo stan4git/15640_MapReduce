@@ -62,33 +62,30 @@ public class NodeMonitor implements Runnable {
 	public void updateNodeStatus() {
 		for (Entry<String, NodeStatus> nodeStatus : nameNodeInstance.getDataNodeStatusList().entrySet()) {
 			String dataNodeIP = nodeStatus.getKey();
-			System.out.println("Updating " + dataNodeIP + ".");
+			//System.out.println("Updating " + dataNodeIP + ".");
 			DataNodeInterface dataNodeService = null;
-			try {
-//				System.out.println("Connecting " + dataNodeIP + "...");
-				dataNodeService = getDataNodeService(dataNodeIP);
-			} catch (Exception e2) {
-				System.err.println("Cannot connect to " + dataNodeIP + ".");
-				return;
-			}
-			
 			int retryThreshold = this.heartbeatCheckThreshold;
 			while (retryThreshold > 0) {
+			try {
+				
+					System.out.println("Part1");
+					System.out.println("trying " + retryThreshold);
+//				System.out.println("Connecting " + dataNodeIP + "...");
+				dataNodeService = getDataNodeService(dataNodeIP);
+				System.out.println("Get data node service");
+				dataNodeService.heartbeat();
+				break;
+//				this.nameNodeInstance.getDataNodeStatusList().put(dataNodeIP, NodeStatus.HEALTHY);
+			} catch (Exception e2) {
+				System.out.println("Part2");
 				retryThreshold--;
-				try {
-//					System.out.println("Heartbeating " + dataNodeIP + "...");
-					dataNodeService.heartbeat();
-//					System.out.println(dataNodeIP + " is functioning.");
-//					System.out.println("Updating " + dataNodeIP + "'s status...");
-					this.nameNodeInstance.getDataNodeStatusList().put(dataNodeIP, NodeStatus.HEALTHY);
-//					System.out.println(dataNodeIP + "updated.");
-					break;
-				} catch (RemoteException e) {
-					System.err.println(dataNodeIP + " is down. Recovering data...");
 					if (retryThreshold <= 0) {
+						System.err.println(dataNodeIP + " is down. Recovering data...");
 						try {
-							ensureReplica(dataNodeIP, this.nameNodeInstance.getFilesChunkOnNodesTable().get(dataNodeIP));
-						} catch (RemoteException e1) {
+							if(this.nameNodeInstance.getFilesChunkOnNodesTable().containsKey(dataNodeIP)){
+								ensureReplica(dataNodeIP, this.nameNodeInstance.getFilesChunkOnNodesTable().get(dataNodeIP));
+							}
+						} catch (Exception e1) {
 							e1.printStackTrace();
 							System.err.println("Cannot recover data from " + dataNodeIP + "'s failure...");
 							return;
@@ -105,8 +102,7 @@ public class NodeMonitor implements Runnable {
 				}
 			}
 		}
-		return;
-	}
+		}
 	
 	
 	public void updateAvailableSlot() {
@@ -114,9 +110,9 @@ public class NodeMonitor implements Runnable {
 			String dataNodeIP = nodeTuple.getKey();
 			DataNodeInterface dataNodeService = null;
 			try {
-				System.out.println("Connecting " + dataNodeIP + "...");
+				//System.out.println("Connecting " + dataNodeIP + "...");
 				dataNodeService = getDataNodeService(dataNodeIP);
-				System.out.println("Connected to " + dataNodeIP + ".");
+				//System.out.println("Connected to " + dataNodeIP + ".");
 			} catch (Exception e) {
 				e.printStackTrace();
 				System.err.println("Cannot connect to " + dataNodeIP + ".");
@@ -125,23 +121,23 @@ public class NodeMonitor implements Runnable {
 			
 			int nodeValue;
 			try {
-				System.out.println("Updating " + dataNodeIP + "'s available list...");
+				//System.out.println("Updating " + dataNodeIP + "'s available list...");
 				nodeValue = dataNodeService.getAvailableChunkSlot();
-				System.out.println(dataNodeIP + "has " + nodeValue + " available slots...");
+				//System.out.println(dataNodeIP + "has " + nodeValue + " available slots...");
 			} catch (RemoteException e) {
 				e.printStackTrace();
 				continue;
 			}
 			int nameNodeValue = nodeTuple.getValue();
 			int newValue = (nodeValue < nameNodeValue) ? nodeValue : nameNodeValue;
-			System.out.println("Updating available slots table...");
+			//System.out.println("Updating available slots table...");
 			nameNodeInstance.getDataNodeAvailableSlotList().put(dataNodeIP, newValue);
 		}
 		return;
 	}
 	
 	
-	public void ensureReplica(String deadNode, Hashtable<String, HashSet<Integer>> missingChunkList) throws RemoteException {
+	public void ensureReplica(String deadNode, Hashtable<String, HashSet<Integer>> missingChunkList) throws Exception {
 		for (Entry<String, HashSet<Integer>> fileTuple : missingChunkList.entrySet()) {
 			String filename = fileTuple.getKey();
 			
@@ -155,7 +151,7 @@ public class NodeMonitor implements Runnable {
 				} catch (RemoteException e1) {
 					e1.printStackTrace();
 					System.out.println("Cannot find any available node...");
-					throw (new RemoteException());
+					throw (new Exception());
 				}
 				
 				//find a node to move from

@@ -237,6 +237,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 		try {		//download chunks from other data node
 			availableChunkSlot--;
 			reservedSlot++;
+			System.out.println("Reserving slots for upload. Current reserved slots: " + reservedSlot + ".");
 			byte[] chunk = this.dataNodeList.get(fromIP).getFile(filename, chunkNum);
 			IOUtil.writeBinary(chunk, dataNodePath + filename + "_" + chunkNum);
 			System.out.println(filename + "_" + chunkNum + " has been downloaded...");
