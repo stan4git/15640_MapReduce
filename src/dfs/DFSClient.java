@@ -323,7 +323,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 			System.out.println("Cannot remove file...");
 			return;
 		}
-		if (fileDistribution.contains(filename)) {
+		if (fileDistribution.containsKey(filename)) {
 			for (Entry<Integer, HashSet<String>> chunkTuple : fileDistribution.get(filename).entrySet()) {
 				int chunkNum = chunkTuple.getKey();
 				//byte[] chunk = null;
