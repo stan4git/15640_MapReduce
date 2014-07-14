@@ -19,6 +19,8 @@ import java.util.TreeSet;
 import format.KVPair;
 
 /**
+* This class is used to merge all the contents of the partitions from
+* different nodes into one
 * 
 * @author menglonghe
 * @author sidilin
