@@ -201,7 +201,7 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 		this.fileDistributionTable.put(filename, this.processingFileDistributionTable.get(filename));
 		this.processingFileDistributionTable.remove(filename);
 		this.fileStatusTable.put(filename, FileStatus.SUCCESS);
-		System.out.println(filename + "has been uploaded to DFS.");
+		System.out.println(filename + " has been uploaded to DFS.");
 		return true;
 	}
 	
@@ -216,7 +216,7 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 	
 	public void removeChunkFromFileDistributionTable(String filename, int chunkNum, String dataNodeIP) {
 		this.fileDistributionTable.get(filename).get(chunkNum).remove(dataNodeIP);
-		System.out.println(dataNodeIP + " has been successfully removed from file distribution table...");
+		System.out.println("Chunk" + chunkNum + " of file \"" +filename + "\" on " + dataNodeIP + " has been removed from file distribution table...");
 		return;
 	}
 
