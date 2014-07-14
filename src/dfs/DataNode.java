@@ -17,13 +17,10 @@ import util.IOUtil;
 import util.PathConfiguration;
 
 /**
- * 1. heart beat (RMI)
- * 2. Setup registry 
- * 3. receive file
- * 4. available chunk slot
- * 5. makeCopy for RMI call
+ * This class is the main thread to start a data node in DFS.
+ * It provides remote services for name nodes and clients to upload, query
+ * data.
  */
-
 public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 
 	private static final long serialVersionUID = 7965875955130649094L;
@@ -91,11 +88,19 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 		System.out.println("System is shutting down...");
 	}
 	
-	
+	/**
+	 * While isRunning is true, this data node will keep running.
+	 * Calling terminate() will change isRunning to false.
+	 * @throws RemoteException
+	 */
 	public DataNode() throws RemoteException {
 		this.isRunning = true;
 	}
 	
+	/**
+	 * Used right after system started. It creates connection to name node
+	 * and retrieve services.
+	 */
 	public void init() {
 		this.availableChunkSlot = this.maxChunkSlot;
 		try {
@@ -109,7 +114,6 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 			System.exit(-1);
 		}
 	}
-	
 	
 	
 	public void uploadChunk(String filename, byte[] chunk, int chunkNum, String fromIP)

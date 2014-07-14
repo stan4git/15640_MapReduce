@@ -6,6 +6,14 @@ import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 public interface DataNodeInterface extends Remote {
+	/** 
+	 * Used to upload chunks from other data nodes or clients.
+	 * @param filename file name 
+	 * @param chunk
+	 * @param chunkNum
+	 * @param fromIP
+	 * @throws RemoteException
+	 */
 	public void uploadChunk(String filename, byte[] chunk, int chunkNum, String fromIP) throws RemoteException;
 	public void removeChunk(String filename, int chunkNum) throws RemoteException;
 	public byte[] getFile(String filename, int chunkNum) throws RemoteException;
