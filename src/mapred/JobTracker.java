@@ -285,7 +285,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			return;
 		}
 		for(int i = 0; i < numOfPartitions; i++) {
-			TaskThread reduceTask = new TaskThread(chosenReduceNodes.get(i), jobID, null, null, false, i, nodes_partitionsPath, partitionNums,taskTrackerRegPort,taskTrackServiceName);	
+			TaskThread reduceTask = new TaskThread(chosenReduceNodes.get(i), jobID, null, null, false, i, nodes_partitionsPath, 1,taskTrackerRegPort,taskTrackServiceName);	
 			executor.execute(reduceTask);
 		}
 	}

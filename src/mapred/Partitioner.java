@@ -32,7 +32,7 @@ public class Partitioner {
 
 		for (KVPair kvPair : collection) {
 			hashcodes.put(kvPair.getKey(),
-					(kvPair.getValue().toString().hashCode()) % partitionNum);
+					Math.abs((kvPair.getKey().toString().hashCode()) % partitionNum));
 		}
 
 		for (KVPair kvPair : collection) {
