@@ -321,7 +321,7 @@ public class IOUtil {
 		int index = 0;
 		file.seek(startPosition);
 		
-		while (index != size && (tmp = file.readByte()) != -1) {
+		while (index < size && (tmp = file.readByte()) != -1) {
 			chunk[index++] = tmp;
 		}
 		
@@ -358,8 +358,9 @@ public class IOUtil {
 			Long lastPointer = 0L;
 			split.add(0L);
 			do {
-				tmp = raFile.readLine() + '\n';
+				tmp = raFile.readLine();
 				if (tmp != null && tmp.length() > 0) {
+					tmp += '\n';
 					int increment = tmp.getBytes().length;
 					if (increment > chunkSize) {
 						throw new IOException("Data row is too long...");
