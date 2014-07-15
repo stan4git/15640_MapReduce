@@ -235,7 +235,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 		KVPair reducerInfo = jobTracker.getReducerInfo(jobID);
 		reducerClassName = reducerInfo.getKey().toString().replace('.', '/')
 				+ ".class";
-		byte[] reducerClassContent = (byte[]) reducerInfo.getValue();
+		byte[] reducerClassContent = reducerInfo.getValue().toString().getBytes();
 		IOUtil.writeBinary(reducerClassContent, reducerClassName);
 	}
 

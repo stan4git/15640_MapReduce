@@ -257,14 +257,14 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		// KVPair mapper
 		// key: wordCount.wordMapper
 		// value: wordCount/wordMapper.class
-		String[] mappers =  ((String)mapper.getKey()).split(".");
-		String[] reducers = ((String)reducer.getKey()).split(".");
+		String[] mappers =  ((String)mapper.getKey()).split("\\.");
+		String[] reducers = ((String)reducer.getKey()).split("\\.");
 		// mapperPath:/tmp/upload/wordMapper-0.class
 		String mapperPath = jobUploadPath + mappers[mappers.length - 1] + "-" + jobID +".class";
 		String reducerPath = jobUploadPath + reducers[reducers.length - 1] + "-" + jobID + ".class";
 		
-		IOUtil.writeBinary((byte[])mapper.getValue(), mapperPath);
-		IOUtil.writeBinary((byte[])reducer.getValue(), reducerPath);
+		IOUtil.writeBinary(mapper.getValue().toString().getBytes(), mapperPath);
+		IOUtil.writeBinary(reducer.getValue().toString().getBytes(), reducerPath);
 		
 		KVPair mapRedName = new KVPair ((String)mapper.getKey(), (String)reducer.getKey());
 		KVPair mapRedPath = new KVPair (mapperPath, reducerPath);
