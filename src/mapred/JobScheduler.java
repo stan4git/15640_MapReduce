@@ -211,6 +211,7 @@ public class JobScheduler {
 				return null;
 			}
 			nodesForReduce.add(chosenReducer);
+			numOfChosen++;
 		}
 
 		return nodesForReduce;

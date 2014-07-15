@@ -218,11 +218,17 @@ public class TaskTracker extends UnicastRemoteObject implements
 			e.printStackTrace();
 		}
 		// step3: start the reduce work
+		String reduceName = null;
+		try {
+			reduceName = jobTracker.getReducerInfo(jobID).getKey().toString();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		RMIServiceInfo rmiServiceInfo = new RMIServiceInfo();
 		rmiServiceInfo.settingForReducer(taskTrackerRegPort,
 				taskTrackServiceName);
 		startReduceTask(jobID, partitionNo, nodesWithPartitions,
-				reducerClassName, rmiServiceInfo, reduceResultPath);
+				reduceName, rmiServiceInfo, reduceResultPath);
 	}
 
 	/**
@@ -329,6 +335,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 			parFilePath = jobID_parFilePath.get(jobID);
 		}
 		parFilePath.addAll(filePaths);
+		jobID_parFilePath.put(jobID, parFilePath);
 	}
 
 	/**

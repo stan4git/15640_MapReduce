@@ -386,7 +386,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			// step2: update jobID_nodes_partitionsPath
 			HashMap<String, ArrayList<String>> nodes_Paths = jobID_nodes_partitionsPath.get(jobID);
 			nodes_Paths.get(node).addAll(jobID_parFilePath.get(jobID));
-		
+			jobID_nodes_partitionsPath.put(jobID, nodes_Paths);
 			
 			// step3: if the whole mapper process has finished, start reduce phase.
 			if(isMapperJobFinished(jobID)) {

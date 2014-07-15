@@ -3,6 +3,8 @@
  */
 package mapred;
 
+import java.io.Serializable;
+
 /**
  * This class is used to reserve the RMI related info
  * including dataNode's Registry port, service name, partition numbers,
@@ -12,8 +14,9 @@ package mapred;
  * @author sidilin
  *
  */
-public class RMIServiceInfo {
-	
+public class RMIServiceInfo implements Serializable{
+
+	private static final long serialVersionUID = -6852568401367174398L;
 	// datanode's registry port and service name
 	private Integer dataNodeRegPort;
 	private String dataNodeService;

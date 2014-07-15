@@ -4,6 +4,8 @@
 package mapred;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -70,10 +72,12 @@ public class ReduceRunner implements Runnable {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void run () {
+		Class<Reducer> reduceClass;
 		try {
 			//step1 : get the programmer's Reducer class and Instantiate it
-			Class<Reducer> reduceClass = (Class<Reducer>) Class.forName(className);
-			reducer = reduceClass.newInstance();
+			reduceClass = (Class<Reducer>) Class.forName(className);
+			Constructor<Reducer> constructors = reduceClass.getConstructor();
+			reducer = constructors.newInstance();
 			HashSet<String> pathsForPartition = new HashSet<String>();
 			
 			//step2 : get files for specific partition from data nodes and localize them.
@@ -114,7 +118,8 @@ public class ReduceRunner implements Runnable {
 			dfsClient.putFile(reduceFileName);
 			TaskTracker.updateReduceStatus(jobID, true);
 		} catch (ClassNotFoundException | InstantiationException |
-				IllegalAccessException | IOException e) {
+				IllegalAccessException | IOException | NoSuchMethodException | SecurityException
+				| IllegalArgumentException | InvocationTargetException e) {
 			TaskTracker.handleMapperNodeFailure(jobID);
 			System.err.println("Reducer fails while fetching partitions !!");
 			System.exit(-1);

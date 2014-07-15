@@ -96,7 +96,7 @@ public class MapRunner implements Runnable{
 				InputFormat inputFormat = constuctor.newInstance(contents[count]);
 				List<KVPair> kvPairs = inputFormat.getKvPairs();
 				for(int i = 0; i < kvPairs.size(); i++) {
-					mapper.map(pair.getKey(), pair.getValue(), outputCollector);
+					mapper.map(kvPairs.get(i).getKey(), kvPairs.get(i).getValue(), outputCollector);
 				}
 				count++;
 			}
