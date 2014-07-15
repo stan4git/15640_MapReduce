@@ -417,7 +417,6 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 					
 					//Retry if failed as long as retry threshold not met.
 					while (!success && retryThreshold > 0) {		
-						
 						try {
 							//start transferring chunk. 
 							System.out.println("Dispatching chunk" + chunkNum + " of file \"" + filename + "\" to " + dataNodeIP + "...");
@@ -427,29 +426,33 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 							
 							//waiting for dataNode acknowledge
 							long timeoutExpiredMs = System.currentTimeMillis() + (this.ackTimeout * 1000);	
-							while (this.dispatchList.containsKey(filename) && this.dispatchList.get(filename).containsKey(chunkNum) && this.dispatchList.get(filename).get(chunkNum).contains(dataNodeIP)) {	
-								if (System.currentTimeMillis() >= timeoutExpiredMs) break;
-								Thread.sleep(1 * 1000);
+							System.out.println("Waitting for " + dataNodeIP + "'s acknowledge...");
+							while (System.currentTimeMillis() < timeoutExpiredMs) {
+								//check if data node acknowledged received
+								if (this.dispatchList.containsKey(filename) 
+										&& this.dispatchList.get(filename).containsKey(chunkNum) 
+										&& this.dispatchList.get(filename).get(chunkNum).contains(dataNodeIP)) {	
+									Thread.sleep(2 * 1000);
+								} else {
+									success = true;
+									break;
+								}
 							}
-							
-							//check if data node acknowledged received
-							if (this.dispatchList.containsKey(filename) && this.dispatchList.get(filename).containsKey(chunkNum) && this.dispatchList.get(filename).get(chunkNum).contains(dataNodeIP)) {	
-								retryThreshold--;
-								System.out.println("Upload timeout. Retrying for " +
-										(this.chunkTranferRetryThreshold - retryThreshold + 1) + " times...");
-							}
-						} catch (RemoteException e) {
 							retryThreshold--;
-							e.printStackTrace();
+							System.out.println("Upload timeout. Retrying for " +
+									(this.chunkTranferRetryThreshold - retryThreshold) + " times...");
+						} catch (RemoteException | UnknownHostException e) {
+							retryThreshold--;
 							System.err.println("Exception occurs when uploading file. Retrying for " + 
-									(this.chunkTranferRetryThreshold - retryThreshold + 1) + " times...");
+									(this.chunkTranferRetryThreshold - retryThreshold) + " times...");
 						} catch (InterruptedException e) {
-							System.err.println("Timer error.");
-						} catch (UnknownHostException e) {
-							e.printStackTrace();
+							retryThreshold--;
+							System.err.println("Timer error. Retrying for " + 
+									(this.chunkTranferRetryThreshold - retryThreshold) + " times...");
 						}
 					}
-					if (retryThreshold == 0) {		//after retries, print out error message
+					
+					if (retryThreshold <= 0) {		//after retries, print out error message
 						System.err.print("Upload chunk" + chunkNum + " to " + dataNodeIP + " failed.");
 					}
 				}
