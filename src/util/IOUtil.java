@@ -378,7 +378,7 @@ public class IOUtil {
 					}
 				} else {	//reach the end of file
 					if (tmp == null && currentPointer != lastPointer) {
-						split.add(currentPointer);
+						split.add(currentPointer - 1);
 						System.out.println("Finished scanning file.");
 					}
 				}

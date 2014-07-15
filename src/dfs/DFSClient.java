@@ -258,13 +258,18 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		
 		System.out.println("Dispatching file...");
 		if (dispatchList != null && dispatchList.size() > 0) {
-			dispatchChunks(filePath, split);
-			dispatchList = null;
-			System.out.println(filePath + " has been sucessfully uploaded to DFS.");
+			try {
+				dispatchChunks(filePath, split);
+				dispatchList = null;
+				System.out.println(filePath + " has been sucessfully uploaded to DFS.");
+			} catch (RemoteException e) {
+				System.err.println("Dispatching file failed.");
+				return;
+			}
 		} else {
 			System.out.println("File dispatch error. Please try again.");
+			return;
 		}
-		return;
 	}
 	
 	
@@ -363,8 +368,9 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	 * the client will first try to re-send the file chunk. After retried three times, the client will send back 
 	 * the rest of the list to name node for re-allocation and try to dispatch again.
 	 * @param dispatchList A list provided by NameNode towards dispatching file chunks.
+	 * @throws RemoteException 
 	 */
-	private void dispatchChunks(String filePath, ArrayList<Long> splitStartPointOffset) {
+	private void dispatchChunks(String filePath, ArrayList<Long> splitStartPointOffset) throws RemoteException {
 		String filename = StringHandling.getFileNameFromPath(filePath);
 		RandomAccessFile file;
 		byte[] chunk;
@@ -462,7 +468,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 					System.out.println("New distribution list is received.");
 				} catch (RemoteException e) {
 					System.err.println("System run out of storage space!");
-					return;
+					throw e;
 				}
 			}
 		}
