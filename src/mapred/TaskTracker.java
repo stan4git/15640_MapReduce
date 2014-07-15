@@ -119,7 +119,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 			mapNums++;
 		}
 
-		System.out.println("It needs " + mapNums + "mappers!");
+		System.out.println("It needs " + mapNums + " map worker!");
 		// step2: update some related info
 		TaskStatusInfo taskStatusInfo;
 		if (jobID_taskStatus.containsKey(jobID)) {
@@ -168,7 +168,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 		KVPair mapInfo = jobTracker.getMapperInfo(jobID);
 		mapperClassName = mapInfo.getKey().toString().replace('.', '/')
 				+ ".class";
-		byte[] mapperClassContent = (byte[]) mapInfo.getValue();
+		byte[] mapperClassContent = mapInfo.getValue().toString().getBytes();
 		IOUtil.writeBinary(mapperClassContent, mapperClassName);
 	}
 

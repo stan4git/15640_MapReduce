@@ -91,7 +91,7 @@ public class MapRunner implements Runnable{
 				Registry reg = LocateRegistry.getRegistry(sourceNodeIP, dataNodeRegPort);
 				DataNodeInterface datanode = (DataNodeInterface)reg.lookup(dataNodeService);
 				contents[count] = new String(datanode.getFile(jobConf.getInputfile(),chunkNum),"UTF-8");
-				Class<InputFormat> inputFormatClass = (Class<InputFormat>) Class.forName(jobConf.getInputFormat().toString());
+				Class<InputFormat> inputFormatClass = (Class<InputFormat>) Class.forName(jobConf.getInputFormat().getName());
 				Constructor<InputFormat> constuctor = inputFormatClass.getConstructor(String.class);
 				InputFormat inputFormat = constuctor.newInstance(contents[count]);
 				List<KVPair> kvPairs = inputFormat.getKvPairs();
