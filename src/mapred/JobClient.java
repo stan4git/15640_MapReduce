@@ -96,17 +96,18 @@ public class JobClient {
 		// Monitoring
 		while(true) {
 			JobStatus status = jobtracker.checkJobStatus(jobId);
-			if(status.equals("SUCCESS")) {
+			System.out.println(status);
+			if(status == JobStatus.SUCCESS) {
 				System.out.println("Your job has been executed successfully!");
 				System.out.println("Your jobId is "+jobId+" and your outputfile name is " + jobConf.getOutputfile());
 				System.out.println("The actual output format is [jobId]-[outputfilename]-part-[partitionNumber]");
 				jobtracker.terminateJob(jobId);
 				break;
-			} else if(status.equals("INPROGRESS")) {
+			} else if(status == JobStatus.INPROGRESS) {
 				double mapperPercentage = jobtracker.getMapperProgress(jobId);
 				double reducePercentage = jobtracker.getReducerProgress(jobId);
 				System.out.printf("Mapper: %fpercent; Reducer: %fpercent\n", mapperPercentage*100, reducePercentage*100);
-			} else if(status.equals("FAIL")) {
+			} else if(status == JobStatus.FAIL) {
 				System.err.println("Job failed!");
 				// allow to try several times according to the programmer's setting
 				if(failureTimes < jobMaxFailureThreshold) {
@@ -123,9 +124,9 @@ public class JobClient {
 					break;
 				}
 			}
-			// Monitoring every 3 seconds
+			// Monitoring every 5 seconds
 			try {
-				Thread.sleep(3000);
+				Thread.sleep(5000);
 			} catch (InterruptedException e) {
 				System.err.println("Exception happened when monitoring!");
 				e.printStackTrace();

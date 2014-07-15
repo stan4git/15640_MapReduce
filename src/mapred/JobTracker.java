@@ -336,8 +336,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 
 	@Override
 	public JobStatus checkJobStatus(Integer jobID) {
-		
-		return null;
+		return jobID_status.get(jobID);
 	}
 	
 	@Override
@@ -413,8 +412,8 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			
 			if(isReducerJobFinished(jobID)) {
 				jobID_status.put(jobID, JobStatus.SUCCESS);
-				System.out.println("The Job which ID: " + jobID + "has been excuted successfully!");
-				terminateJob(jobID);
+				System.out.println("The Job which ID: " + jobID + " has been excuted successfully!");
+				//terminateJob(jobID);
 			}
 		}
 		
@@ -432,9 +431,9 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			unfinishedMapTasks += taskStatusInfo.getUnfinishedMapTasks();
 			unfinishedReduceTasks += taskStatusInfo.getUnfinishedReduceTasks();
 			
-			if(isReducerJobFinished(jobID)) {
-				terminateJob(jobID);
-			}
+//			if(isReducerJobFinished(jobID)) {
+//				terminateJob(jobID);
+//			}
 		}
 		
 		node_totalTasks.put(node, unfinishedMapTasks + unfinishedReduceTasks);
