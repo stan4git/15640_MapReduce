@@ -43,6 +43,8 @@ public class ReduceRunner implements Runnable {
 	private String className;
 	// the written path for the reducing phrase
 	private String reduceResultPath;
+	// mapper result temporary path
+	private String mapResTemporaryPath;
 	
 	
 	/**
@@ -55,7 +57,7 @@ public class ReduceRunner implements Runnable {
 	 * @param reduceResultPath
 	 */
 	public ReduceRunner (int jobID, int partitionNo, HashMap<String, ArrayList<String>> nodesWithPartitions, 
-			String className, RMIServiceInfo rmiServiceInfo, String reduceResultPath) {
+			String className, RMIServiceInfo rmiServiceInfo, String reduceResultPath, String mapResTemporaryPath) {
 		 
 		this.jobID = jobID;
 		this.partitionNo = partitionNo;
@@ -64,6 +66,7 @@ public class ReduceRunner implements Runnable {
 		this.taskTrackerRegPort = rmiServiceInfo.getTaskTrackerRegPort();
 		this.taskTrackServiceName = rmiServiceInfo.getTaskTrackServiceName();
 		this.reduceResultPath = reduceResultPath;
+		this.mapResTemporaryPath = mapResTemporaryPath;
 	}
 	
 	/***
@@ -86,10 +89,15 @@ public class ReduceRunner implements Runnable {
 					Registry registry = LocateRegistry.getRegistry(node, taskTrackerRegPort);
 					TaskTrackerInterface taskTracker = (TaskTrackerInterface) registry.lookup(taskTrackServiceName);
 					for (String path : nodesWithPartitions.get(node)) {
-						byte[] content = taskTracker.getPartitionContent(path);
-						String outputPath = path;
-						pathsForPartition.add(outputPath);
-						IOUtil.writeBinary(content, outputPath);
+						String[] pathArray = path.split("/");
+						String lastWord = pathArray[pathArray.length - 1];
+						String effectivePath = "partition" + partitionNo;
+						if(effectivePath.equals(lastWord)){
+							byte[] content = taskTracker.getPartitionContent(path);
+							String outputPath = mapResTemporaryPath + node + pathArray[3] + pathArray[4] + effectivePath;
+							pathsForPartition.add(outputPath);
+							IOUtil.writeBinary(content, outputPath);
+						}
 					}
 				} catch (RemoteException e) {
 					e.printStackTrace();
@@ -114,8 +122,8 @@ public class ReduceRunner implements Runnable {
 			IOUtil.writeBinary(outputForDFS, reduceFileName);
 						
 			// step 5 : upload the output file into DFS !
-			DFSClient dfsClient = new DFSClient();
-			dfsClient.putFile(reduceFileName);
+//			DFSClient dfsClient = new DFSClient();
+//			dfsClient.putFile(reduceFileName);
 			TaskTracker.updateReduceStatus(jobID, true);
 		} catch (ClassNotFoundException | InstantiationException |
 				IllegalAccessException | IOException | NoSuchMethodException | SecurityException

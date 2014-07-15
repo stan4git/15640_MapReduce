@@ -307,7 +307,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	@Override
 	public void terminateJob(int jobID) {
 		
-		if(!jobID_node_taskStatus.contains(jobID)) {
+		if(!jobID_node_taskStatus.containsKey(jobID)) {
 			return;
 		}
 		
@@ -323,6 +323,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			} 
 		}			
 		
+
 		jobID_node_taskStatus.remove(jobID);
 		jobID_mapTasks.remove(jobID);
 		jobID_mapRedName.remove(jobID);
@@ -412,6 +413,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			
 			if(isReducerJobFinished(jobID)) {
 				jobID_status.put(jobID, JobStatus.SUCCESS);
+				System.out.println("The Job which ID: " + jobID + "has been excuted successfully!");
 				terminateJob(jobID);
 			}
 		}

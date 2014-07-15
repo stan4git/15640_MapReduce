@@ -84,6 +84,8 @@ public class TaskTracker extends UnicastRemoteObject implements
 	private static Integer jobMaxFailureThreshold;
 	// the reduce file path
 	private static String reduceResultPath;
+	// map result temporary path
+	private static String mapResTemporaryPath;
 
 	private static String node;
 
@@ -228,7 +230,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 		rmiServiceInfo.settingForReducer(taskTrackerRegPort,
 				taskTrackServiceName);
 		startReduceTask(jobID, partitionNo, nodesWithPartitions,
-				reduceName, rmiServiceInfo, reduceResultPath);
+				reduceName, rmiServiceInfo, reduceResultPath,mapResTemporaryPath);
 	}
 
 	/**
@@ -259,10 +261,10 @@ public class TaskTracker extends UnicastRemoteObject implements
 	public void startReduceTask(int jobID, int partitionNo,
 			HashMap<String, ArrayList<String>> nodesWithPartitions,
 			String className, RMIServiceInfo rmiServiceInfo,
-			String reduceResultPath) {
+			String reduceResultPath, String mapResTemporaryPath) {
 		ReduceRunner reduceRunner = new ReduceRunner(jobID, partitionNo,
 				nodesWithPartitions, className, rmiServiceInfo,
-				reduceResultPath);
+				reduceResultPath,mapResTemporaryPath);
 		executor.execute(reduceRunner);
 	}
 
