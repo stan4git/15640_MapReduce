@@ -358,7 +358,7 @@ public class IOUtil {
 			Long lastPointer = 0L;
 			split.add(0L);
 			do {
-				tmp = raFile.readLine();
+				tmp = raFile.readLine() + '\n';
 				if (tmp != null && tmp.length() > 0) {
 					int increment = tmp.getBytes().length;
 					if (increment > chunkSize) {
