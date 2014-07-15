@@ -52,5 +52,5 @@ public interface TaskTrackerInterface extends Remote {
 	 * 
 	 * @param jobID
 	 */
-	public void remove(int jobID);
+	public void remove(int jobID) throws RemoteException;
 }

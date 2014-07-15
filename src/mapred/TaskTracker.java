@@ -74,7 +74,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	private static String jobTrackServiceName;
 	
 	// TaskTracker's service port, registry port and service name
-	private static Integer taskPort;
+	private static Integer taskTrackerPort;
 	private static Integer taskTrackerRegPort;
 	private static String taskTrackServiceName;
 	
@@ -90,18 +90,6 @@ public class TaskTracker extends UnicastRemoteObject implements
 	// default consturctor
 	protected TaskTracker() throws RemoteException {
 		super();
-
-		try {
-			Registry registry = LocateRegistry.getRegistry(jobTrackerIP, jobTrackerRegPort);
-			jobTracker = (JobTrackerInterface) registry.lookup(jobTrackServiceName);
-			
-			Registry nameNodeRegistry = LocateRegistry.getRegistry(nameNodeIP, nameNodeRegPort);
-			nameNode = (NameNodeInterface) nameNodeRegistry.lookup(nameNodeService);
-		} catch (RemoteException e) {
-			e.printStackTrace();
-		} catch (NotBoundException e) {
-			e.printStackTrace();
-		}
 	}
 	
 	@Override
@@ -408,9 +396,22 @@ public class TaskTracker extends UnicastRemoteObject implements
 			taskTracker = new TaskTracker();
 			IOUtil.readConf(PathConfiguration.MapReducePath, taskTracker);
 			IOUtil.readConf(PathConfiguration.DFSConfPath, taskTracker);
+			
+
+			try {
+				Registry registry = LocateRegistry.getRegistry(jobTrackerIP, jobTrackerRegPort);
+				jobTracker = (JobTrackerInterface) registry.lookup(jobTrackServiceName);
+				
+				Registry nameNodeRegistry = LocateRegistry.getRegistry(nameNodeIP, nameNodeRegPort);
+				nameNode = (NameNodeInterface) nameNodeRegistry.lookup(nameNodeService);
+			} catch (RemoteException e) {
+				e.printStackTrace();
+			} catch (NotBoundException e) {
+				e.printStackTrace();
+			}
 
 			unexportObject(taskTracker, false);
-			TaskTrackerInterface stub = (TaskTrackerInterface) exportObject(taskTracker, taskPort);
+			TaskTrackerInterface stub = (TaskTrackerInterface) exportObject(taskTracker, taskTrackerPort);
 			Registry registry = LocateRegistry.createRegistry(taskTrackerRegPort);
 			registry.rebind(taskTrackServiceName, stub);
 			
