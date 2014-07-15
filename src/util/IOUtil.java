@@ -362,7 +362,7 @@ public class IOUtil {
 			split.add(0L);
 			do {
 				tmp = raFile.readLine();
-				if (tmp != null && tmp.length() > 0) {
+				if (tmp != null) {
 					tmp += '\n';
 					int increment = tmp.getBytes().length;
 					if (increment > chunkSize) {
@@ -371,14 +371,14 @@ public class IOUtil {
 					if (currentPointer - lastPointer + increment <= chunkSize) { 
 						currentPointer += increment;
 					} else {
-						split.add(currentPointer);
+						split.add(currentPointer);			//starting point of next chunk
 						System.out.println("Scanning file... " + (int)((1.0d * currentPointer / fileSize) * 100) + "% finished.");
 						lastPointer = currentPointer;
 						currentPointer += increment;
 					}
 				} else {	//reach the end of file
 					if (tmp == null && currentPointer != lastPointer) {
-						split.add(currentPointer - 1);
+						split.add(currentPointer);
 						System.out.println("Finished scanning file.");
 					}
 				}
