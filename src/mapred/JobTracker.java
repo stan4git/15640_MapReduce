@@ -160,7 +160,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			}
 			
 			System.out.println("choose node: " + node + " to run one or more Mapper tasks!");
-			TaskThread mapTask = new TaskThread(node,jobID,jobConf,nodeToChunks.get(node),true,0,null,0);
+			TaskThread mapTask = new TaskThread(node,jobID,jobConf,nodeToChunks.get(node),true,0,null,0,taskTrackerRegPort,taskTrackServiceName);
 			executor.execute(mapTask);
 		}
 		return jobID.toString();
@@ -200,7 +200,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 				}
 				
 				System.out.println("choose node: " + assignedNode + " to run one or more Mapper tasks!");
-				TaskThread mapTask = new TaskThread(assignedNode,jobID,jobID_configuration.get(jobID),nodeToChunks.get(assignedNode),true,0,null,0);
+				TaskThread mapTask = new TaskThread(assignedNode,jobID,jobID_configuration.get(jobID),nodeToChunks.get(assignedNode),true,0,null,0,taskTrackerRegPort,taskTrackServiceName);
 				executor.execute(mapTask);
 			}
 			
@@ -230,7 +230,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 				jobID_status.put(jobID, JobStatus.FAIL);
 				return;
 			}
-			TaskThread reduceTask = new TaskThread(chosenReduceNodes.get(0), jobID, null, null, false, partitionNo, nodes_partitionsPath, partitionNums);	
+			TaskThread reduceTask = new TaskThread(chosenReduceNodes.get(0), jobID, null, null, false, partitionNo, nodes_partitionsPath, partitionNums,taskTrackerRegPort,taskTrackServiceName);	
 			executor.execute(reduceTask);
 			
 			jobID_mapFailureTimes.put(jobID, failureTimes + 1);
@@ -257,14 +257,14 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		// KVPair mapper
 		// key: wordCount.wordMapper
 		// value: wordCount/wordMapper.class
-		String[] mappers =  ((String)mapper.getKey()).split(".");
-		String[] reducers = ((String)reducer.getKey()).split(".");
+		String[] mappers =  ((String)mapper.getKey()).split("\\.");
+		String[] reducers = ((String)reducer.getKey()).split("\\.");
 		// mapperPath:/tmp/upload/wordMapper-0.class
 		String mapperPath = jobUploadPath + mappers[mappers.length - 1] + "-" + jobID +".class";
 		String reducerPath = jobUploadPath + reducers[reducers.length - 1] + "-" + jobID + ".class";
 		
-		IOUtil.writeBinary((byte[])mapper.getValue(), mapperPath);
-		IOUtil.writeBinary((byte[])reducer.getValue(), reducerPath);
+		IOUtil.writeBinary(mapper.getValue().toString().getBytes(), mapperPath);
+		IOUtil.writeBinary(reducer.getValue().toString().getBytes(), reducerPath);
 		
 		KVPair mapRedName = new KVPair ((String)mapper.getKey(), (String)reducer.getKey());
 		KVPair mapRedPath = new KVPair (mapperPath, reducerPath);
@@ -285,7 +285,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			return;
 		}
 		for(int i = 0; i < numOfPartitions; i++) {
-			TaskThread reduceTask = new TaskThread(chosenReduceNodes.get(i), jobID, null, null, false, i, nodes_partitionsPath, partitionNums);	
+			TaskThread reduceTask = new TaskThread(chosenReduceNodes.get(i), jobID, null, null, false, i, nodes_partitionsPath, partitionNums,taskTrackerRegPort,taskTrackServiceName);	
 			executor.execute(reduceTask);
 		}
 	}

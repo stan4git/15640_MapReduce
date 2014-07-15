@@ -157,7 +157,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 			}
 			
 			
-			if (this.fileList.contains(filename)) {		//update local file list
+			if (this.fileList.containsKey(filename)) {		//update local file list
 				this.fileList.get(filename).add(chunkNum);
 			} else {
 				HashSet<Integer> value = new HashSet<Integer>();
@@ -227,7 +227,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 
 
 	public void downloadChunk(String filename, int chunkNum, String fromIP) throws RemoteException {
-		if (!this.dataNodeList.contains(fromIP)) {		//cache connection to other data nodes
+		if (!this.dataNodeList.containsKey(fromIP)) {		//cache connection to other data nodes
 			try {
 				Registry dataNodeRegistry = LocateRegistry.getRegistry(fromIP, this.dataNodeRegPort);
 				DataNodeInterface dataNode = (DataNodeInterface) dataNodeRegistry.lookup(dataNodeService);

@@ -123,7 +123,7 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(
 			String filename, int chunkAmount) throws RemoteException {
 		//check and update file status table to avoid duplicated file name
-		if (this.fileStatusTable.contains(filename)) {		
+		if (this.fileStatusTable.containsKey(filename)) {		
 			System.out.println("File name exist. Please try another.");
 			throw new RemoteException();
 		} else {
@@ -148,7 +148,7 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 				}
 				
 				//check if chunkDispatchTable has current chunk, if not, create that hash set 
-				if (!chunkDispatchTable.contains(currentChunk)) {	
+				if (!chunkDispatchTable.containsKey(currentChunk)) {	
 					nodeList.add(pickNode);
 					chunkDispatchTable.put(currentChunk, nodeList);
 				} else {	//if chunk exists, add nodes into it
@@ -226,13 +226,13 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 //			ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> tableToBeUpdated) {
 //		for (Entry<String, Hashtable<Integer, HashSet<String>>> fileTuple : tableToBeUpdated.entrySet()) {
 //			String filename = fileTuple.getKey();
-//			if (!this.fileDistributionTable.contains(filename)) {
+//			if (!this.fileDistributionTable.containsKey(filename)) {
 //				fileDistributionTable.put(filename, fileTuple.getValue());
 //				fileStatusTable.put(filename, FileStatus.INPROGRESS);
 //			} else {
 //				for (Entry<Integer, HashSet<String>> chunkTuple : fileTuple.getValue().entrySet()) {
 //					int chunkNum = chunkTuple.getKey();
-//					if (!fileDistributionTable.get(filename).contains(chunkNum)) {
+//					if (!fileDistributionTable.get(filename).containsKey(chunkNum)) {
 //						fileDistributionTable.get(filename).put(chunkNum,chunkTuple.getValue());
 //					} else {
 //						fileDistributionTable.get(filename).get(chunkNum).addAll(chunkTuple.getValue());
@@ -289,7 +289,7 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 
 	@Override
 	public boolean fileExist(String filename) {
-		return this.fileDistributionTable.contains(filename);
+		return this.fileDistributionTable.containsKey(filename);
 	}
 
 	@Override

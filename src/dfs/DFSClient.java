@@ -286,7 +286,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 			System.out.println("Exception occurs when fetching file.");
 			return;
 		}
-		if (fileDistribution.contains(filename)) {
+		if (fileDistribution.containsKey(filename)) {
 			for (Entry<Integer, HashSet<String>> chunkTuple : fileDistribution.get(filename).entrySet()) {
 				int chunkNum = chunkTuple.getKey();
 				byte[] chunk = null;
@@ -511,7 +511,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	 * @throws NotBoundException
 	 */
 	private DataNodeInterface getDataNodeService(String dataNodeIP) throws RemoteException, NotBoundException {
-		if (!this.dataNodeServiceList.contains(dataNodeIP)) {
+		if (!this.dataNodeServiceList.containsKey(dataNodeIP)) {
 			try {
 				Registry dataNodeRegistry = LocateRegistry.getRegistry(dataNodeIP, this.dataNodeRegPort);
 				DataNodeInterface dataNode = (DataNodeInterface) dataNodeRegistry.lookup(this.dataNodeService);

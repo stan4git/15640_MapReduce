@@ -11,6 +11,8 @@ import java.rmi.registry.Registry;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import util.IOUtil;
+
 /**
  * This class is a thread to connect to the specific task 
  * node and handling some failures.
@@ -36,12 +38,13 @@ public class TaskThread implements Runnable {
 	
 	private TaskTrackerInterface taskTracker;
 	// task tracker's registry port and service name
-	private static Integer taskTrackerRegPort;
-	private static String taskTrackServiceName;
+	private Integer taskTrackerRegPort;
+	private String taskTrackServiceName;
 	
 	public TaskThread (String node, int jobID, JobConfiguration jobConf,
 			HashMap<Integer,String> chunkSets, Boolean isMapTask, int partitionNo, 
-			HashMap<String, ArrayList<String>> nodesWithPartitions, int numOfPartitions) {
+			HashMap<String, ArrayList<String>> nodesWithPartitions, int numOfPartitions,
+			Integer taskTrackerRegPort,String taskTrackServiceName) {
 		this.curNode = node;
 		this.jobID = jobID;
 		this.jobConf = jobConf;
@@ -50,6 +53,8 @@ public class TaskThread implements Runnable {
 		this.partitionNo = partitionNo;
 		this.nodesWithPartitions = nodesWithPartitions;
 		this.numOfPartitions = numOfPartitions;
+		this.taskTrackerRegPort = taskTrackerRegPort;
+		this.taskTrackServiceName = taskTrackServiceName;
 	}
 
 	@Override
