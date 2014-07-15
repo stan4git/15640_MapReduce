@@ -203,7 +203,7 @@ public class NodeMonitor implements Runnable {
 	 * @throws Exception
 	 */
 	private DataNodeInterface getDataNodeService(String dataNodeIP) throws Exception {
-		if (!this.dataNodeServiceList.contains(dataNodeIP)) {
+		if (!this.dataNodeServiceList.containsKey(dataNodeIP)) {
 			try {
 				Registry dataNodeRegistry = LocateRegistry.getRegistry(dataNodeIP, this.dataNodeRegPort);
 				DataNodeInterface dataNode = (DataNodeInterface) dataNodeRegistry.lookup(this.dataNodeService);
