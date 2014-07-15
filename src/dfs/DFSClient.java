@@ -251,6 +251,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 			dispatchList = this.nameNode.generateChunkDistributionList(filename, split.size() - 1);
 			System.out.println("Dispatch list received.");
 		} catch (RemoteException e) {
+			e.printStackTrace();
 			System.err.println("Exception occurs when fetching distribution table...");
 			return;
 		}

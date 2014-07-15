@@ -1,5 +1,6 @@
 package util;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -317,14 +318,16 @@ public class IOUtil {
 	 */
 	public static byte[] readChunk(RandomAccessFile file, long startPosition, int size) throws IOException {
 		byte tmp = -1;
-		byte[] chunk = new byte[size + 1];
+		byte[] chunk = new byte[size];
 		int index = 0;
 		file.seek(startPosition);
 		
-		while (index < size && (tmp = file.readByte()) != -1) {
-			chunk[index++] = tmp;
+		try {
+			while (index < size && (tmp = file.readByte()) != -1) {
+				chunk[index++] = tmp;
+			}
+		} catch (EOFException e) {
 		}
-		
 		return chunk;
 	}
 
