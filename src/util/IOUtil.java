@@ -317,11 +317,11 @@ public class IOUtil {
 	 */
 	public static byte[] readChunk(RandomAccessFile file, long startPosition, int size) throws IOException {
 		byte tmp = -1;
-		byte[] chunk = new byte[size];
+		byte[] chunk = new byte[size + 1];
 		int index = 0;
 		file.seek(startPosition);
 		
-		while (index != size && (tmp = file.readByte()) != -1) {
+		while (index < size && (tmp = file.readByte()) != -1) {
 			chunk[index++] = tmp;
 		}
 		
