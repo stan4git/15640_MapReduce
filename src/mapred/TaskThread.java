@@ -11,8 +11,6 @@ import java.rmi.registry.Registry;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import util.IOUtil;
-
 /**
  * This class is a thread to connect to the specific task 
  * node and handling some failures.
