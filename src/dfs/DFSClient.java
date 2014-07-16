@@ -448,7 +448,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 							
 							
 							//waiting for dataNode acknowledge
-							long timeoutExpiredMs = System.currentTimeMillis() + (this.ackTimeout * 1000);	
+							long timeoutExpiredMs = System.currentTimeMillis() + (ackTimeout * 1000);	
 							System.out.println("Waitting for " + dataNodeIP + "'s acknowledge...");
 							while (System.currentTimeMillis() < timeoutExpiredMs) {
 								//check if data node acknowledged received
@@ -484,7 +484,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 				}
 			}
 			
-			if (this.dispatchList.get(filename).size() == 0) {
+			if (!dispatchList.containsKey(filename) || dispatchList.get(filename).size() == 0) {
 				//dispatch finished
 				this.dispatchList = null;
 				System.out.println("Dispatch finished.");
