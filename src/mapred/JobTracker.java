@@ -1,7 +1,6 @@
 package mapred;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.rmi.NotBoundException;
@@ -540,17 +539,17 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		return true;
 	}
 	
-	private void initSlaveNodes (String slaveListPath) throws IOException {
-		try {
-			String content = new String(IOUtil.readFile(slaveListPath),"UTF-8");
-			String[] lines = content.split("\n");
-			for(int i = 0; i < lines.length; i++) {
-				node_totalTasks.put(lines[i],0);
-			}
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
-	}
+//	private void initSlaveNodes (String slaveListPath) throws IOException {
+//		try {
+//			String content = new String(IOUtil.readFile(slaveListPath),"UTF-8");
+//			String[] lines = content.split("\n");
+//			for(int i = 0; i < lines.length; i++) {
+//				node_totalTasks.put(lines[i],0);
+//			}
+//		} catch (UnsupportedEncodingException e) {
+//			e.printStackTrace();
+//		}
+//	}
 	
 
 	@Override
@@ -567,12 +566,12 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			IOUtil.readConf(PathConfiguration.MapReducePath, jobTracker);
 			
 			// 2. Initialize slave nodes
-			jobTracker.initSlaveNodes(PathConfiguration.SlaveListPath);
+			//jobTracker.initSlaveNodes(PathConfiguration.SlaveListPath);
 			
-			// 3. Initialize the JobScheduler
+			// 2. Initialize the JobScheduler
 			jobScheduler = new JobScheduler(nameNodeIP,nameNodeRegPort,nameNodeService,maxTaskPerNode,localWeight,globalWeight);
 			
-			// 4. Build the RMI Registry Server and bind the service to the registry server
+			// 3. Build the RMI Registry Server and bind the service to the registry server
 			unexportObject(jobTracker, false);
 			JobTrackerInterface stub = (JobTrackerInterface) exportObject (jobTracker, jobTrackerPort);
 			Registry registry = LocateRegistry.createRegistry(jobTrackerRegPort);
@@ -581,13 +580,19 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			System.out.println("The JobTracker's IP address is " + address.getHostAddress());
 			System.out.println("The JobTracker has started successfully!");
 			
-			// 5. Monitoring
+			// 4. Monitoring
 			jobTracker.transmitHeartBeat();
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
+	}
+
+	@Override
+	public void registerTaskTracker(String taskTrackerIP)
+			throws RemoteException {
+		node_totalTasks.put(taskTrackerIP,0);
 	}
 
 }

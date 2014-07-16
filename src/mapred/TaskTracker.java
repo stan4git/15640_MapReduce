@@ -467,6 +467,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 			registry.rebind(taskTrackServiceName, stub);
 
 			node = InetAddress.getLocalHost().getHostAddress();
+			jobTracker.registerTaskTracker(node);
 			System.out.println("I'm the TaskTracker for node " + node);
 		} catch (RemoteException e) {
 			e.printStackTrace();

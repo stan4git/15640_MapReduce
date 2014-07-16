@@ -114,4 +114,10 @@ public interface JobTrackerInterface extends Remote {
 	 * @return get the output file name
 	 */
 	public String getOutputFileName(int jobID) throws RemoteException;
+	/**
+	 * This method is used to register the task tracker IP
+	 * @param taskTrackerIP
+	 * @throws RemoteException
+	 */
+	public void registerTaskTracker(String taskTrackerIP) throws RemoteException;
 }
