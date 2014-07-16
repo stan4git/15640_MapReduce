@@ -90,10 +90,12 @@ public class TaskTracker extends UnicastRemoteObject implements
 	private static String mapResTemporaryPath;
 	// client Port for task Tracker
 	private static Integer clientPortForTaskTrack;
+	// client Registry port for task Tracker
+	private static Integer clientRegPortForTaskTrack;
 
 	private static String node;
 
-	// default consturctor
+	// default constructor
 	protected TaskTracker() throws RemoteException {
 		super();
 	}
@@ -461,7 +463,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 				nameNode = (NameNodeInterface) nameNodeRegistry
 						.lookup(nameNodeService);
 				
-				dfsClient = new DFSClient(clientPortForTaskTrack);
+				dfsClient = new DFSClient(clientPortForTaskTrack,clientRegPortForTaskTrack);
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			} catch (NotBoundException e) {
