@@ -118,7 +118,12 @@ public class IOUtil {
 		}
 	}
 	
-	
+	/**
+	 * Append chunks into one file.
+	 * @param filePath
+	 * @param content
+	 * @throws IOException
+	 */
 	public static void appendBytesToFile(String filePath, byte[] content) throws IOException {
 		int index = filePath.length() - 1;
 		while(index >= 0 && filePath.charAt(index) != '/') {
@@ -143,7 +148,7 @@ public class IOUtil {
 		
 		try {
 			FileWriter out = null;
-			out = new FileWriter(file);
+			out = new FileWriter(file, true);
 			for (byte b : content)
 				out.append((char) b);
 			out.close();
@@ -396,6 +401,7 @@ public class IOUtil {
 			String tmp = null;
 			Long lastPointer = 0L;
 			split.add(0L);
+			System.out.println("Start scanning file...");
 			do {
 				tmp = raFile.readLine();
 				if (tmp != null) {
