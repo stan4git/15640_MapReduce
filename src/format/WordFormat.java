@@ -4,15 +4,15 @@ import java.util.List;
 
 /**
  * This class is used to format the input String. Format the input contents into
- * the Key-Value pairs. Each Key presents the line Number and value represents 
- * the whole line. The target of this class is to the original .txt or
+ * the Key-Value pairs. Each Key represents the line number and value represents
+ * the word. The target of this class is to the original .txt or
  * other raw materials.
  * 
  * @author menglonghe
  * @author sidilin
  * 
  */
-public class LineFormat extends InputFormat {
+public class WordFormat extends InputFormat {
 
 	/**
 	 * The default constructor
@@ -20,7 +20,7 @@ public class LineFormat extends InputFormat {
 	 * @param inputContents
 	 *            String the input raw materials
 	 */
-	public LineFormat(String inputContents) {
+	public WordFormat(String inputContents) {
 		this.inputContents = inputContents;
 	}
 
@@ -32,7 +32,12 @@ public class LineFormat extends InputFormat {
 	public List<KVPair> getKvPairs() {
 		String[] lines = inputContents.split("\n");
 		for (int i = 0; i < lines.length; i++) {
-			kvPairs.add(new KVPair(Integer.toString(i),lines[i].trim()));
+			String[] words = lines[i].trim().split(" ");
+			for (int j = 0; j < words.length; j++) {
+				if (!words[j].equals("")) {
+					kvPairs.add(new KVPair(Integer.toString(i), words[j].trim()));
+				}
+			}
 		}
 		return kvPairs;
 	}

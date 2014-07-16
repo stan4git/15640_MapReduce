@@ -1,7 +1,7 @@
 package examples;
 
 import java.io.IOException;
-import format.LineFormat;
+import format.WordFormat;
 import format.OutputFormat;
 import mapred.JobClient;
 import mapred.JobConfiguration;
@@ -12,7 +12,7 @@ public class WordCount {
 		JobConfiguration conf = new JobConfiguration();
 		conf.setInputfile("input.txt");
 		conf.setOutputfile("output");
-		conf.setInputFormat(LineFormat.class);
+		conf.setInputFormat(WordFormat.class);
 		conf.setOutputFormat(OutputFormat.class);
 		conf.setMapperClass(WordCountMapper.class);
 		conf.setReducerClass(WordCountReducer.class);
