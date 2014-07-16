@@ -59,8 +59,6 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 			System.exit(-1);
 		}
 		
-		
-		
 		System.out.println("For more information, please use: \"help\"");
 		System.out.println("Type in your command:");
 		while (true) {
@@ -144,21 +142,44 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		}
 	}
 	
-	
+	/**
+	 * This constructor is used by default.
+	 * @throws Exception
+	 */
 	public DFSClient() throws Exception {
+		loadConf();
+		init();
+	}
+	
+	/**
+	 * This is a overload constructor for task task tracker to upload 
+	 * MapReduce result.
+	 * @param tmpPort
+	 * @throws Exception
+	 */
+	public DFSClient(int tmpClientPort) throws Exception {
+		loadConf();
+		clientPort = tmpClientPort;
+		init();
+	}
+	
+	/**
+	 * Load configuration data.
+	 * @throws IOException
+	 */
+	public void loadConf() throws IOException {
 		System.out.println("Loading configuration data...");
 		try {
 			IOUtil.readConf(PathConfiguration.DFSConfPath, this);
 			System.out.println("Configuration data loaded successfully.");
-			init();
 		} catch (IOException e) {
 			throw e;
 		}
 	}
 	
 	/**
-	 * Setup connection to name node.
-	 * @throws Exception 
+	 * Setup client RMI service and connections to name node.
+	 * @throws Exception
 	 */
 	public void init() throws Exception {
 		try {
@@ -181,8 +202,6 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 			throw e;
 		}
 	}
-	
-	
 	
 	/**
 	 * Get the file list from NameNode
