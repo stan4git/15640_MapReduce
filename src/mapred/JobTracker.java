@@ -434,7 +434,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	}
 	
 	private void transmitHeartBeat() {
-		System.out.println("Sending task progress to JobTracker...");
+		//System.out.println("Sending task progress to JobTracker...");
 		Registry reigstry;
 		ConcurrentHashMap<String, TaskTrackerInterface> node_taskTrackers = new ConcurrentHashMap<String, TaskTrackerInterface>();
 
@@ -477,7 +477,9 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			}
 
 		}
-
+	}
+	
+	public void heartBeatTimer () {
 		TimerTask timerTask = new TimerTask() {
 
 			@Override
@@ -581,7 +583,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			System.out.println("The JobTracker has started successfully!");
 			
 			// 4. Monitoring
-			jobTracker.transmitHeartBeat();
+			jobTracker.heartBeatTimer();
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		} catch (UnknownHostException e) {
