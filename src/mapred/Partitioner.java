@@ -38,7 +38,7 @@ public class Partitioner {
 		for (KVPair kvPair : collection) {
 			int index = (int) hashcodes.get(kvPair.getKey());
 			partitions[index].append(kvPair.getKey());
-			partitions[index].append(" ");
+			partitions[index].append("\t");
 			partitions[index].append(kvPair.getValue());
 			partitions[index].append("\n");
 		}
