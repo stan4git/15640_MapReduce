@@ -24,7 +24,7 @@ import util.PathConfiguration;
 public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 
 	private static final long serialVersionUID = 7965875955130649094L;
-	private Integer clientRegPort;
+//	private Integer clientRegPort;
 	private String clientServiceName;
 	private Integer maxChunkSlot;
 	private Integer dataNodeRegPort;
@@ -116,7 +116,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 	}
 	
 	
-	public void uploadChunk(String filename, byte[] chunk, int chunkNum, String fromIP)
+	public void uploadChunk(String filename, byte[] chunk, int chunkNum, String fromIP, int RMIPort)
 			throws RemoteException {
 			if (this.availableChunkSlot <= 0) {		//check if there is available slots
 				throw new RemoteException("System storage error.");
@@ -138,7 +138,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 			
 			try {	
 				System.out.println("Connecting to client " + fromIP + "...");
-				Registry clientRegistry = LocateRegistry.getRegistry(fromIP, this.clientRegPort);		
+				Registry clientRegistry = LocateRegistry.getRegistry(fromIP, RMIPort);		
 				DFSClientInterface client = (DFSClientInterface) clientRegistry.lookup(this.clientServiceName);
 				client.sendChunkReceivedACK(InetAddress.getLocalHost().getHostAddress(), filename, chunkNum);	//send out ack to client
 				System.out.println("Client " + fromIP + " acknowledged.");

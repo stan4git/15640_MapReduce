@@ -14,7 +14,7 @@ public interface DataNodeInterface extends Remote {
 	 * @param fromIP String The ip address where this file chunk is uploaded from.
 	 * @throws RemoteException
 	 */
-	public void uploadChunk(String filename, byte[] chunk, int chunkNum, String fromIP) throws RemoteException;
+	public void uploadChunk(String filename, byte[] chunk, int chunkNum, String fromIP, int RMIPort) throws RemoteException;
 	
 	/**
 	 * Remove a specific chunk of a file from this data node. 

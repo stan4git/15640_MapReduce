@@ -157,9 +157,10 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	 * @param tmpPort
 	 * @throws Exception
 	 */
-	public DFSClient(int tmpClientPort) throws Exception {
+	public DFSClient(int tmpClientPort, int tmpClientRegPort) throws Exception {
 		loadConf();
 		clientPort = tmpClientPort;
+		clientRegPort = tmpClientRegPort;
 		init();
 	}
 	
@@ -441,7 +442,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 						try {
 							//start transferring chunk. 
 							System.out.println("Dispatching chunk" + chunkNum + " of file \"" + filename + "\" to " + dataNodeIP + "...");
-							node.uploadChunk(filename, chunk, chunkNum, InetAddress.getLocalHost().getHostAddress());
+							node.uploadChunk(filename, chunk, chunkNum, InetAddress.getLocalHost().getHostAddress(), clientRegPort);
 							System.out.println("Chunk" + chunkNum + " of file \"" + filename + "\" has been uploaded to " + dataNodeIP + ".");
 							success = true;
 							
