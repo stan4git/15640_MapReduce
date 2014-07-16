@@ -350,7 +350,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	 * info in real-time
 	 */
 	public ConcurrentHashMap<Integer, TaskStatusInfo>  heartBeat() throws RemoteException{
-		System.out.println("Sending task progress to JobTracker...");
+		//System.out.println("Sending task progress to JobTracker...");
 		return jobID_taskStatus;
 	}
 

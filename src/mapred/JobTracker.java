@@ -489,25 +489,6 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		};
 		new Timer().scheduleAtFixedRate(timerTask, 0, 5000);
 	}
-
-//	@Override
-//	public void responseToHeartbeat (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus) {
-//		int unfinishedMapTasks = 0;
-//		int unfinishedReduceTasks = 0;
-//		
-//		for(int jobID : jobID_taskStatus.keySet()) {
-//			TaskStatusInfo taskStatusInfo = jobID_taskStatus.get(jobID);
-//			jobID_node_taskStatus.get(jobID).put(node, taskStatusInfo);
-//			unfinishedMapTasks += taskStatusInfo.getUnfinishedMapTasks();
-//			unfinishedReduceTasks += taskStatusInfo.getUnfinishedReduceTasks();
-//			
-////			if(isReducerJobFinished(jobID)) {
-////				terminateJob(jobID);
-////			}
-//		}
-//		
-//		node_totalTasks.put(node, unfinishedMapTasks + unfinishedReduceTasks);
-//	}
 	
 	/**
 	 * This method is used to judge whether the Mapper has finished on specific job ID
@@ -541,18 +522,6 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		return true;
 	}
 	
-//	private void initSlaveNodes (String slaveListPath) throws IOException {
-//		try {
-//			String content = new String(IOUtil.readFile(slaveListPath),"UTF-8");
-//			String[] lines = content.split("\n");
-//			for(int i = 0; i < lines.length; i++) {
-//				node_totalTasks.put(lines[i],0);
-//			}
-//		} catch (UnsupportedEncodingException e) {
-//			e.printStackTrace();
-//		}
-//	}
-	
 
 	@Override
 	public void updateJobStatus(Integer jobId, JobStatus jobStatus) {
@@ -566,9 +535,6 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			// 1. Read DFS and MapReduce's configuration files and fill the properties to the jobTrack object
 			IOUtil.readConf(PathConfiguration.DFSConfPath, jobTracker);
 			IOUtil.readConf(PathConfiguration.MapReducePath, jobTracker);
-			
-			// 2. Initialize slave nodes
-			//jobTracker.initSlaveNodes(PathConfiguration.SlaveListPath);
 			
 			// 2. Initialize the JobScheduler
 			jobScheduler = new JobScheduler(nameNodeIP,nameNodeRegPort,nameNodeService,maxTaskPerNode,localWeight,globalWeight);
