@@ -50,7 +50,7 @@ public interface JobTrackerInterface extends Remote {
 	/**
 	 * This method is used to calculate the percentage of finished reducer tasks.
 	 * 
-	 * @param jobID - the jobID of the reducer tasks      
+	 * @param jobId - the jobID of the reducer tasks      
 	 * @return the percentage of finished reducer tasks  
 	 * 
 	 * @throws RemoteException
@@ -59,7 +59,7 @@ public interface JobTrackerInterface extends Remote {
 	/**
 	 * This method is used to calculate the percentage of finished reducer tasks.
 	 * 
-	 * @param jobID - the jobID of the reducer tasks      
+	 * @param jobId - the jobID of the reducer tasks      
 	 * @return the percentage of finished reducer tasks  
 	 */
 	public double getReducerProgress(Integer jobId) throws RemoteException;
@@ -119,7 +119,7 @@ public interface JobTrackerInterface extends Remote {
 	/**
 	 * This method is used to get the output file name
 	 * @param jobID
-	 * @return
+	 * @return get the output file name
 	 */
 	public String getOutputFileName(int jobID) throws RemoteException;
 }

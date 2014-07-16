@@ -447,7 +447,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	/**
 	 * This method is used to judge whether the Mapper has finished on specific job ID
 	 * @param jobID
-	 * @return
+	 * @return boolean judge whether the map task is finished
 	 */
 	public boolean isMapperJobFinished(int jobID){
 		HashMap<String,TaskStatusInfo> node_status = jobID_node_taskStatus.get(jobID);
@@ -463,7 +463,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	/**
 	 * This method is used to judge whether the Reducer has finished on specific job ID
 	 * @param jobID
-	 * @return
+	 * @return boolean judge whether the reduce task is finished
 	 */
 	public boolean isReducerJobFinished(int jobID){
 		HashMap<String,TaskStatusInfo> node_status = jobID_node_taskStatus.get(jobID);

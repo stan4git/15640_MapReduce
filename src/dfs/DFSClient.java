@@ -154,7 +154,8 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	/**
 	 * This is a overload constructor for task task tracker to upload 
 	 * MapReduce result. Since there will be RMI service conflict.
-	 * @param tmpPort
+	 * @param tmpClientPort
+	 * @param tmpClientRegPort
 	 * @throws Exception
 	 */
 	public DFSClient(int tmpClientPort, int tmpClientRegPort) throws Exception {
@@ -253,8 +254,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	
 	/**
 	 * Put a file from local to DFS.
-	 * @param input String The path of input file.
-	 * @param output String The path of output on DFS.
+	 * @param filePath String The path of input file.
 	 */
 	public void putFile(String filePath) {
 		String filename = StringHandling.getFileNameFromPath(filePath);
