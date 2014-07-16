@@ -120,13 +120,30 @@ public class IOUtil {
 	
 	
 	public static void appendBytesToFile(String filePath, byte[] content) throws IOException {
-		File fileDir = new File(filePath);
-		try {
-			if (!fileDir.exists()) {
-				fileDir.createNewFile();
+		int index = filePath.length() - 1;
+		while(index >= 0 && filePath.charAt(index) != '/') {
+			index--;
+		}
+		String dir = filePath.substring(0, index);
+		
+		File fileDir = new File(dir);
+		if(!fileDir.exists()) {
+			System.out.println("create dir: " + dir);
+			fileDir.mkdirs();
+		}
+		
+		File file = new File(filePath);
+		if (!file.exists()) {
+			try {
+				file.createNewFile();
+			} catch (IOException e) {
+				throw new IOException(e.toString());
 			}
+		}
+		
+		try {
 			FileWriter out = null;
-			out = new FileWriter(fileDir);
+			out = new FileWriter(file);
 			for (byte b : content)
 				out.append((char) b);
 			out.close();
