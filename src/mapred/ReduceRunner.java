@@ -45,7 +45,8 @@ public class ReduceRunner implements Runnable {
 	private String reduceResultPath;
 	// mapper result temporary path
 	private String mapResTemporaryPath;
-	
+	// output file name 
+	private String outputFileName;
 	
 	/**
 	 * The default constructor
@@ -57,7 +58,8 @@ public class ReduceRunner implements Runnable {
 	 * @param reduceResultPath
 	 */
 	public ReduceRunner (int jobID, int partitionNo, HashMap<String, ArrayList<String>> nodesWithPartitions, 
-			String className, RMIServiceInfo rmiServiceInfo, String reduceResultPath, String mapResTemporaryPath) {
+			String className, RMIServiceInfo rmiServiceInfo, 
+			String reduceResultPath, String mapResTemporaryPath,String outputFileName) {
 		 
 		this.jobID = jobID;
 		this.partitionNo = partitionNo;
@@ -67,6 +69,7 @@ public class ReduceRunner implements Runnable {
 		this.taskTrackServiceName = rmiServiceInfo.getTaskTrackServiceName();
 		this.reduceResultPath = reduceResultPath;
 		this.mapResTemporaryPath = mapResTemporaryPath;
+		this.outputFileName = outputFileName;
 	}
 	
 	/***
@@ -117,13 +120,18 @@ public class ReduceRunner implements Runnable {
 			OutputFormat outputFormat = new OutputFormat();
 			String formattedOutput = outputFormat.formatOutput(outputCollector);
 			byte[] outputForDFS = formattedOutput.getBytes("UTF-8");
-			String fileName = "job-" + jobID + "-output-" + partitionNo;
+			String fileName = "job-" + jobID + "-" + outputFileName + "-" + partitionNo;
 			String reduceFileName = reduceResultPath + fileName;
 			IOUtil.writeBinary(outputForDFS, reduceFileName);
 						
 			// step 5 : upload the output file into DFS !
-//			DFSClient dfsClient = new DFSClient();
-//			dfsClient.putFile(reduceFileName);
+			DFSClient dfsClient;
+			try {
+				dfsClient = new DFSClient();
+				dfsClient.putFile(reduceFileName);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 			TaskTracker.updateReduceStatus(jobID, true);
 		} catch (ClassNotFoundException | InstantiationException |
 				IllegalAccessException | IOException | NoSuchMethodException | SecurityException

@@ -214,6 +214,11 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		}
 	}
 	
+	@Override
+	public String getOutputFileName(int jobID) {
+		return jobID_configuration.get(jobID).getOutputfile();
+	}
+	
 	public static void handleReducerFailure (int jobID, int partitionNo) throws RemoteException {
 		// step1: set the node's status to unhealthy
 		// step2: redistribute the chunks on this node

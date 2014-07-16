@@ -116,4 +116,10 @@ public interface JobTrackerInterface extends Remote {
 	 * @throws RemoteException
 	 */
 	public void updateJobStatus(Integer jobId, JobStatus jobStatus) throws RemoteException;
+	/**
+	 * This method is used to get the output file name
+	 * @param jobID
+	 * @return
+	 */
+	public String getOutputFileName(int jobID) throws RemoteException;
 }

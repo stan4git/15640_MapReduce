@@ -229,8 +229,9 @@ public class TaskTracker extends UnicastRemoteObject implements
 		RMIServiceInfo rmiServiceInfo = new RMIServiceInfo();
 		rmiServiceInfo.settingForReducer(taskTrackerRegPort,
 				taskTrackServiceName);
+		String outputFileName = jobTracker.getOutputFileName(jobID);
 		startReduceTask(jobID, partitionNo, nodesWithPartitions,
-				reduceName, rmiServiceInfo, reduceResultPath,mapResTemporaryPath);
+				reduceName, rmiServiceInfo, reduceResultPath,mapResTemporaryPath,outputFileName);
 	}
 
 	/**
@@ -261,10 +262,10 @@ public class TaskTracker extends UnicastRemoteObject implements
 	public void startReduceTask(int jobID, int partitionNo,
 			HashMap<String, ArrayList<String>> nodesWithPartitions,
 			String className, RMIServiceInfo rmiServiceInfo,
-			String reduceResultPath, String mapResTemporaryPath) {
+			String reduceResultPath, String mapResTemporaryPath, String outputFileName) {
 		ReduceRunner reduceRunner = new ReduceRunner(jobID, partitionNo,
 				nodesWithPartitions, className, rmiServiceInfo,
-				reduceResultPath,mapResTemporaryPath);
+				reduceResultPath,mapResTemporaryPath, outputFileName);
 		executor.execute(reduceRunner);
 	}
 
