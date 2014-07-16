@@ -272,7 +272,11 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	 * Get a file from DFS.
 	 * @param file String The path of input file on DFS.
 	 */
-	private void getFile(String filename, String output) {
+	private void getFile(String filename, String outPath) {
+		if (!outPath.endsWith("/")) {
+			outPath += "/";
+		}
+		
 		ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistribution;
 		try {
 			fileDistribution = this.nameNode.getFileDistributionTable();
@@ -281,21 +285,25 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 			System.out.println("Exception occurs when fetching file.");
 			return;
 		}
+		
 		if (fileDistribution.containsKey(filename)) {
-			for (Entry<Integer, HashSet<String>> chunkTuple : fileDistribution.get(filename).entrySet()) {
-				int chunkNum = chunkTuple.getKey();
+			int chunkCount = fileDistribution.get(filename).size();
+			for (int chunkNum = 0; chunkNum < chunkCount; chunkNum++) {
+				System.out.println("Fetching chunk" + chunkNum + " of file\"" + filename + "\"...");
+				HashSet<String> nodeList = fileDistribution.get(filename).get(chunkNum);
 				byte[] chunk = null;
-				for (String dataNodeIP : chunkTuple.getValue()) {
+				
+				for (String dataNodeIP : nodeList) {
 					//Setup remote services of data nodes
 					try {
 						DataNodeInterface dataNode = getDataNodeService(dataNodeIP);
 						chunk = dataNode.getFile(filename, chunkNum);
-						IOUtil.writeBinary(chunk, output);
+						IOUtil.appendBytesToFile(outPath + filename, chunk);
 						break;
 					} catch (IOException e) {	//if writing file chunk to storage failed, remove it
 						System.err.println("Exception occurs when downloading file...");
 						try {
-							IOUtil.deleteFile(output);
+							IOUtil.deleteFile(outPath + filename);
 						} catch (IOException e1) {
 							System.err.println("Cannot delete " + filename + "_" + chunkNum + " from " + dataNodeIP);
 						}
@@ -370,7 +378,6 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		RandomAccessFile file;
 		byte[] chunk;
 		
-		
 		try {
 			file = new RandomAccessFile(filePath, "r");
 		} catch (FileNotFoundException e1) {
@@ -378,7 +385,6 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 			System.err.println("File not found.");
 			return;
 		}
-		
 		
 		//guaranteed to dispatch all the chunks. if failed, get new dispatch list and keep dispatching
 		ConcurrentHashMap<String,Hashtable<Integer,HashSet<String>>> dispatchListDeepCopy = FunctionalUtil.deepCopy(dispatchList);

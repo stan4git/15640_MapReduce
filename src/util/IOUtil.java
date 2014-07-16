@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -114,6 +115,24 @@ public class IOUtil {
 			} catch (IOException e) {
 				throw new IOException(e.toString());
 			}
+		}
+	}
+	
+	
+	public static void appendBytesToFile(String filePath, byte[] content) throws IOException {
+		File fileDir = new File(filePath);
+		try {
+			if (!fileDir.exists()) {
+				fileDir.createNewFile();
+			}
+			FileWriter out = null;
+			out = new FileWriter(fileDir);
+			for (byte b : content)
+				out.append((char) b);
+			out.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw e;
 		}
 	}
 
