@@ -54,35 +54,12 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		DFSClient client = null;
 		try {
 			client = new DFSClient();
-		} catch (RemoteException e1) {
+		} catch (Exception e1) {
 			e1.printStackTrace();
 			System.exit(-1);
 		}
 		
-		System.out.println("Loading configuration data...");
-		try {
-			IOUtil.readConf(PathConfiguration.DFSConfPath, client);
-			System.out.println("Configuration data loaded successfully.");
-		} catch (IOException e) {
-			e.printStackTrace();
-			System.err.println("Loading configuration failed...");
-			System.exit(-1);
-		}
 		
-		try {
-			System.out.println("Initializing client registry server...");
-			unexportObject(client, false);
-			DFSClientInterface stub = (DFSClientInterface) exportObject(client, client.clientPort);
-			Registry clientRegistry = LocateRegistry.createRegistry(client.clientRegPort);
-			clientRegistry.rebind(client.clientServiceName, stub);
-			System.out.println("Registry server has been set up on port: " + client.clientRegPort + ".");
-		} catch (RemoteException e) {
-			e.printStackTrace();
-			System.err.println("System initializing error. Shutting down...");
-			System.exit(-1);
-		}
-		
-		client.init();
 		
 		System.out.println("For more information, please use: \"help\"");
 		System.out.println("Type in your command:");
@@ -168,22 +145,40 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	}
 	
 	
-	public DFSClient() throws RemoteException {
+	public DFSClient() throws Exception {
+		System.out.println("Loading configuration data...");
+		try {
+			IOUtil.readConf(PathConfiguration.DFSConfPath, this);
+			System.out.println("Configuration data loaded successfully.");
+			init();
+		} catch (IOException e) {
+			throw e;
+		}
 	}
 	
 	/**
 	 * Setup connection to name node.
+	 * @throws Exception 
 	 */
-	public void init() {
+	public void init() throws Exception {
 		try {
 			System.out.println("Connecting to name node server...");
 			this.nameNodeRegistry = LocateRegistry.getRegistry(nameNodeIP, nameNodeRegPort);
 			this.nameNode = (NameNodeInterface) nameNodeRegistry.lookup(nameNodeService);
 			System.out.println("Connected to name node.");
 		} catch (NotBoundException | RemoteException e) {
-			e.printStackTrace();
-			System.err.println("Cannot connect to name node sever...");
-			System.exit(-1);
+			throw e;
+		}
+		
+		try {
+			System.out.println("Initializing client registry server...");
+			unexportObject(this, false);
+			DFSClientInterface stub = (DFSClientInterface) exportObject(this, clientPort);
+			Registry clientRegistry = LocateRegistry.createRegistry(clientRegPort);
+			clientRegistry.rebind(clientServiceName, stub);
+			System.out.println("Registry server has been set up on port: " + clientRegPort + ".");
+		} catch (Exception e) {
+			throw e;
 		}
 	}
 	
