@@ -106,7 +106,7 @@ public class JobClient {
 			} else if(status == JobStatus.INPROGRESS) {
 				double mapperPercentage = jobtracker.getMapperProgress(jobId);
 				double reducePercentage = jobtracker.getReducerProgress(jobId);
-				System.out.printf("Mapper: %fpercent; Reducer: %fpercent\n", mapperPercentage*100, reducePercentage*100);
+				System.out.printf("Mapper: %.2f %%; Reducer: %.2f %% \n", mapperPercentage*100, reducePercentage*100);
 			} else if(status == JobStatus.FAIL) {
 				System.err.println("Job failed!");
 				// allow to try several times according to the programmer's setting
