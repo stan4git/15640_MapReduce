@@ -426,6 +426,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 							System.out.println("Chunk" + chunkNum + " of file \"" + filename + "\" has been uploaded to " + dataNodeIP + ".");
 							success = true;
 							
+							
 							//waiting for dataNode acknowledge
 							long timeoutExpiredMs = System.currentTimeMillis() + (this.ackTimeout * 1000);	
 							System.out.println("Waitting for " + dataNodeIP + "'s acknowledge...");
@@ -438,6 +439,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 								} else {
 									success = true;
 									break;
+									
 								}
 							}
 							retryThreshold--;
@@ -445,6 +447,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 									(this.chunkTranferRetryThreshold - retryThreshold) + " times...");
 						} catch (RemoteException | UnknownHostException e) {
 							retryThreshold--;
+							e.printStackTrace();
 							System.err.println("Exception occurs when uploading file. Retrying for " + 
 									(this.chunkTranferRetryThreshold - retryThreshold) + " times...");
 						} catch (InterruptedException e) {

@@ -153,7 +153,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 				} catch (IOException e1) {
 					System.out.println("Exception occurs when removing" + filename + "_" + chunkNum);
 				}
-				return;
+				throw new RemoteException();
 			}
 			
 			
