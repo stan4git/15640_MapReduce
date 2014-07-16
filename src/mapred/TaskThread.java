@@ -69,7 +69,7 @@ public class TaskThread implements Runnable {
 				}
 			} else {
 				try {
-					JobTracker.handleReducerFailure(jobID, partitionNo);
+					JobTracker.handleReducerFailure(jobID, partitionNo, curNode);
 				} catch (RemoteException e1) {
 					e1.printStackTrace();
 				}

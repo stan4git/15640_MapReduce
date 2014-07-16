@@ -107,4 +107,11 @@ public interface NameNodeInterface extends Remote {
 	 * @throws RemoteException
 	 */
 	public void terminate() throws RemoteException;
+	/**
+	 * This method is used to update the node status
+	 * @param status
+	 * @param node
+	 * @throws RemoteException
+	 */
+	public void setNodeStatus(String node, NodeStatus status) throws RemoteException;
 }

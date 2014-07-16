@@ -320,4 +320,12 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 			ConcurrentHashMap<String, Hashtable<String, HashSet<Integer>>> filesChunkOnNodesTable) {
 		this.filesChunkOnNodesTable = filesChunkOnNodesTable;
 	}
+
+	/* (non-Javadoc)
+	 * @see dfs.NameNodeInterface#setNodeStatus(boolean)
+	 */
+	@Override
+	public void setNodeStatus(String node, NodeStatus status) throws RemoteException {
+		dataNodeStatusList.put(node, status);
+	}
 }

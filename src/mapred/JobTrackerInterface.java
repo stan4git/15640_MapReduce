@@ -102,14 +102,6 @@ public interface JobTrackerInterface extends Remote {
 	 */
 	public void notifyReducerFinish (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus) throws RemoteException;
 	/**
-	 * This method is invoked by the TaskTracker through RMI.
-	 * It can update the related status such as task Status
-	 * @param node node The node handled the reducer task
-	 * @param jobID_taskStatus jobID_taskStatus JobId and task status
-	 * @throws RemoteException
-	 */
-	public void responseToHeartbeat (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus) throws RemoteException;
-	/**
 	 * This method is used to update the job status
 	 * @param jobId job ID
 	 * @param jobStatus job Status

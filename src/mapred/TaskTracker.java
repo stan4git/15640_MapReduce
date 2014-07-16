@@ -12,8 +12,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -351,20 +349,9 @@ public class TaskTracker extends UnicastRemoteObject implements
 	 * This method is used to send the heartbeat to the jobTracker to update the
 	 * info in real-time
 	 */
-	private void transmitHeartBeat() {
+	public ConcurrentHashMap<Integer, TaskStatusInfo>  heartBeat() throws RemoteException{
 		System.out.println("Sending task progress to JobTracker...");
-		TimerTask timerTask = new TimerTask() {
-
-			@Override
-			public void run() {
-				try {
-					jobTracker.responseToHeartbeat(node, jobID_taskStatus);
-				} catch (RemoteException e) {
-					e.printStackTrace();
-				}
-			}
-		};
-		new Timer().scheduleAtFixedRate(timerTask, 0, 5000);
+		return jobID_taskStatus;
 	}
 
 	/**
@@ -481,8 +468,6 @@ public class TaskTracker extends UnicastRemoteObject implements
 
 			node = InetAddress.getLocalHost().getHostAddress();
 			System.out.println("I'm the TaskTracker for node " + node);
-			// Continuously sending heart beat to job tracker.
-			taskTracker.transmitHeartBeat();
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		} catch (UnknownHostException e) {

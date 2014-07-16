@@ -14,6 +14,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -21,6 +23,7 @@ import java.util.concurrent.Executors;
 import dfs.NameNodeInterface;
 import util.IOUtil;
 import util.JobStatus;
+import util.NodeStatus;
 import util.PathConfiguration;
 import format.KVPair;
 /**
@@ -171,13 +174,15 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		// step2: redistribute the chunks on this node
 		// setp3: update the distribution table
 		// step4: start a new TaskThread.
+		
+		nameNode.setNodeStatus(node,NodeStatus.DEAD);
+		
 		if(node_totalTasks.get(node) != null) {
-			node_totalTasks.remove(node);
+			node_totalTasks.put(node,0);
 		}
 		
 		int failureTimes = jobID_mapFailureTimes.get(jobID);
 		if(failureTimes < jobMaxFailureThreshold) {
-//TODO		nameNode.setNodeStatus(node, false);
 			Hashtable<Integer,HashSet<String>> chunkDistribution = nameNode.getFileDistributionTable().get(jobID_configuration.get(jobID).getInputfile());
 			Hashtable<Integer,HashSet<String>> result = new Hashtable<Integer,HashSet<String>>();
 			for(int chunk : chunks) {
@@ -210,7 +215,6 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			jobID_status.put(jobID, JobStatus.FAIL);
 			jobTracker.terminateJob(jobID);
 			System.out.println("Job terminated!");
-			System.exit(-1);
 		}
 	}
 	
@@ -219,13 +223,19 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		return jobID_configuration.get(jobID).getOutputfile();
 	}
 	
-	public static void handleReducerFailure (int jobID, int partitionNo) throws RemoteException {
+	public static void handleReducerFailure (int jobID, int partitionNo, String node) throws RemoteException {
 		// step1: set the node's status to unhealthy
 		// step2: redistribute the chunks on this node
 		// setp3: update the distribution table
 		// step4: start a new TaskThread.
 		
-//TODO	nameNode.setNodeStatus(node, false);
+		nameNode.setNodeStatus(node,NodeStatus.DEAD);
+		
+		if(node_totalTasks.get(node) != null) {
+			node_totalTasks.put(node,0);
+		}
+		
+		
 		int failureTimes = jobID_mapFailureTimes.get(jobID);
 		if(failureTimes < jobMaxFailureThreshold) {
 			ArrayList<String> chosenReduceNodes = jobScheduler.pickBestNodesForReduce(1);
@@ -243,7 +253,6 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			jobID_status.put(jobID, JobStatus.FAIL);
 			jobTracker.terminateJob(jobID);
 			System.out.println("Job terminated!");
-			System.exit(-1);
 		}
 	}
 
@@ -425,24 +434,79 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		node_totalTasks.put(node, unfinishedMapTasks + unfinishedReduceTasks);
 	}
 	
-	@Override
-	public void responseToHeartbeat (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus) {
-		int unfinishedMapTasks = 0;
-		int unfinishedReduceTasks = 0;
-		
-		for(int jobID : jobID_taskStatus.keySet()) {
-			TaskStatusInfo taskStatusInfo = jobID_taskStatus.get(jobID);
-			jobID_node_taskStatus.get(jobID).put(node, taskStatusInfo);
-			unfinishedMapTasks += taskStatusInfo.getUnfinishedMapTasks();
-			unfinishedReduceTasks += taskStatusInfo.getUnfinishedReduceTasks();
-			
-//			if(isReducerJobFinished(jobID)) {
-//				terminateJob(jobID);
-//			}
+	private void transmitHeartBeat() {
+		System.out.println("Sending task progress to JobTracker...");
+		Registry reigstry;
+		ConcurrentHashMap<String, TaskTrackerInterface> node_taskTrackers = new ConcurrentHashMap<String, TaskTrackerInterface>();
+
+		TaskTrackerInterface taskTracker = null;
+		ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus = null;
+		for (String node : node_totalTasks.keySet()) {
+			try {
+				if (node_taskTrackers.containsKey(node)) {
+					taskTracker = node_taskTrackers.get(node);
+				} else {
+					reigstry = LocateRegistry.getRegistry(node,
+							taskTrackerRegPort);
+					taskTracker = (TaskTrackerInterface) reigstry
+							.lookup(taskTrackServiceName);
+					node_taskTrackers.put(node, taskTracker);
+				}
+				jobID_taskStatus = taskTracker.heartBeat();
+
+				int unfinishedMapTasks = 0;
+				int unfinishedReduceTasks = 0;
+
+				for (int jobID : jobID_taskStatus.keySet()) {
+					TaskStatusInfo taskStatusInfo = jobID_taskStatus.get(jobID);
+					jobID_node_taskStatus.get(jobID).put(node, taskStatusInfo);
+					unfinishedMapTasks += taskStatusInfo
+							.getUnfinishedMapTasks();
+					unfinishedReduceTasks += taskStatusInfo
+							.getUnfinishedReduceTasks();
+
+					// if(isReducerJobFinished(jobID)) {
+					// terminateJob(jobID);
+					// }
+				}
+
+				node_totalTasks.put(node, unfinishedMapTasks
+						+ unfinishedReduceTasks);
+			} catch (RemoteException | NotBoundException e) {
+				node_totalTasks.put(node, 0);
+				e.printStackTrace();
+			}
+
 		}
-		
-		node_totalTasks.put(node, unfinishedMapTasks + unfinishedReduceTasks);
+
+		TimerTask timerTask = new TimerTask() {
+
+			@Override
+			public void run() {
+				transmitHeartBeat();
+			}
+		};
+		new Timer().scheduleAtFixedRate(timerTask, 0, 5000);
 	}
+
+//	@Override
+//	public void responseToHeartbeat (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus) {
+//		int unfinishedMapTasks = 0;
+//		int unfinishedReduceTasks = 0;
+//		
+//		for(int jobID : jobID_taskStatus.keySet()) {
+//			TaskStatusInfo taskStatusInfo = jobID_taskStatus.get(jobID);
+//			jobID_node_taskStatus.get(jobID).put(node, taskStatusInfo);
+//			unfinishedMapTasks += taskStatusInfo.getUnfinishedMapTasks();
+//			unfinishedReduceTasks += taskStatusInfo.getUnfinishedReduceTasks();
+//			
+////			if(isReducerJobFinished(jobID)) {
+////				terminateJob(jobID);
+////			}
+//		}
+//		
+//		node_totalTasks.put(node, unfinishedMapTasks + unfinishedReduceTasks);
+//	}
 	
 	/**
 	 * This method is used to judge whether the Mapper has finished on specific job ID
@@ -516,6 +580,9 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			InetAddress address = InetAddress.getLocalHost();
 			System.out.println("The JobTracker's IP address is " + address.getHostAddress());
 			System.out.println("The JobTracker has started successfully!");
+			
+			// 5. Monitoring
+			jobTracker.transmitHeartBeat();
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		} catch (UnknownHostException e) {
