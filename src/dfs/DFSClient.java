@@ -153,7 +153,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	
 	/**
 	 * This is a overload constructor for task task tracker to upload 
-	 * MapReduce result.
+	 * MapReduce result. Since there will be RMI service conflict.
 	 * @param tmpPort
 	 * @throws Exception
 	 */
