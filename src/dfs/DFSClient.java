@@ -454,17 +454,20 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 								//check if data node acknowledged received
 								if (this.dispatchList.containsKey(filename) 
 										&& this.dispatchList.get(filename).containsKey(chunkNum) 
-										&& this.dispatchList.get(filename).get(chunkNum).contains(dataNodeIP)) {	
-									Thread.sleep(2 * 1000);
+										&& this.dispatchList.get(filename).get(chunkNum).contains(dataNodeIP)) {
+									if (System.currentTimeMillis() < timeoutExpiredMs) {
+										Thread.sleep(2 * 1000);
+									} else {
+										retryThreshold--;
+										System.out.println("Upload timeout. Retrying for " +
+												(this.chunkTranferRetryThreshold - retryThreshold) + " times...");
+										continue;
+									}
 								} else {
 									success = true;
 									break;
-									
 								}
 							}
-							retryThreshold--;
-							System.out.println("Upload timeout. Retrying for " +
-									(this.chunkTranferRetryThreshold - retryThreshold) + " times...");
 						} catch (RemoteException | UnknownHostException e) {
 							retryThreshold--;
 							e.printStackTrace();
