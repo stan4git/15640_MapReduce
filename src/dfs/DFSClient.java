@@ -257,7 +257,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 				dispatchChunks(filePath, split);
 				dispatchList = null;
 				System.out.println(filePath + " has been sucessfully uploaded to DFS.");
-			} catch (RemoteException e) {
+			} catch (RemoteException | FileNotFoundException e) {
 				System.err.println("Dispatching file failed.");
 				return;
 			}
@@ -372,8 +372,9 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	 * the rest of the list to name node for re-allocation and try to dispatch again.
 	 * @param dispatchList A list provided by NameNode towards dispatching file chunks.
 	 * @throws RemoteException 
+	 * @throws FileNotFoundException 
 	 */
-	private void dispatchChunks(String filePath, ArrayList<Long> splitStartPointOffset) throws RemoteException {
+	private void dispatchChunks(String filePath, ArrayList<Long> splitStartPointOffset) throws RemoteException, FileNotFoundException {
 		String filename = StringHandling.getFileNameFromPath(filePath);
 		RandomAccessFile file;
 		byte[] chunk;
@@ -383,7 +384,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		} catch (FileNotFoundException e1) {
 			e1.printStackTrace();
 			System.err.println("File not found.");
-			return;
+			throw e1;
 		}
 		
 		//guaranteed to dispatch all the chunks. if failed, get new dispatch list and keep dispatching
@@ -455,6 +456,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 					
 					if (retryThreshold <= 0) {		//after retries, print out error message
 						System.err.print("Upload chunk" + chunkNum + " to " + dataNodeIP + " failed.");
+						throw new RemoteException();
 					}
 				}
 			}
