@@ -88,6 +88,8 @@ public class TaskTracker extends UnicastRemoteObject implements
 	private static String reduceResultPath;
 	// map result temporary path
 	private static String mapResTemporaryPath;
+	// client Port for task Tracker
+	private static Integer clientPortForTaskTrack;
 
 	private static String node;
 
@@ -263,8 +265,8 @@ public class TaskTracker extends UnicastRemoteObject implements
 	 */
 	public void startReduceTask(int jobID, int partitionNo,
 			HashMap<String, ArrayList<String>> nodesWithPartitions,
-			String className, RMIServiceInfo rmiServiceInfo,
-			String reduceResultPath, String mapResTemporaryPath, String outputFileName, DFSClient dfsClient) {
+			String className, RMIServiceInfo rmiServiceInfo,String reduceResultPath,
+			 String mapResTemporaryPath, String outputFileName, DFSClient dfsClient) {
 		ReduceRunner reduceRunner = new ReduceRunner(jobID, partitionNo,
 				nodesWithPartitions, className, rmiServiceInfo,
 				reduceResultPath,mapResTemporaryPath, outputFileName,dfsClient);
@@ -459,7 +461,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 				nameNode = (NameNodeInterface) nameNodeRegistry
 						.lookup(nameNodeService);
 				
-				dfsClient = new DFSClient();
+				dfsClient = new DFSClient(clientPortForTaskTrack);
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			} catch (NotBoundException e) {
