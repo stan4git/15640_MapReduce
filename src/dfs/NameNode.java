@@ -185,10 +185,10 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 					&& dataNodeTuple.getValue() > mostAvailableSlots) {
 				minLoadDataNode = dataNodeTuple.getKey();
 				mostAvailableSlots = dataNodeTuple.getValue();
-				//preserve available slot for dispatching
-				this.dataNodeAvailableSlotList.put(minLoadDataNode, mostAvailableSlots - 1);
 			}
 		}
+		//preserve available slot for dispatching
+		this.dataNodeAvailableSlotList.put(minLoadDataNode, mostAvailableSlots - 1);
 		
 		//if there is no space for dispatch
 		if (minLoadDataNode == null) {
