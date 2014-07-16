@@ -18,6 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import dfs.DFSClient;
 import dfs.NameNodeInterface;
 import format.KVPair;
 import util.IOUtil;
@@ -40,6 +41,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	private static JobTrackerInterface jobTracker = null;
 	private static NameNodeInterface nameNode = null;
 	private static TaskTracker taskTracker = null;
+	private static DFSClient dfsClient = null;
 
 	// Create a thread pool
 	private static ExecutorService executor = Executors.newCachedThreadPool();
@@ -231,7 +233,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 				taskTrackServiceName);
 		String outputFileName = jobTracker.getOutputFileName(jobID);
 		startReduceTask(jobID, partitionNo, nodesWithPartitions,
-				reduceName, rmiServiceInfo, reduceResultPath,mapResTemporaryPath,outputFileName);
+				reduceName, rmiServiceInfo, reduceResultPath,mapResTemporaryPath,outputFileName,dfsClient);
 	}
 
 	/**
@@ -262,10 +264,10 @@ public class TaskTracker extends UnicastRemoteObject implements
 	public void startReduceTask(int jobID, int partitionNo,
 			HashMap<String, ArrayList<String>> nodesWithPartitions,
 			String className, RMIServiceInfo rmiServiceInfo,
-			String reduceResultPath, String mapResTemporaryPath, String outputFileName) {
+			String reduceResultPath, String mapResTemporaryPath, String outputFileName, DFSClient dfsClient) {
 		ReduceRunner reduceRunner = new ReduceRunner(jobID, partitionNo,
 				nodesWithPartitions, className, rmiServiceInfo,
-				reduceResultPath,mapResTemporaryPath, outputFileName);
+				reduceResultPath,mapResTemporaryPath, outputFileName,dfsClient);
 		executor.execute(reduceRunner);
 	}
 
@@ -456,9 +458,13 @@ public class TaskTracker extends UnicastRemoteObject implements
 						nameNodeIP, nameNodeRegPort);
 				nameNode = (NameNodeInterface) nameNodeRegistry
 						.lookup(nameNodeService);
+				
+				dfsClient = new DFSClient();
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			} catch (NotBoundException e) {
+				e.printStackTrace();
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 

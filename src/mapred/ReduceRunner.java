@@ -47,6 +47,8 @@ public class ReduceRunner implements Runnable {
 	private String mapResTemporaryPath;
 	// output file name 
 	private String outputFileName;
+	// DFSClient object
+	private DFSClient dfsClient;
 	
 	/**
 	 * The default constructor
@@ -59,7 +61,7 @@ public class ReduceRunner implements Runnable {
 	 */
 	public ReduceRunner (int jobID, int partitionNo, HashMap<String, ArrayList<String>> nodesWithPartitions, 
 			String className, RMIServiceInfo rmiServiceInfo, 
-			String reduceResultPath, String mapResTemporaryPath,String outputFileName) {
+			String reduceResultPath, String mapResTemporaryPath,String outputFileName,DFSClient dfsClient) {
 		 
 		this.jobID = jobID;
 		this.partitionNo = partitionNo;
@@ -70,6 +72,7 @@ public class ReduceRunner implements Runnable {
 		this.reduceResultPath = reduceResultPath;
 		this.mapResTemporaryPath = mapResTemporaryPath;
 		this.outputFileName = outputFileName;
+		this.dfsClient = dfsClient;
 	}
 	
 	/***
@@ -125,13 +128,7 @@ public class ReduceRunner implements Runnable {
 			IOUtil.writeBinary(outputForDFS, reduceFileName);
 						
 			// step 5 : upload the output file into DFS !
-			DFSClient dfsClient;
-			try {
-				dfsClient = new DFSClient();
-				dfsClient.putFile(reduceFileName);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+			dfsClient.putFile(reduceFileName);
 			TaskTracker.updateReduceStatus(jobID, true);
 		} catch (ClassNotFoundException | InstantiationException |
 				IllegalAccessException | IOException | NoSuchMethodException | SecurityException
