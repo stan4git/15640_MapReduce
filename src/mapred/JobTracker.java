@@ -320,31 +320,31 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	@Override
 	public void terminateJob(int jobID) {
 		
-		if(!jobID_node_taskStatus.containsKey(jobID)) {
-			return;
-		}
-		
-		for (String node : jobID_node_taskStatus.get(jobID).keySet()) {
-			try {
-				Registry registry = LocateRegistry.getRegistry(node, taskTrackerRegPort);
-				TaskTrackerInterface taskTracker = (TaskTrackerInterface) registry.lookup(taskTrackServiceName);
-				taskTracker.remove(jobID);
-			} catch (RemoteException e) {
-				e.printStackTrace();
-			} catch (NotBoundException e) {
-				e.printStackTrace();
-			} 
-		}			
-		
-
-		jobID_node_taskStatus.remove(jobID);
-		jobID_mapTasks.remove(jobID);
-		jobID_mapRedName.remove(jobID);
-		jobID_mapRedPath.remove(jobID);
-		jobID_mapFailureTimes.remove(jobID);
-		jobID_reduceFailureTimes.remove(jobID);
-		jobID_configuration.remove(jobID);
-		jobID_status.remove(jobID);
+//		if(!jobID_node_taskStatus.containsKey(jobID)) {
+//			return;
+//		}
+//		
+//		for (String node : jobID_node_taskStatus.get(jobID).keySet()) {
+//			try {
+//				Registry registry = LocateRegistry.getRegistry(node, taskTrackerRegPort);
+//				TaskTrackerInterface taskTracker = (TaskTrackerInterface) registry.lookup(taskTrackServiceName);
+//				taskTracker.remove(jobID);
+//			} catch (RemoteException e) {
+//				e.printStackTrace();
+//			} catch (NotBoundException e) {
+//				e.printStackTrace();
+//			} 
+//		}			
+//		
+//
+//		jobID_node_taskStatus.remove(jobID);
+//		jobID_mapTasks.remove(jobID);
+//		jobID_mapRedName.remove(jobID);
+//		jobID_mapRedPath.remove(jobID);
+//		jobID_mapFailureTimes.remove(jobID);
+//		jobID_reduceFailureTimes.remove(jobID);
+//		jobID_configuration.remove(jobID);
+//		jobID_status.remove(jobID);
 	}
 
 	@Override
