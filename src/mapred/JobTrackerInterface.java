@@ -89,10 +89,11 @@ public interface JobTrackerInterface extends Remote {
 	 * @param node  The node handling the mapper task
 	 * @param jobID_taskStatus Task status info
 	 * @param jobID_parFilePath the Partition files
+	 * @param jobID
 	 * @throws RemoteException
 	 */
 	public void notifyMapperFinish(String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus, 
-			ConcurrentHashMap<Integer, ArrayList<String>> jobID_parFilePath) throws RemoteException;
+			ConcurrentHashMap<Integer, ArrayList<String>> jobID_parFilePath, int jobID) throws RemoteException;
 	/**
 	 * This method is used to notify the jobTracker that all the reducer workers
 	 * has done and they can change the related information

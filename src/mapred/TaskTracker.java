@@ -308,8 +308,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 			TaskTracker.jobID_taskStatus.put(jobID, taskStatusInfo);
 
 			if (curUnfinishedMapTasks == 0) {
-				jobTracker.notifyMapperFinish(node, jobID_taskStatus,
-						jobID_parFilePath);
+				jobTracker.notifyMapperFinish(node, jobID_taskStatus,jobID_parFilePath, jobID);
 			}
 		}
 	}

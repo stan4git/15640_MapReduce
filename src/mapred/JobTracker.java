@@ -388,29 +388,31 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	
 	@Override
 	public synchronized void notifyMapperFinish (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus, 
-			ConcurrentHashMap<Integer, ArrayList<String>> jobID_parFilePath) throws RemoteException {
+			ConcurrentHashMap<Integer, ArrayList<String>> jobID_parFilePath, int jobID) throws RemoteException {
 		
 		int unfinishedMapTasks = 0;
 		int unfinishedReduceTasks = 0;
 		
-		for(int jobID : jobID_taskStatus.keySet()) {
+		
+		// update jobID_nodes_partitionsPath
+		HashMap<String, ArrayList<String>> nodes_Paths = jobID_nodes_partitionsPath.get(jobID);
+		nodes_Paths.get(node).addAll(jobID_parFilePath.get(jobID));
+		jobID_nodes_partitionsPath.put(jobID, nodes_Paths);
+		
+		
+		for(int jobId : jobID_taskStatus.keySet()) {
 			// step1: update jobID_node_taskStatus
-			if(jobID_status.get(jobID) == null) {
+			if(jobID_status.get(jobId) == null) {
 				continue;
 			}
-			TaskStatusInfo taskStatusInfo = jobID_taskStatus.get(jobID);
-			jobID_node_taskStatus.get(jobID).put(node, taskStatusInfo);
+			TaskStatusInfo taskStatusInfo = jobID_taskStatus.get(jobId);
+			jobID_node_taskStatus.get(jobId).put(node, taskStatusInfo);
 			unfinishedMapTasks += taskStatusInfo.getUnfinishedMapTasks();
 			unfinishedReduceTasks += taskStatusInfo.getUnfinishedReduceTasks();
-			
-			// step2: update jobID_nodes_partitionsPath
-			HashMap<String, ArrayList<String>> nodes_Paths = jobID_nodes_partitionsPath.get(jobID);
-			nodes_Paths.get(node).addAll(jobID_parFilePath.get(jobID));
-			jobID_nodes_partitionsPath.put(jobID, nodes_Paths);
-			
-			// step3: if the whole mapper process has finished, start reduce phase.
-			if(isMapperJobFinished(jobID)) {
-				startReducePhase(jobID);
+
+			// step2: if the whole mapper process has finished, start reduce phase.
+			if(isMapperJobFinished(jobId)) {
+				startReducePhase(jobId);
 			}
 		}
 		
