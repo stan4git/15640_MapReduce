@@ -166,7 +166,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	}
 	
 	/**
-	 * Load configuration data.
+	 * Load configuration data from util.PathConfiguration.
 	 * @throws IOException
 	 */
 	public void loadConf() throws IOException {
@@ -206,7 +206,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	}
 	
 	/**
-	 * Get the file list from NameNode
+	 * Get the file list from NameNode.
 	 */
 	private void getFileList() {
 		Map<String, FileStatus> list;

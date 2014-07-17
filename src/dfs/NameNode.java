@@ -55,7 +55,6 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 			System.exit(-1);
 		}
 		
-		
 		NameNodeInterface stub = null;
 		try {
 			unexportObject(nameNode, false);
@@ -69,6 +68,7 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 			System.exit(-1);
 		} 
 		
+		//Setup a monitor thread
 		nameNode.init();
 		
 		System.out.println("System is running...");
@@ -207,13 +207,6 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 	}
 	
 
-//	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> getFileDistributionTable(
-//			String filename) {
-//		ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> returnList = new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
-//		returnList.put(filename, this.fileDistributionTable.get(filename));
-//		return returnList;
-//	}
-
 	@Override
 	public void removeChunkFromFileDistributionTable(String filename, int chunkNum, String dataNodeIP) {
 		this.fileDistributionTable.get(filename).get(chunkNum).remove(dataNodeIP);
@@ -222,28 +215,6 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 	}
 
 	
-//	public void updateFileDistributionTable(
-//			ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> tableToBeUpdated) {
-//		for (Entry<String, Hashtable<Integer, HashSet<String>>> fileTuple : tableToBeUpdated.entrySet()) {
-//			String filename = fileTuple.getKey();
-//			if (!this.fileDistributionTable.containsKey(filename)) {
-//				fileDistributionTable.put(filename, fileTuple.getValue());
-//				fileStatusTable.put(filename, FileStatus.INPROGRESS);
-//			} else {
-//				for (Entry<Integer, HashSet<String>> chunkTuple : fileTuple.getValue().entrySet()) {
-//					int chunkNum = chunkTuple.getKey();
-//					if (!fileDistributionTable.get(filename).containsKey(chunkNum)) {
-//						fileDistributionTable.get(filename).put(chunkNum,chunkTuple.getValue());
-//					} else {
-//						fileDistributionTable.get(filename).get(chunkNum).addAll(chunkTuple.getValue());
-//					}
-//				}
-//			}
-//		}
-//		System.out.println("File distribution table has been successfully updated...");
-//		return;
-//	}
-
 	@Override
 	public void registerDataNode(String dataNodeIP, int availableSlot) throws RemoteException{
 		this.dataNodeAvailableSlotList.put(dataNodeIP, availableSlot);
@@ -265,26 +236,6 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 	@Override
 	public ConcurrentHashMap<String, NodeStatus> getDataNodeStatusList() {
 		return dataNodeStatusList;
-	}
-
-	public void setDataNodeAvailableSlotList(
-			ConcurrentHashMap<String, Integer> dataNodeAvailableSlotList) {
-		this.dataNodeAvailableSlotList = dataNodeAvailableSlotList;
-	}
-
-	public void setDataNodeStatusList(
-			ConcurrentHashMap<String, NodeStatus> dataNodeStatusList) {
-		this.dataNodeStatusList = dataNodeStatusList;
-	}
-
-	public void setFileStatusTable(
-			ConcurrentHashMap<String, FileStatus> fileStatusTable) {
-		this.fileStatusTable = fileStatusTable;
-	}
-
-	public void setFileDistributionTable(
-			ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistributionTable) {
-		this.fileDistributionTable = fileDistributionTable;
 	}
 
 	@Override
@@ -316,14 +267,6 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 		return filesChunkOnNodesTable;
 	}
 
-	public void setFilesChunkOnNodesTable(
-			ConcurrentHashMap<String, Hashtable<String, HashSet<Integer>>> filesChunkOnNodesTable) {
-		this.filesChunkOnNodesTable = filesChunkOnNodesTable;
-	}
-
-	/* (non-Javadoc)
-	 * @see dfs.NameNodeInterface#setNodeStatus(boolean)
-	 */
 	@Override
 	public void setNodeStatus(String node, NodeStatus status) throws RemoteException {
 		dataNodeStatusList.put(node, status);

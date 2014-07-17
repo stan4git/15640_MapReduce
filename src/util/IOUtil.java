@@ -14,7 +14,6 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 
 /**
- * 
  * This class is a utility class for DFS I/O. This class provide the following
  * several methods : writeFile(String s), readFile(String filename),
  * writeBinary(byte[] bytes), readBinary(String filename), writeObject(Object
@@ -120,8 +119,8 @@ public class IOUtil {
 	
 	/**
 	 * Append chunks into one file.
-	 * @param filePath
-	 * @param content
+	 * @param filePath String The path of file to be appended to.
+	 * @param content byte[] The content of chunks to be appended.
 	 * @throws IOException
 	 */
 	public static void appendBytesToFile(String filePath, byte[] content) throws IOException {
