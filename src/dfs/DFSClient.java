@@ -263,7 +263,8 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		//get dispatching list from name node
 		try {
 			System.out.println("Requesting distribution list from name node: " + nameNodeIP + "...");
-			dispatchList = this.nameNode.generateChunkDistributionList(filename, split.size() - 1);
+			Hashtable<Integer, HashSet<String>> tempList = this.nameNode.generateChunkDistributionList(filename, split.size() - 1).get(filename);
+			dispatchList.put(filename, tempList);
 			System.out.println("Dispatch list received.");
 		} catch (RemoteException e) {
 			e.printStackTrace();
@@ -275,7 +276,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		if (dispatchList != null && dispatchList.size() > 0) {
 			try {
 				dispatchChunks(filePath, split);
-				dispatchList = null;
+//				dispatchList = null;
 				System.out.println(filePath + " has been sucessfully uploaded to DFS.");
 			} catch (RemoteException | FileNotFoundException e) {
 				System.err.println("Dispatching file failed.");
@@ -414,7 +415,8 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 				int chunkNum = chunkTuple.getKey();
 				int chunkSize = 0;
 				
-				try {			//obtain the chuck to be sent
+				try {			
+					//obtain the chuck to be sent
 					chunkSize = (int) (splitStartPointOffset.get(chunkNum + 1) - splitStartPointOffset.get(chunkNum));
 					long startPos = splitStartPointOffset.get(chunkNum);
 					chunk = IOUtil.readChunk(file, startPos, chunkSize);
@@ -437,6 +439,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 						continue;
 					}	
 					
+					
 					//Retry if failed as long as retry threshold not met.
 					while (!success && retryThreshold > 0) {		
 						try {
@@ -452,8 +455,8 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 							System.out.println("Waitting for " + dataNodeIP + "'s acknowledge...");
 							while (System.currentTimeMillis() < timeoutExpiredMs) {
 								//check if data node acknowledged received
-								if (this.dispatchList.containsKey(filename) 
-										&& this.dispatchList.get(filename).containsKey(chunkNum) 
+								if (this.dispatchList.containsKey(filename)
+										&& this.dispatchList.get(filename).containsKey(chunkNum)
 										&& this.dispatchList.get(filename).get(chunkNum).contains(dataNodeIP)) {
 									if (System.currentTimeMillis() < timeoutExpiredMs) {
 										Thread.sleep(2 * 1000);
@@ -489,14 +492,16 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 			
 			if (!dispatchList.containsKey(filename) || dispatchList.get(filename).size() == 0) {
 				//dispatch finished
-				this.dispatchList = null;
+//				this.dispatchList = null;
 				System.out.println("Dispatch finished.");
 				break;
 			} else {
 				//Send back failure list to name node for new dispatching list.
 				try {
 					System.out.println("Re-generating new dispatch list...");
-					this.dispatchList = nameNode.generateChunkDistributionList(this.dispatchList);
+					ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> failureList = new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
+					failureList.put(filename, dispatchList.get(filename));
+					dispatchList.put(filename, nameNode.generateChunkDistributionList(failureList).get(filename));
 					System.out.println("New distribution list is received.");
 				} catch (RemoteException e) {
 					System.err.println("System run out of storage space!");

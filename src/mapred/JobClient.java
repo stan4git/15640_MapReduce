@@ -98,9 +98,10 @@ public class JobClient {
 			JobStatus status = jobtracker.checkJobStatus(jobId);
 			System.out.println(status);
 			if(status == JobStatus.SUCCESS) {
+				System.out.printf("Mapper: %.2f %%; Reducer: %.2f %% \n", 100, 100);
 				System.out.println("Your job has been executed successfully!");
 				System.out.println("Your jobId is "+jobId+" and your outputfile name is " + jobConf.getOutputfile());
-				System.out.println("The actual output format is [jobId]-[outputfilename]-part-[partitionNumber]");
+				System.out.println("The actual output format is job - [jobId]-[outputfilename]-[partitionNumber]_[chunkNum]");
 				jobtracker.terminateJob(jobId);
 				break;
 			} else if(status == JobStatus.INPROGRESS) {
