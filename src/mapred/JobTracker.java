@@ -412,7 +412,10 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 //			System.err.println("I'm" + node);
 //			System.out.println("***************TEST END***************");
 			
-			nodes_Paths.get(node).addAll(jobID_parFilePath.get(jobID));
+			try {
+				nodes_Paths.get(node).addAll(jobID_parFilePath.get(jobID));
+			} catch (Exception e) {
+			}
 			jobID_nodes_partitionsPath.put(jobID, nodes_Paths);
 			
 			// step3: if the whole mapper process has finished, start reduce phase.
