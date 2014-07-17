@@ -42,7 +42,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	private static NameNodeInterface nameNode = null;
 	private static TaskTracker taskTracker = null;
 	private static DFSClient dfsClient = null;
-	private static boolean isDFSClientAvailable = true;
+//	private static boolean isDFSClientAvailable = true;
 
 	// Create a thread pool
 	private static ExecutorService executor = Executors.newCachedThreadPool();
@@ -240,14 +240,14 @@ public class TaskTracker extends UnicastRemoteObject implements
 		rmiServiceInfo.settingForReducer(taskTrackerRegPort,
 				taskTrackServiceName);
 		String outputFileName = jobTracker.getOutputFileName(jobID);
-		TaskInfo taskInfo = new TaskInfo(jobID, partitionNo,
-				nodesWithPartitions, reduceName, rmiServiceInfo, outputFileName);
-		synchronized(reduceTaskQueue) {
-			reduceTaskQueue.offer(taskInfo);
-		}
+//		TaskInfo taskInfo = new TaskInfo(jobID, partitionNo,
+//				nodesWithPartitions, reduceName, rmiServiceInfo, outputFileName);
+//		synchronized(reduceTaskQueue) {
+//			reduceTaskQueue.offer(taskInfo);
+//		}
 		
-//		startReduceTask(jobID, partitionNo, nodesWithPartitions,
-//				reduceName, rmiServiceInfo, reduceResultPath,mapResTemporaryPath,outputFileName,dfsClient);
+		startReduceTask(jobID, partitionNo, nodesWithPartitions,
+				reduceName, rmiServiceInfo, reduceResultPath,mapResTemporaryPath,outputFileName,dfsClient);
 	}
 
 	/**
@@ -445,9 +445,9 @@ public class TaskTracker extends UnicastRemoteObject implements
 		jobID_node_mapID.remove(jobID);
 	}
 	
-	public static void setDFSClientAvailable() {
-		isDFSClientAvailable = true;
-	}
+//	public static void setDFSClientAvailable() {
+//		isDFSClientAvailable = true;
+//	}
 
 	public static void main(String args[]) throws IOException {
 		try {
@@ -485,19 +485,19 @@ public class TaskTracker extends UnicastRemoteObject implements
 			node = InetAddress.getLocalHost().getHostAddress();
 			jobTracker.registerTaskTracker(node);
 			System.out.println("I'm the TaskTracker for node " + node);
-			
-			while(true) {
-				if(isDFSClientAvailable && !reduceTaskQueue.isEmpty()) {
-					synchronized (reduceTaskQueue) {
-						isDFSClientAvailable = false;
-						TaskInfo taskInfo = reduceTaskQueue.poll();
-						taskTracker.startReduceTask(taskInfo.getJobID(), taskInfo.getPartitionNo(), taskInfo.getNodesWithPartitions(),
-								taskInfo.getClassName(), taskInfo.getRmiServiceInfo(), reduceResultPath,mapResTemporaryPath,
-								taskInfo.getOutputFileName(),dfsClient);
-						
-					}					
-				}
-			}
+//			
+//			while(true) {
+//				if(isDFSClientAvailable && !reduceTaskQueue.isEmpty()) {
+//					synchronized (reduceTaskQueue) {
+//						isDFSClientAvailable = false;
+//						TaskInfo taskInfo = reduceTaskQueue.poll();
+//						taskTracker.startReduceTask(taskInfo.getJobID(), taskInfo.getPartitionNo(), taskInfo.getNodesWithPartitions(),
+//								taskInfo.getClassName(), taskInfo.getRmiServiceInfo(), reduceResultPath,mapResTemporaryPath,
+//								taskInfo.getOutputFileName(),dfsClient);
+//						
+//					}					
+//				}
+//			}
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		} catch (UnknownHostException e) {
