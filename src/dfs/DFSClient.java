@@ -492,7 +492,6 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 			
 			if (!dispatchList.containsKey(filename) || dispatchList.get(filename).size() == 0) {
 				//dispatch finished
-//				this.dispatchList = null;
 				System.out.println("Dispatch finished.");
 				break;
 			} else {
