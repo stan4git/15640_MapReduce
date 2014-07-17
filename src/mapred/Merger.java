@@ -72,7 +72,8 @@ public class Merger {
 					br.close();
 					isr.close();
 					fis.close();
-				} catch (IOException | NullPointerException e) {
+				} catch (IOException e) {
+					e.printStackTrace();
 				}
 			}
 

@@ -396,10 +396,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		
 		// update jobID_nodes_partitionsPath
 		HashMap<String, ArrayList<String>> nodes_Paths = jobID_nodes_partitionsPath.get(jobID);
-		try {
-			nodes_Paths.get(node).addAll(jobID_parFilePath.get(jobID));
-		} catch (Exception e) {
-		}
+		nodes_Paths.get(node).addAll(jobID_parFilePath.get(jobID));
 		jobID_nodes_partitionsPath.put(jobID, nodes_Paths);
 		
 		
