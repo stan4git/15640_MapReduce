@@ -101,14 +101,9 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 					.getValue().entrySet()) {
 				// get chunk number
 				int chunkNum = chunkTuple.getKey();
-				HashSet<String> newNodeList = new HashSet<String>(); // new
-																		// dispatching
-																		// node
-																		// list
-				for (String failedNode : chunkTuple.getValue()) { // reclaim
-																	// available
-																	// slots on
-																	// nodes
+				HashSet<String> newNodeList = new HashSet<String>(); 	
+				for (String failedNode : chunkTuple.getValue()) { 
+					// reclaim available slots for failed nodes
 					this.dataNodeAvailableSlotList.put(failedNode,
 							this.dataNodeAvailableSlotList.get(failedNode) + 1);
 				}
@@ -143,18 +138,15 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 
 		// chunkDispatchTable is used to store the dispatch result for this file
 		Hashtable<Integer, HashSet<String>> chunkDispatchTable = new Hashtable<Integer, HashSet<String>>();
-		for (int currentChunk = 0; currentChunk < chunkAmount; currentChunk++) { // dispatch
-																					// by
-																					// chunks
+		for (int currentChunk = 0; currentChunk < chunkAmount; currentChunk++) { 
+			// dispatch by chunks
 			int replicaCount = this.replicaNum;
-			HashSet<String> nodeList = new HashSet<String>(); // dispatched
-																// nodes list
+			HashSet<String> nodeList = new HashSet<String>(); 	
 
 			// dispatch by replica
 			while (replicaCount > 0) {
 				// pick the most available data node without those already in
-				// nodeList,
-				// exclude no nodes at first time
+				// nodeList, exclude no nodes at first time
 				String pickNode = null;
 				try {
 					pickNode = pickMostAvailableSlotDataNode(nodeList);
@@ -162,8 +154,7 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 					throw e; // if all nodes are full, dispatch failed
 				}
 
-				// check if chunkDispatchTable has current chunk, if not, create
-				// that hash set
+				// check if chunkDispatchTable has current chunk, if not, create that hash set
 				if (!chunkDispatchTable.containsKey(currentChunk)) {
 					nodeList.add(pickNode);
 					chunkDispatchTable.put(currentChunk, nodeList);
