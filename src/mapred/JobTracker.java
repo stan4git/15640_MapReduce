@@ -362,6 +362,9 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			unfinishedMapTasks += jobID_node_taskStatus.get(jobID).get(node).getUnfinishedMapTasks();
 		}
 		
+		if(totalMapTasks == 0) {
+			return 0;
+		}
 		return 1 - (double)unfinishedMapTasks / (double)totalMapTasks;
 	}
 	
@@ -373,6 +376,10 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		for(String node : jobID_node_taskStatus.get(jobID).keySet()) {
 			totalReduceTasks += jobID_node_taskStatus.get(jobID).get(node).getTotalReduceTasks();
 			totalReduceTasks += jobID_node_taskStatus.get(jobID).get(node).getUnfinishedReduceTasks();
+		}
+		
+		if(totalReduceTasks == 0) {
+			return 0;
 		}
 		
 		return 1 - (double)unfinishedReduceTasks / (double)totalReduceTasks;
