@@ -73,7 +73,6 @@ public class Merger {
 					isr.close();
 					fis.close();
 				} catch (IOException e) {
-					e.printStackTrace();
 				}
 			}
 
