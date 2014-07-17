@@ -65,7 +65,6 @@ public class MapRunner implements Runnable{
 		this.tryNums = tryNums;
 	}
 	
-	
 	/***
 	 * This method is used to implement the mapper process.
 	 */
@@ -111,6 +110,7 @@ public class MapRunner implements Runnable{
 			// step5: notify task tracker to update task status
 			TaskTracker.updateFilePaths(jobID, filePaths);
 			TaskTracker.updateMapStatus(jobID, true);
+			
 		} catch (ClassNotFoundException | NoSuchMethodException | SecurityException 
 				| InstantiationException | IllegalAccessException 
 				| IllegalArgumentException | InvocationTargetException | NotBoundException | IOException e) {
