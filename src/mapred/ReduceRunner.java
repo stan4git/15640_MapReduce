@@ -129,6 +129,7 @@ public class ReduceRunner implements Runnable {
 						
 			// step 5 : upload the output file into DFS !
 			dfsClient.putFile(reduceFileName);
+			TaskTracker.setDFSClientAvailable();
 			TaskTracker.updateReduceStatus(jobID, true);
 		} catch (ClassNotFoundException | InstantiationException |
 				IllegalAccessException | IOException | NoSuchMethodException | SecurityException

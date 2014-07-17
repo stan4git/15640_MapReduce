@@ -12,6 +12,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -40,6 +42,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	private static NameNodeInterface nameNode = null;
 	private static TaskTracker taskTracker = null;
 	private static DFSClient dfsClient = null;
+	private static boolean isDFSClientAvailable = true;
 
 	// Create a thread pool
 	private static ExecutorService executor = Executors.newCachedThreadPool();
@@ -92,6 +95,9 @@ public class TaskTracker extends UnicastRemoteObject implements
 	private static Integer clientRegPortForTaskTrack;
 
 	private static String node;
+	
+	//private static Queue<TaskInfo> mapTaskQueue = new LinkedList<TaskInfo>();
+	private static Queue<TaskInfo> reduceTaskQueue = new LinkedList<TaskInfo>();
 
 	// default constructor
 	protected TaskTracker() throws RemoteException {
@@ -234,8 +240,14 @@ public class TaskTracker extends UnicastRemoteObject implements
 		rmiServiceInfo.settingForReducer(taskTrackerRegPort,
 				taskTrackServiceName);
 		String outputFileName = jobTracker.getOutputFileName(jobID);
-		startReduceTask(jobID, partitionNo, nodesWithPartitions,
-				reduceName, rmiServiceInfo, reduceResultPath,mapResTemporaryPath,outputFileName,dfsClient);
+		TaskInfo taskInfo = new TaskInfo(jobID, partitionNo,
+				nodesWithPartitions, reduceName, rmiServiceInfo, outputFileName);
+		synchronized(reduceTaskQueue) {
+			reduceTaskQueue.offer(taskInfo);
+		}
+		
+//		startReduceTask(jobID, partitionNo, nodesWithPartitions,
+//				reduceName, rmiServiceInfo, reduceResultPath,mapResTemporaryPath,outputFileName,dfsClient);
 	}
 
 	/**
@@ -432,6 +444,10 @@ public class TaskTracker extends UnicastRemoteObject implements
 		jobID_taskStatus.remove(jobID);
 		jobID_node_mapID.remove(jobID);
 	}
+	
+	public static void setDFSClientAvailable() {
+		isDFSClientAvailable = true;
+	}
 
 	public static void main(String args[]) throws IOException {
 		try {
@@ -469,6 +485,19 @@ public class TaskTracker extends UnicastRemoteObject implements
 			node = InetAddress.getLocalHost().getHostAddress();
 			jobTracker.registerTaskTracker(node);
 			System.out.println("I'm the TaskTracker for node " + node);
+			
+			while(true) {
+				if(isDFSClientAvailable && !reduceTaskQueue.isEmpty()) {
+					synchronized (reduceTaskQueue) {
+						isDFSClientAvailable = false;
+						TaskInfo taskInfo = reduceTaskQueue.poll();
+						taskTracker.startReduceTask(taskInfo.getJobID(), taskInfo.getPartitionNo(), taskInfo.getNodesWithPartitions(),
+								taskInfo.getClassName(), taskInfo.getRmiServiceInfo(), reduceResultPath,mapResTemporaryPath,
+								taskInfo.getOutputFileName(),dfsClient);
+						
+					}					
+				}
+			}
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		} catch (UnknownHostException e) {
