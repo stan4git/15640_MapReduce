@@ -54,35 +54,10 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		DFSClient client = null;
 		try {
 			client = new DFSClient();
-		} catch (RemoteException e1) {
+		} catch (Exception e1) {
 			e1.printStackTrace();
 			System.exit(-1);
 		}
-		
-		System.out.println("Loading configuration data...");
-		try {
-			IOUtil.readConf(PathConfiguration.DFSConfPath, client);
-			System.out.println("Configuration data loaded successfully.");
-		} catch (IOException e) {
-			e.printStackTrace();
-			System.err.println("Loading configuration failed...");
-			System.exit(-1);
-		}
-		
-		try {
-			System.out.println("Initializing client registry server...");
-			unexportObject(client, false);
-			DFSClientInterface stub = (DFSClientInterface) exportObject(client, client.clientPort);
-			Registry clientRegistry = LocateRegistry.createRegistry(client.clientRegPort);
-			clientRegistry.rebind(client.clientServiceName, stub);
-			System.out.println("Registry server has been set up on port: " + client.clientRegPort + ".");
-		} catch (RemoteException e) {
-			e.printStackTrace();
-			System.err.println("System initializing error. Shutting down...");
-			System.exit(-1);
-		}
-		
-		client.init();
 		
 		System.out.println("For more information, please use: \"help\"");
 		System.out.println("Type in your command:");
@@ -167,30 +142,71 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		}
 	}
 	
-	
-	public DFSClient() throws RemoteException {
+	/**
+	 * This constructor is used by default.
+	 * @throws Exception
+	 */
+	public DFSClient() throws Exception {
+		loadConf();
+		init();
 	}
 	
 	/**
-	 * Setup connection to name node.
+	 * This is a overload constructor for task task tracker to upload 
+	 * MapReduce result. Since there will be RMI service conflict.
+	 * @param tmpClientPort
+	 * @param tmpClientRegPort
+	 * @throws Exception
 	 */
-	public void init() {
+	public DFSClient(int tmpClientPort, int tmpClientRegPort) throws Exception {
+		loadConf();
+		clientPort = tmpClientPort;
+		clientRegPort = tmpClientRegPort;
+		init();
+	}
+	
+	/**
+	 * Load configuration data from util.PathConfiguration.
+	 * @throws IOException
+	 */
+	public void loadConf() throws IOException {
+		System.out.println("Loading configuration data...");
+		try {
+			IOUtil.readConf(PathConfiguration.DFSConfPath, this);
+			System.out.println("Configuration data loaded successfully.");
+		} catch (IOException e) {
+			throw e;
+		}
+	}
+	
+	/**
+	 * Setup client RMI service and connections to name node.
+	 * @throws Exception
+	 */
+	public void init() throws Exception {
 		try {
 			System.out.println("Connecting to name node server...");
 			this.nameNodeRegistry = LocateRegistry.getRegistry(nameNodeIP, nameNodeRegPort);
 			this.nameNode = (NameNodeInterface) nameNodeRegistry.lookup(nameNodeService);
 			System.out.println("Connected to name node.");
 		} catch (NotBoundException | RemoteException e) {
-			e.printStackTrace();
-			System.err.println("Cannot connect to name node sever...");
-			System.exit(-1);
+			throw e;
+		}
+		
+		try {
+			System.out.println("Initializing client registry server...");
+			unexportObject(this, false);
+			DFSClientInterface stub = (DFSClientInterface) exportObject(this, clientPort);
+			Registry clientRegistry = LocateRegistry.createRegistry(clientRegPort);
+			clientRegistry.rebind(clientServiceName, stub);
+			System.out.println("Registry server has been set up on port: " + clientRegPort + ".");
+		} catch (Exception e) {
+			throw e;
 		}
 	}
 	
-	
-	
 	/**
-	 * Get the file list from NameNode
+	 * Get the file list from NameNode.
 	 */
 	private void getFileList() {
 		Map<String, FileStatus> list;
@@ -238,8 +254,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	
 	/**
 	 * Put a file from local to DFS.
-	 * @param input String The path of input file.
-	 * @param output String The path of output on DFS.
+	 * @param filePath String The path of input file.
 	 */
 	public void putFile(String filePath) {
 		String filename = StringHandling.getFileNameFromPath(filePath);
@@ -248,7 +263,8 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		//get dispatching list from name node
 		try {
 			System.out.println("Requesting distribution list from name node: " + nameNodeIP + "...");
-			dispatchList = this.nameNode.generateChunkDistributionList(filename, split.size() - 1);
+			Hashtable<Integer, HashSet<String>> tempList = this.nameNode.generateChunkDistributionList(filename, split.size() - 1).get(filename);
+			dispatchList.put(filename, tempList);
 			System.out.println("Dispatch list received.");
 		} catch (RemoteException e) {
 			e.printStackTrace();
@@ -260,9 +276,9 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		if (dispatchList != null && dispatchList.size() > 0) {
 			try {
 				dispatchChunks(filePath, split);
-				dispatchList = null;
+//				dispatchList = null;
 				System.out.println(filePath + " has been sucessfully uploaded to DFS.");
-			} catch (RemoteException e) {
+			} catch (RemoteException | FileNotFoundException e) {
 				System.err.println("Dispatching file failed.");
 				return;
 			}
@@ -277,7 +293,11 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	 * Get a file from DFS.
 	 * @param file String The path of input file on DFS.
 	 */
-	private void getFile(String filename, String output) {
+	private void getFile(String filename, String outPath) {
+		if (!outPath.endsWith("/")) {
+			outPath += "/";
+		}
+		
 		ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistribution;
 		try {
 			fileDistribution = this.nameNode.getFileDistributionTable();
@@ -286,21 +306,25 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 			System.out.println("Exception occurs when fetching file.");
 			return;
 		}
+		
 		if (fileDistribution.containsKey(filename)) {
-			for (Entry<Integer, HashSet<String>> chunkTuple : fileDistribution.get(filename).entrySet()) {
-				int chunkNum = chunkTuple.getKey();
+			int chunkCount = fileDistribution.get(filename).size();
+			for (int chunkNum = 0; chunkNum < chunkCount; chunkNum++) {
+				System.out.println("Fetching chunk" + chunkNum + " of file\"" + filename + "\"...");
+				HashSet<String> nodeList = fileDistribution.get(filename).get(chunkNum);
 				byte[] chunk = null;
-				for (String dataNodeIP : chunkTuple.getValue()) {
+				
+				for (String dataNodeIP : nodeList) {
 					//Setup remote services of data nodes
 					try {
 						DataNodeInterface dataNode = getDataNodeService(dataNodeIP);
 						chunk = dataNode.getFile(filename, chunkNum);
-						IOUtil.writeBinary(chunk, output);
+						IOUtil.appendBytesToFile(outPath + filename, chunk);
 						break;
 					} catch (IOException e) {	//if writing file chunk to storage failed, remove it
 						System.err.println("Exception occurs when downloading file...");
 						try {
-							IOUtil.deleteFile(output);
+							IOUtil.deleteFile(outPath + filename);
 						} catch (IOException e1) {
 							System.err.println("Cannot delete " + filename + "_" + chunkNum + " from " + dataNodeIP);
 						}
@@ -369,21 +393,20 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 	 * the rest of the list to name node for re-allocation and try to dispatch again.
 	 * @param dispatchList A list provided by NameNode towards dispatching file chunks.
 	 * @throws RemoteException 
+	 * @throws FileNotFoundException 
 	 */
-	private void dispatchChunks(String filePath, ArrayList<Long> splitStartPointOffset) throws RemoteException {
+	private void dispatchChunks(String filePath, ArrayList<Long> splitStartPointOffset) throws RemoteException, FileNotFoundException {
 		String filename = StringHandling.getFileNameFromPath(filePath);
 		RandomAccessFile file;
 		byte[] chunk;
-		
 		
 		try {
 			file = new RandomAccessFile(filePath, "r");
 		} catch (FileNotFoundException e1) {
 			e1.printStackTrace();
 			System.err.println("File not found.");
-			return;
+			throw e1;
 		}
-		
 		
 		//guaranteed to dispatch all the chunks. if failed, get new dispatch list and keep dispatching
 		ConcurrentHashMap<String,Hashtable<Integer,HashSet<String>>> dispatchListDeepCopy = FunctionalUtil.deepCopy(dispatchList);
@@ -392,7 +415,8 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 				int chunkNum = chunkTuple.getKey();
 				int chunkSize = 0;
 				
-				try {			//obtain the chuck to be sent
+				try {			
+					//obtain the chuck to be sent
 					chunkSize = (int) (splitStartPointOffset.get(chunkNum + 1) - splitStartPointOffset.get(chunkNum));
 					long startPos = splitStartPointOffset.get(chunkNum);
 					chunk = IOUtil.readChunk(file, startPos, chunkSize);
@@ -415,34 +439,41 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 						continue;
 					}	
 					
+					
 					//Retry if failed as long as retry threshold not met.
 					while (!success && retryThreshold > 0) {		
 						try {
 							//start transferring chunk. 
 							System.out.println("Dispatching chunk" + chunkNum + " of file \"" + filename + "\" to " + dataNodeIP + "...");
-							node.uploadChunk(filename, chunk, chunkNum, InetAddress.getLocalHost().getHostAddress());
+							node.uploadChunk(filename, chunk, chunkNum, InetAddress.getLocalHost().getHostAddress(), clientRegPort);
 							System.out.println("Chunk" + chunkNum + " of file \"" + filename + "\" has been uploaded to " + dataNodeIP + ".");
 							success = true;
 							
+							
 							//waiting for dataNode acknowledge
-							long timeoutExpiredMs = System.currentTimeMillis() + (this.ackTimeout * 1000);	
+							long timeoutExpiredMs = System.currentTimeMillis() + (ackTimeout * 1000);	
 							System.out.println("Waitting for " + dataNodeIP + "'s acknowledge...");
 							while (System.currentTimeMillis() < timeoutExpiredMs) {
 								//check if data node acknowledged received
-								if (this.dispatchList.containsKey(filename) 
-										&& this.dispatchList.get(filename).containsKey(chunkNum) 
-										&& this.dispatchList.get(filename).get(chunkNum).contains(dataNodeIP)) {	
-									Thread.sleep(2 * 1000);
+								if (this.dispatchList.containsKey(filename)
+										&& this.dispatchList.get(filename).containsKey(chunkNum)
+										&& this.dispatchList.get(filename).get(chunkNum).contains(dataNodeIP)) {
+									if (System.currentTimeMillis() < timeoutExpiredMs) {
+										Thread.sleep(2 * 1000);
+									} else {
+										retryThreshold--;
+										System.out.println("Upload timeout. Retrying for " +
+												(this.chunkTranferRetryThreshold - retryThreshold) + " times...");
+										continue;
+									}
 								} else {
 									success = true;
 									break;
 								}
 							}
-							retryThreshold--;
-							System.out.println("Upload timeout. Retrying for " +
-									(this.chunkTranferRetryThreshold - retryThreshold) + " times...");
 						} catch (RemoteException | UnknownHostException e) {
 							retryThreshold--;
+							e.printStackTrace();
 							System.err.println("Exception occurs when uploading file. Retrying for " + 
 									(this.chunkTranferRetryThreshold - retryThreshold) + " times...");
 						} catch (InterruptedException e) {
@@ -454,20 +485,22 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 					
 					if (retryThreshold <= 0) {		//after retries, print out error message
 						System.err.print("Upload chunk" + chunkNum + " to " + dataNodeIP + " failed.");
+						throw new RemoteException();
 					}
 				}
 			}
 			
-			if (this.dispatchList.get(filename).size() == 0) {
+			if (!dispatchList.containsKey(filename) || dispatchList.get(filename).size() == 0) {
 				//dispatch finished
-				this.dispatchList = null;
 				System.out.println("Dispatch finished.");
 				break;
 			} else {
 				//Send back failure list to name node for new dispatching list.
 				try {
 					System.out.println("Re-generating new dispatch list...");
-					this.dispatchList = nameNode.generateChunkDistributionList(this.dispatchList);
+					ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> failureList = new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
+					failureList.put(filename, dispatchList.get(filename));
+					dispatchList.put(filename, nameNode.generateChunkDistributionList(failureList).get(filename));
 					System.out.println("New distribution list is received.");
 				} catch (RemoteException e) {
 					System.err.println("System run out of storage space!");

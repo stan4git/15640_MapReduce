@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.concurrent.ConcurrentHashMap;
+
 import dfs.NameNodeInterface;
 
 /**
@@ -27,18 +29,18 @@ public class JobScheduler {
 
 	private static NameNodeInterface nameNode = null;
 
-	 //The maximum task numbers including mapper and reducer per node
+	 /** The maximum task numbers including mapper and reducer per node */
 	private static Integer maxTaskPerNode;
-	// the weight of local nodes and global nodes
+	/** the weight of local nodes and global nodes */
 	private static Double localWeight;
 	private static Double globalWeight;
 
-	/* These 3 contains NameNode's registry IP,registry port and service name */
+	/** These 3 contains NameNode's registry IP,registry port and service name */
 	private static String nameNodeIP;
 	private static Integer nameNodeRegPort;
 	private static String nameNodeService;
 
-	// default constructor
+	/** default constructor */
 	public JobScheduler(String nameNodeIPVal,Integer nameNodeRegPortVal,String nameNodeServiceVal,
 			Integer maxTaskPerNodeVal,Double localWeightVal,Double globalWeightVal) {
 		nameNodeIP = nameNodeIPVal;
@@ -138,6 +140,7 @@ public class JobScheduler {
 			// step4 : organize the return info
 			// JobTracker.node_totalTasks.put(finalNode,
 			// JobTracker.jobID_totalMapTasks.get(finalNode) + 1);
+			
 			HashMap<Integer, String> chunkAndSourceNode = null;
 			if (!res.containsKey(finalNode)) {
 				chunkAndSourceNode = new HashMap<Integer, String>();
@@ -146,6 +149,10 @@ public class JobScheduler {
 			}
 			chunkAndSourceNode.put(chunkNum, bestLocalNode);
 			res.put(finalNode, chunkAndSourceNode);
+			
+			// step5: update the tasks of the chosen node
+			
+			JobTracker.node_totalTasks.put(finalNode, JobTracker.node_totalTasks.get(finalNode) + 1);
 		}
 		return res;
 	}
@@ -196,12 +203,13 @@ public class JobScheduler {
 		ArrayList<String> nodesForReduce = new ArrayList<String>();
 		HashSet<String> availableNodes = nameNode.getHealthyNodes();
 		int numOfChosen = 0;
-
+		ConcurrentHashMap<String, Integer> node_totalTasks = JobTracker.node_totalTasks;
+		
 		while (numOfChosen < numOfReducers) {
 			int minWorkLoad = maxTaskPerNode + 1;
 			String chosenReducer = null;
 			for (String node : availableNodes) {
-				int workLoad = JobTracker.node_totalTasks.get(node);
+				int workLoad = node_totalTasks.get(node);
 				if (workLoad < minWorkLoad) {
 					minWorkLoad = workLoad;
 					chosenReducer = node;
@@ -210,6 +218,8 @@ public class JobScheduler {
 			if (minWorkLoad == maxTaskPerNode + 1) {
 				return null;
 			}
+			
+			node_totalTasks.put(chosenReducer, node_totalTasks.get(chosenReducer) + 1);
 			nodesForReduce.add(chosenReducer);
 			numOfChosen++;
 		}

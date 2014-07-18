@@ -24,7 +24,7 @@ import util.PathConfiguration;
 public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 
 	private static final long serialVersionUID = 7965875955130649094L;
-	private Integer clientRegPort;
+//	private Integer clientRegPort;
 	private String clientServiceName;
 	private Integer maxChunkSlot;
 	private Integer dataNodeRegPort;
@@ -77,6 +77,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 			System.exit(-1);
 		}
 		
+		//setup connections
 		dataNode.init();
 		
 		System.out.println("System is running...");
@@ -116,7 +117,8 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 	}
 	
 	
-	public void uploadChunk(String filename, byte[] chunk, int chunkNum, String fromIP)
+	@Override
+	public void uploadChunk(String filename, byte[] chunk, int chunkNum, String fromIP, int RMIPort)
 			throws RemoteException {
 			if (this.availableChunkSlot <= 0) {		//check if there is available slots
 				throw new RemoteException("System storage error.");
@@ -137,8 +139,8 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 			}
 			
 			try {	
-				System.out.println("Connecting to " + fromIP + "...");
-				Registry clientRegistry = LocateRegistry.getRegistry(fromIP, this.clientRegPort);		
+				System.out.println("Connecting to client " + fromIP + "...");
+				Registry clientRegistry = LocateRegistry.getRegistry(fromIP, RMIPort);		
 				DFSClientInterface client = (DFSClientInterface) clientRegistry.lookup(this.clientServiceName);
 				client.sendChunkReceivedACK(InetAddress.getLocalHost().getHostAddress(), filename, chunkNum);	//send out ack to client
 				System.out.println("Client " + fromIP + " acknowledged.");
@@ -153,7 +155,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 				} catch (IOException e1) {
 					System.out.println("Exception occurs when removing" + filename + "_" + chunkNum);
 				}
-				return;
+				throw new RemoteException();
 			}
 			
 			
@@ -183,7 +185,8 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 //			}
 	}
 	
-
+	
+	@Override
 	public void removeChunk(String filename, int chunkNum) throws RemoteException {
 		if (availableChunkSlot >= this.maxChunkSlot) {
 			throw new RemoteException("There is no file on this node.");
@@ -200,7 +203,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 		return;
 	}
 
-	
+	@Override
 	public byte[] getFile(String filename, int chunkNum) throws RemoteException {
 		byte[] chunk;
 		try {
@@ -214,18 +217,21 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 		return chunk;
 	}
 
-
+	
+	@Override
 	public boolean heartbeat() throws RemoteException {
 		return true;
 	}
 
 
+	@Override
 	public boolean hasChunk(String filename, int chunkNum) throws RemoteException {
 		File file = new File(this.dataNodePath + filename + "_" + chunkNum);
 		return file.exists();
 	}
 
 
+	@Override
 	public void downloadChunk(String filename, int chunkNum, String fromIP) throws RemoteException {
 		if (!this.dataNodeList.containsKey(fromIP)) {		//cache connection to other data nodes
 			try {
@@ -256,12 +262,12 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 		}
 	}
 
-
+	@Override
 	public void terminate() {
 		this.isRunning = false;
 	}
 
-
+	@Override
 	public ConcurrentHashMap<String, HashSet<Integer>> getFileChunkList() {
 		return this.fileList;
 	}

@@ -50,7 +50,7 @@ public interface JobTrackerInterface extends Remote {
 	/**
 	 * This method is used to calculate the percentage of finished reducer tasks.
 	 * 
-	 * @param jobID - the jobID of the reducer tasks      
+	 * @param jobId - the jobID of the reducer tasks      
 	 * @return the percentage of finished reducer tasks  
 	 * 
 	 * @throws RemoteException
@@ -59,7 +59,7 @@ public interface JobTrackerInterface extends Remote {
 	/**
 	 * This method is used to calculate the percentage of finished reducer tasks.
 	 * 
-	 * @param jobID - the jobID of the reducer tasks      
+	 * @param jobId - the jobID of the reducer tasks      
 	 * @return the percentage of finished reducer tasks  
 	 */
 	public double getReducerProgress(Integer jobId) throws RemoteException;
@@ -89,10 +89,11 @@ public interface JobTrackerInterface extends Remote {
 	 * @param node  The node handling the mapper task
 	 * @param jobID_taskStatus Task status info
 	 * @param jobID_parFilePath the Partition files
+	 * @param jobID
 	 * @throws RemoteException
 	 */
 	public void notifyMapperFinish(String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus, 
-			ConcurrentHashMap<Integer, ArrayList<String>> jobID_parFilePath) throws RemoteException;
+			ConcurrentHashMap<Integer, ArrayList<String>> jobID_parFilePath, int jobID) throws RemoteException;
 	/**
 	 * This method is used to notify the jobTracker that all the reducer workers
 	 * has done and they can change the related information
@@ -102,18 +103,22 @@ public interface JobTrackerInterface extends Remote {
 	 */
 	public void notifyReducerFinish (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus) throws RemoteException;
 	/**
-	 * This method is invoked by the TaskTracker through RMI.
-	 * It can update the related status such as task Status
-	 * @param node node The node handled the reducer task
-	 * @param jobID_taskStatus jobID_taskStatus JobId and task status
-	 * @throws RemoteException
-	 */
-	public void responseToHeartbeat (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus) throws RemoteException;
-	/**
 	 * This method is used to update the job status
 	 * @param jobId job ID
 	 * @param jobStatus job Status
 	 * @throws RemoteException
 	 */
 	public void updateJobStatus(Integer jobId, JobStatus jobStatus) throws RemoteException;
+	/**
+	 * This method is used to get the output file name
+	 * @param jobID
+	 * @return get the output file name
+	 */
+	public String getOutputFileName(int jobID) throws RemoteException;
+	/**
+	 * This method is used to register the task tracker IP
+	 * @param taskTrackerIP
+	 * @throws RemoteException
+	 */
+	public void registerTaskTracker(String taskTrackerIP) throws RemoteException;
 }

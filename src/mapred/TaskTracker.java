@@ -12,12 +12,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import dfs.DFSClient;
 import dfs.NameNodeInterface;
 import format.KVPair;
 import util.IOUtil;
@@ -40,54 +39,61 @@ public class TaskTracker extends UnicastRemoteObject implements
 	private static JobTrackerInterface jobTracker = null;
 	private static NameNodeInterface nameNode = null;
 	private static TaskTracker taskTracker = null;
+	private static DFSClient dfsClient = null;
 
-	// Create a thread pool
+	/** Create a thread pool */
 	private static ExecutorService executor = Executors.newCachedThreadPool();
-	// jobID - > partition files path
+	/** jobID - > partition files path */
 	public static ConcurrentHashMap<Integer, ArrayList<String>> jobID_parFilePath = new ConcurrentHashMap<Integer, ArrayList<String>>();
-	// jobID - > Task status
+	/** jobID - > Task status */
 	public static ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus = new ConcurrentHashMap<Integer, TaskStatusInfo>();
-	// <jobID,<node,List<map ID>>
+	/** <jobID,<node,List<map ID>> */
 	public static ConcurrentHashMap<Integer, HashMap<String, ArrayList<Integer>>> jobID_node_mapID = new ConcurrentHashMap<Integer, HashMap<String, ArrayList<Integer>>>();
-	// reducer and mapper class's name
+	/** reducer and mapper class's name */
 	private static String reducerClassName;
 	private static String mapperClassName;
 
-	// dataNode's registry port and service
+	/** dataNode's registry port and service */
 	private static Integer dataNodeRegPort;
 	private static String dataNodeService;
 
-	// partition numbers
+	/** partition numbers */
 	private static Integer partitionNums;
 
-	// partition file's path
+	/** partition file's path */
 	private static String partitionFilePath;
 
-	// namenode's registry port, IP and service name
+	/** namenode's registry port, IP and service name */
 	private static String nameNodeIP;
 	private static Integer nameNodeRegPort;
 	private static String nameNodeService;
 
-	// jobTracker's IP, registry port and service name
+	/** jobTracker's IP, registry port and service name */
 	private static String jobTrackerIP;
 	private static Integer jobTrackerRegPort;
 	private static String jobTrackServiceName;
 
-	// TaskTracker's service port, registry port and service name
+	/** TaskTracker's service port, registry port and service name */
 	private static Integer taskTrackerPort;
 	private static Integer taskTrackerRegPort;
 	private static String taskTrackServiceName;
 
-	// the number of chunks of each mapper can handle
+	/** the number of chunks of each mapper can handle */
 	private static Integer mapperChunkThreshold;
-	// the maximum failure times of one job
+	/** the maximum failure times of one job */
 	private static Integer jobMaxFailureThreshold;
-	// the reduce file path
+	/** the reduce file path */
 	private static String reduceResultPath;
+	/** map result temporary path */
+	private static String mapResTemporaryPath;
+	/** client Port for task Tracker */
+	private static Integer clientPortForTaskTrack;
+	/** client Registry port for task Tracker */
+	private static Integer clientRegPortForTaskTrack;
 
 	private static String node;
 
-	// default consturctor
+	/** default constructor */
 	protected TaskTracker() throws RemoteException {
 		super();
 	}
@@ -227,8 +233,10 @@ public class TaskTracker extends UnicastRemoteObject implements
 		RMIServiceInfo rmiServiceInfo = new RMIServiceInfo();
 		rmiServiceInfo.settingForReducer(taskTrackerRegPort,
 				taskTrackServiceName);
+		String outputFileName = jobTracker.getOutputFileName(jobID);
+		
 		startReduceTask(jobID, partitionNo, nodesWithPartitions,
-				reduceName, rmiServiceInfo, reduceResultPath);
+				reduceName, rmiServiceInfo, reduceResultPath,mapResTemporaryPath,outputFileName,dfsClient);
 	}
 
 	/**
@@ -258,11 +266,11 @@ public class TaskTracker extends UnicastRemoteObject implements
 	 */
 	public void startReduceTask(int jobID, int partitionNo,
 			HashMap<String, ArrayList<String>> nodesWithPartitions,
-			String className, RMIServiceInfo rmiServiceInfo,
-			String reduceResultPath) {
+			String className, RMIServiceInfo rmiServiceInfo,String reduceResultPath,
+			 String mapResTemporaryPath, String outputFileName, DFSClient dfsClient) {
 		ReduceRunner reduceRunner = new ReduceRunner(jobID, partitionNo,
 				nodesWithPartitions, className, rmiServiceInfo,
-				reduceResultPath);
+				reduceResultPath,mapResTemporaryPath, outputFileName,dfsClient);
 		executor.execute(reduceRunner);
 	}
 
@@ -289,8 +297,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 			TaskTracker.jobID_taskStatus.put(jobID, taskStatusInfo);
 
 			if (curUnfinishedMapTasks == 0) {
-				jobTracker.notifyMapperFinish(node, jobID_taskStatus,
-						jobID_parFilePath);
+				jobTracker.notifyMapperFinish(node, jobID_taskStatus,jobID_parFilePath, jobID);
 			}
 		}
 	}
@@ -342,20 +349,9 @@ public class TaskTracker extends UnicastRemoteObject implements
 	 * This method is used to send the heartbeat to the jobTracker to update the
 	 * info in real-time
 	 */
-	private void transmitHeartBeat() {
-		System.out.println("Sending task progress to JobTracker...");
-		TimerTask timerTask = new TimerTask() {
-
-			@Override
-			public void run() {
-				try {
-					jobTracker.responseToHeartbeat(node, jobID_taskStatus);
-				} catch (RemoteException e) {
-					e.printStackTrace();
-				}
-			}
-		};
-		new Timer().scheduleAtFixedRate(timerTask, 0, 5000);
+	public ConcurrentHashMap<Integer, TaskStatusInfo>  heartBeat() throws RemoteException{
+		//System.out.println("Sending task progress to JobTracker...");
+		return jobID_taskStatus;
 	}
 
 	/**
@@ -453,9 +449,13 @@ public class TaskTracker extends UnicastRemoteObject implements
 						nameNodeIP, nameNodeRegPort);
 				nameNode = (NameNodeInterface) nameNodeRegistry
 						.lookup(nameNodeService);
+				
+				dfsClient = new DFSClient(clientPortForTaskTrack,clientRegPortForTaskTrack);
 			} catch (RemoteException e) {
 				e.printStackTrace();
 			} catch (NotBoundException e) {
+				e.printStackTrace();
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 
@@ -467,9 +467,8 @@ public class TaskTracker extends UnicastRemoteObject implements
 			registry.rebind(taskTrackServiceName, stub);
 
 			node = InetAddress.getLocalHost().getHostAddress();
+			jobTracker.registerTaskTracker(node);
 			System.out.println("I'm the TaskTracker for node " + node);
-			// Continuously sending heart beat to job tracker.
-			taskTracker.transmitHeartBeat();
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		} catch (UnknownHostException e) {

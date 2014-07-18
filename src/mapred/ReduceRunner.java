@@ -30,20 +30,25 @@ import util.IOUtil;
 public class ReduceRunner implements Runnable {
 	
 	private static Reducer reducer;
-	// Task Tracker RMI info
+	/** Task Tracker RMI info */
 	private Integer taskTrackerRegPort;
 	private String taskTrackServiceName;
 	
 	private int jobID;
-	// the partition number
+	/** the partition number */
 	private int partitionNo;
-	// nodes - > partitions
+	/** nodes - > partitions */
 	private HashMap<String, ArrayList<String>> nodesWithPartitions;
-	// the reduce class name
+	/** the reduce class name */
 	private String className;
-	// the written path for the reducing phrase
+	/** the written path for the reducing phrase */
 	private String reduceResultPath;
-	
+	/** mapper result temporary path */
+	private String mapResTemporaryPath;
+	/** output file name  */
+	private String outputFileName;
+	/** DFSClient object */
+	private DFSClient dfsClient;
 	
 	/**
 	 * The default constructor
@@ -55,7 +60,8 @@ public class ReduceRunner implements Runnable {
 	 * @param reduceResultPath
 	 */
 	public ReduceRunner (int jobID, int partitionNo, HashMap<String, ArrayList<String>> nodesWithPartitions, 
-			String className, RMIServiceInfo rmiServiceInfo, String reduceResultPath) {
+			String className, RMIServiceInfo rmiServiceInfo, 
+			String reduceResultPath, String mapResTemporaryPath,String outputFileName,DFSClient dfsClient) {
 		 
 		this.jobID = jobID;
 		this.partitionNo = partitionNo;
@@ -64,6 +70,9 @@ public class ReduceRunner implements Runnable {
 		this.taskTrackerRegPort = rmiServiceInfo.getTaskTrackerRegPort();
 		this.taskTrackServiceName = rmiServiceInfo.getTaskTrackServiceName();
 		this.reduceResultPath = reduceResultPath;
+		this.mapResTemporaryPath = mapResTemporaryPath;
+		this.outputFileName = outputFileName;
+		this.dfsClient = dfsClient;
 	}
 	
 	/***
@@ -86,10 +95,15 @@ public class ReduceRunner implements Runnable {
 					Registry registry = LocateRegistry.getRegistry(node, taskTrackerRegPort);
 					TaskTrackerInterface taskTracker = (TaskTrackerInterface) registry.lookup(taskTrackServiceName);
 					for (String path : nodesWithPartitions.get(node)) {
-						byte[] content = taskTracker.getPartitionContent(path);
-						String outputPath = path;
-						pathsForPartition.add(outputPath);
-						IOUtil.writeBinary(content, outputPath);
+						String[] pathArray = path.split("/");
+						String lastWord = pathArray[pathArray.length - 1];
+						String effectivePath = "partition" + partitionNo;
+						if(effectivePath.equals(lastWord)){
+							byte[] content = taskTracker.getPartitionContent(path);
+							String outputPath = mapResTemporaryPath + node + pathArray[3] + pathArray[4] + effectivePath;
+							pathsForPartition.add(outputPath);
+							IOUtil.writeBinary(content, outputPath);
+						}
 					}
 				} catch (RemoteException e) {
 					e.printStackTrace();
@@ -109,13 +123,13 @@ public class ReduceRunner implements Runnable {
 			OutputFormat outputFormat = new OutputFormat();
 			String formattedOutput = outputFormat.formatOutput(outputCollector);
 			byte[] outputForDFS = formattedOutput.getBytes("UTF-8");
-			String fileName = "job-" + jobID + "-output-" + partitionNo;
+			String fileName = "job-" + jobID + "-" + outputFileName + "-" + partitionNo;
 			String reduceFileName = reduceResultPath + fileName;
 			IOUtil.writeBinary(outputForDFS, reduceFileName);
 						
 			// step 5 : upload the output file into DFS !
-			DFSClient dfsClient = new DFSClient();
 			dfsClient.putFile(reduceFileName);
+			//TaskTracker.setDFSClientAvailable();
 			TaskTracker.updateReduceStatus(jobID, true);
 		} catch (ClassNotFoundException | InstantiationException |
 				IllegalAccessException | IOException | NoSuchMethodException | SecurityException

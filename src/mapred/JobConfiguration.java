@@ -15,16 +15,29 @@ public class JobConfiguration implements Serializable{
 
 	private static final long serialVersionUID = 3646892553272150095L;
 	/**
-	 * The configuration parameters including : Mapper class, Reducer class,
+	 * The configuration parameters : Mapper class
 	 * input file, output file, input Format and output Format
 	 */
 	private Class<?> mapperClass;
+	/**
+	 * The configuration parameters: Reducer class
+	 */
 	private Class<?> reducerClass;
-	
+	/**
+	 * The configuration parameters: inputfile
+	 */
 	private String inputfile;
+	/**
+	 * The configuration parameters: outputfile
+	 */
 	private String outputfile;
-	
+	/**
+	 * The configuration parameters: inputFormat
+	 */
 	private Class<?> inputFormat;
+	/**
+	 * The configuration parameters: outputFormat
+	 */
 	private Class<?> outputFormat;
 	
 	

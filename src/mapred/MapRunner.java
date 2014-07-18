@@ -26,27 +26,27 @@ import format.MapperOutputCollector;
 public class MapRunner implements Runnable{
 	private Mapper mapper;
 	private Integer jobID;
-	// the total number of chunks
-	private Integer numOfChunks;
+	/** the total number of chunks */
+	private Integer numOfChunks; 
 	private JobConfiguration jobConf;
-	// the chunks and the source nodes
+	/** the chunks and the source nodes */
 	private ArrayList<KVPair> pairLists;
 	private String classname;
-	// mapper number of this job on this node
+	/** mapper number of this job on this node */
 	private Integer mapperNum;
 	
 	private Integer dataNodeRegPort;
 	private String dataNodeService;
-	// the partition number which was set in the configuration file
+	/** the partition number which was set in the configuration file */
 	private Integer partitionNums;
-	// the path for the partition files
+	/** the path for the partition files */
 	private String partitionFilePath;
-	// the bean to wrap all the info about the RMI
+	/** the bean to wrap all the info about the RMI */
 	private RMIServiceInfo rmiServiceInfo;
-	// the try numbers
+	/** the try numbers */
 	private Integer tryNums;
 	
-	// the default constructor
+	/** the default constructor */
 	public MapRunner (Integer jobID, Integer numOfChunks, JobConfiguration jobConf,
 			ArrayList<KVPair> pairLists, String classname, Integer mapperNum, RMIServiceInfo rmiServiceInfo, Integer tryNums) {
 		
@@ -64,7 +64,6 @@ public class MapRunner implements Runnable{
 		this.rmiServiceInfo = rmiServiceInfo;
 		this.tryNums = tryNums;
 	}
-	
 	
 	/***
 	 * This method is used to implement the mapper process.
@@ -111,6 +110,7 @@ public class MapRunner implements Runnable{
 			// step5: notify task tracker to update task status
 			TaskTracker.updateFilePaths(jobID, filePaths);
 			TaskTracker.updateMapStatus(jobID, true);
+			
 		} catch (ClassNotFoundException | NoSuchMethodException | SecurityException 
 				| InstantiationException | IllegalAccessException 
 				| IllegalArgumentException | InvocationTargetException | NotBoundException | IOException e) {

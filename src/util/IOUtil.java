@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -13,7 +14,6 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 
 /**
- * 
  * This class is a utility class for DFS I/O. This class provide the following
  * several methods : writeFile(String s), readFile(String filename),
  * writeBinary(byte[] bytes), readBinary(String filename), writeObject(Object
@@ -114,6 +114,46 @@ public class IOUtil {
 			} catch (IOException e) {
 				throw new IOException(e.toString());
 			}
+		}
+	}
+	
+	/**
+	 * Append chunks into one file.
+	 * @param filePath String The path of file to be appended to.
+	 * @param content byte[] The content of chunks to be appended.
+	 * @throws IOException
+	 */
+	public static void appendBytesToFile(String filePath, byte[] content) throws IOException {
+		int index = filePath.length() - 1;
+		while(index >= 0 && filePath.charAt(index) != '/') {
+			index--;
+		}
+		String dir = filePath.substring(0, index);
+		
+		File fileDir = new File(dir);
+		if(!fileDir.exists()) {
+			System.out.println("create dir: " + dir);
+			fileDir.mkdirs();
+		}
+		
+		File file = new File(filePath);
+		if (!file.exists()) {
+			try {
+				file.createNewFile();
+			} catch (IOException e) {
+				throw new IOException(e.toString());
+			}
+		}
+		
+		try {
+			FileWriter out = null;
+			out = new FileWriter(file, true);
+			for (byte b : content)
+				out.append((char) b);
+			out.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw e;
 		}
 	}
 
@@ -360,6 +400,7 @@ public class IOUtil {
 			String tmp = null;
 			Long lastPointer = 0L;
 			split.add(0L);
+			System.out.println("Start scanning file...");
 			do {
 				tmp = raFile.readLine();
 				if (tmp != null) {

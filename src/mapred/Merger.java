@@ -27,7 +27,12 @@ import format.KVPair;
 *
 */
 public class Merger {
-	
+	/**
+	 * This method is used to merger the contents from 
+	 * different partitions into key-pair value
+	 * @param paths
+	 * @return ArrayList<KVPair>
+	 */
 	private static ArrayList<KVPair> mergeHelper (HashSet<String> paths) {
 		ArrayList<KVPair> res = new ArrayList<KVPair>();
 				
@@ -51,8 +56,8 @@ public class Merger {
 					if(curLine == null) {
 						break;
 					}
-					String key = curLine.split(" ")[0];
-					String value = curLine.split(" ")[1];
+					String key = curLine.split("\t")[0];
+					String value = curLine.split("\t")[1];
 					KVPair kv = new KVPair(key, value);
 					if(count.containsKey(kv)) {
 						count.put(kv, count.get(kv) + 1);
@@ -96,6 +101,11 @@ public class Merger {
 		
 	}
 	
+	/**
+	 * This method is used to combine the values
+	 * @param paths
+	 * @return ArrayList<KVPair> 
+	 */
 	public static ArrayList<KVPair> combineValues (HashSet<String> paths) {
 		
 		ArrayList<KVPair> res = new ArrayList<KVPair> ();

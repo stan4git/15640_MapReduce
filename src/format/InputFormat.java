@@ -23,7 +23,7 @@ public abstract class InputFormat {
 	/**
 	 * This method is used to wrap the content into KV pairs
 	 * and store into the List
-	 * @return
+	 * @return List<KVPair>
 	 */
 	public abstract List<KVPair> getKvPairs();
 }

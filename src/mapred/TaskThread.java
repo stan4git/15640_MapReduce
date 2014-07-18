@@ -20,22 +20,22 @@ import java.util.HashMap;
  *
  */
 public class TaskThread implements Runnable {
-	// current node
+	/** current node */
 	private String curNode;
 	private int jobID;
 	private JobConfiguration jobConf;
-	// chunk - > nodes
+	/** chunk - > nodes */
 	private HashMap<Integer,String> chunkSets;
 	private boolean isMapTask;
-	// the partition number
+	/** the partition number */
 	private int partitionNo;
-	// a table which indicates the nodes and partitions
+	/** a table which indicates the nodes and partitions */ 
 	private HashMap<String, ArrayList<String>> nodesWithPartitions;
-	// number of partitions
+	/** number of partitions */
 	private int numOfPartitions;
 	
 	private TaskTrackerInterface taskTracker;
-	// task tracker's registry port and service name
+	/** task tracker's registry port and service name */
 	private Integer taskTrackerRegPort;
 	private String taskTrackServiceName;
 	
@@ -69,7 +69,7 @@ public class TaskThread implements Runnable {
 				}
 			} else {
 				try {
-					JobTracker.handleReducerFailure(jobID, partitionNo);
+					JobTracker.handleReducerFailure(jobID, partitionNo, curNode);
 				} catch (RemoteException e1) {
 					e1.printStackTrace();
 				}

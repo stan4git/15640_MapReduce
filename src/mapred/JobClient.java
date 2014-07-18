@@ -27,19 +27,19 @@ import util.PathConfiguration;
  */
 public class JobClient {
 
-	// 1. JobTracker's host IP address
+	/** JobTracker's host IP address */
 	private static String jobTrackerIP;
-	// 2. JobTracker's registry port
+	/** 2. JobTracker's registry port */
 	private static Integer jobTrackerRegPort;
-	// 3. JobTracker registry service name
+	/** 3. JobTracker registry service name */
 	private static String jobTrackServiceName;
-	// 4. RMI's Registry instance
+	/** 4. RMI's Registry instance */
 	private static Registry registry;
-	// 5. Maximum failure times
+	/** 5. Maximum failure times */
 	private static Integer jobMaxFailureThreshold;
-	// 6. Job Id that get from JobTracker
+	/** 6. Job Id that get from JobTracker */
 	private static Integer jobId;
-	// 7. actual failure time
+	/** 7. actual failure time */
 	private static Integer failureTimes = 1;
 	
 	/**
@@ -96,17 +96,19 @@ public class JobClient {
 		// Monitoring
 		while(true) {
 			JobStatus status = jobtracker.checkJobStatus(jobId);
-			if(status.equals("SUCCESS")) {
+			System.out.println(status);
+			if(status == JobStatus.SUCCESS) {
+				System.out.println("Mapper: 100 %; Reducer: 100 %");
 				System.out.println("Your job has been executed successfully!");
 				System.out.println("Your jobId is "+jobId+" and your outputfile name is " + jobConf.getOutputfile());
-				System.out.println("The actual output format is [jobId]-[outputfilename]-part-[partitionNumber]");
+				System.out.println("The actual output format is job - [jobId]-[outputfilename]-[partitionNumber]_[chunkNum]");
 				jobtracker.terminateJob(jobId);
 				break;
-			} else if(status.equals("INPROGRESS")) {
+			} else if(status == JobStatus.INPROGRESS) {
 				double mapperPercentage = jobtracker.getMapperProgress(jobId);
 				double reducePercentage = jobtracker.getReducerProgress(jobId);
-				System.out.printf("Mapper: %fpercent; Reducer: %fpercent\n", mapperPercentage*100, reducePercentage*100);
-			} else if(status.equals("FAIL")) {
+				System.out.printf("Mapper: %.2f %%; Reducer: %.2f %% \n", mapperPercentage*100, reducePercentage*100);
+			} else if(status == JobStatus.FAIL) {
 				System.err.println("Job failed!");
 				// allow to try several times according to the programmer's setting
 				if(failureTimes < jobMaxFailureThreshold) {
@@ -123,9 +125,9 @@ public class JobClient {
 					break;
 				}
 			}
-			// Monitoring every 3 seconds
+			// Monitoring every 5 seconds
 			try {
-				Thread.sleep(3000);
+				Thread.sleep(5000);
 			} catch (InterruptedException e) {
 				System.err.println("Exception happened when monitoring!");
 				e.printStackTrace();

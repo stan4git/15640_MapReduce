@@ -5,6 +5,7 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 /**
  * This is a interface class of Task Tracker
  * 
@@ -53,4 +54,10 @@ public interface TaskTrackerInterface extends Remote {
 	 * @param jobID
 	 */
 	public void remove(int jobID) throws RemoteException;
+	
+	/***
+	 * This method is used to respond to JobTracker every 5 seconds
+	 * @return task status for each job 
+	 */
+	public ConcurrentHashMap<Integer, TaskStatusInfo>  heartBeat() throws RemoteException;
 }

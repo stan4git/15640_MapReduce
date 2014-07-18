@@ -16,13 +16,13 @@ import java.io.Serializable;
 public class TaskStatusInfo implements Serializable{
 
 	private static final long serialVersionUID = -58329058647737407L;
-	// total map tasks on the node of the specific job
+	/** total map tasks on the node of the specific job */
 	private int totalMapTasks;
-	// the unfinished map tasks on the node of the specific job
+	/** the unfinished map tasks on the node of the specific job */
 	private int unfinishedMapTasks;
-	// total reduce tasks on the node of the specific job
+	/** total reduce tasks on the node of the specific job */
 	private int totalReduceTasks;
-	// the unfinished reduce tasks on the node of the specific job
+	/** the unfinished reduce tasks on the node of the specific job */
 	private int unfinishedReduceTasks;
 	
 	public int getTotalMapTasks() {
@@ -49,7 +49,4 @@ public class TaskStatusInfo implements Serializable{
 	public void setUnfinishedReduceTasks(int unfinishedReduceTasks) {
 		this.unfinishedReduceTasks = unfinishedReduceTasks;
 	}
-	
-	
-
 }
