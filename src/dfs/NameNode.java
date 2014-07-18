@@ -89,7 +89,7 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 	}
 	
 	@Override
-	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(
+	public synchronized ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(
 			ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> failureList) throws RemoteException {
 		for (Entry<String, Hashtable<Integer, HashSet<String>>> fileTuple : failureList.entrySet()) {	
 			//get filename
@@ -120,14 +120,14 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 	}
 	
 	@Override
-	public ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(
+	public synchronized ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> generateChunkDistributionList(
 			String filename, int chunkAmount) throws RemoteException {
 		//check and update file status table to avoid duplicated file name
 		if (this.fileStatusTable.containsKey(filename)) {		
 			System.out.println("File name exist. Please try another.");
 			throw new RemoteException();
 		} else {
-			this.fileStatusTable.put(filename, FileStatus.INPROGRESS);		
+			fileStatusTable.put(filename, FileStatus.INPROGRESS);	
 		}
 		
 		//chunkDispatchTable is used to store the dispatch result for this file
@@ -175,7 +175,7 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 	 * @return String A data node selected.
 	 * @throws RemoteException
 	 */
-	public String pickMostAvailableSlotDataNode(HashSet<String> excludeList) throws RemoteException {
+	public synchronized String pickMostAvailableSlotDataNode(HashSet<String> excludeList) throws RemoteException {
 		String minLoadDataNode = null;
 		int mostAvailableSlots = Integer.MIN_VALUE;
 		for (Entry<String, Integer> dataNodeTuple : this.dataNodeAvailableSlotList.entrySet()) {
@@ -216,8 +216,13 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 
 	@Override
 	public void removeChunkFromFileDistributionTable(String filename, int chunkNum, String dataNodeIP) {
-		this.fileDistributionTable.get(filename).get(chunkNum).remove(dataNodeIP);
-		System.out.println("Chunk" + chunkNum + " of file \"" +filename + "\" on " + dataNodeIP + " has been removed from file distribution table...");
+		if (fileDistributionTable != null 
+				&& fileDistributionTable.containsKey(filename)
+				&& fileDistributionTable.get(filename).containsKey(chunkNum)) {
+			this.fileDistributionTable.get(filename).get(chunkNum).remove(dataNodeIP);
+			System.out.println("Chunk" + chunkNum + " of file \"" +filename + "\" on " 
+					+ dataNodeIP + " has been removed from file distribution table...");
+		}
 		return;
 	}
 

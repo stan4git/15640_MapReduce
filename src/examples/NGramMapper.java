@@ -21,14 +21,14 @@ public class NGramMapper implements Mapper {
 		TreeMap<String, Integer> combine = new TreeMap<String, Integer>();
 		for (int start = 0; start < split.length; start++) {
 			for (int n = 1; n <= 5; n++) {
-				if (n + start == split.length + 1) {
+				if (n + start > split.length) {
 					break;
 				}
 				
 				StringBuilder sb = new StringBuilder();
-				for (int count = 0; count < n; count++) {
-					sb.append(split[start + count]);
-					if (count != n - 1) {
+				for (int index = 0; index < n; index++) {
+					sb.append(split[start + index]);
+					if (index < n - 1) {
 						sb.append(" ");
 					}
 				}

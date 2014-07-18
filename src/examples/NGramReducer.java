@@ -6,7 +6,6 @@ import mapred.Reducer;
 import format.ReducerOutputCollector;
 
 public class NGramReducer implements Reducer {
-	private int result = 0;
 
 	@Override
 	public void reduce(String key, ArrayList<String> values,
@@ -15,7 +14,6 @@ public class NGramReducer implements Reducer {
 		for (String value : values) {
 			sum += Integer.parseInt(value);
 		}
-		result = sum;
-		outputCollector.add(key, result);
+		outputCollector.add(key, sum);
 	}
 }
