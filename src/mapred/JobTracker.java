@@ -162,6 +162,11 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			}
 			
 			System.out.println("choose node: " + node + " to run one or more Mapper tasks!");
+//			TaskThread mapTask = new TaskThread(node,jobID,jobConf,nodeToChunks.get(node),true,0,null,0,taskTrackerRegPort,taskTrackServiceName);
+//			executor.execute(mapTask);
+		}
+		
+		for (String node : nodeToChunks.keySet()) {
 			TaskThread mapTask = new TaskThread(node,jobID,jobConf,nodeToChunks.get(node),true,0,null,0,taskTrackerRegPort,taskTrackServiceName);
 			executor.execute(mapTask);
 		}
