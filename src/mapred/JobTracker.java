@@ -150,13 +150,13 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		// step 6: Send work to node 
 		for (String node : nodeToChunks.keySet()) {
 			if(jobID_node_taskStatus.get(jobID).get(node) == null) {
-				HashMap<String, TaskStatusInfo> taskNodeStatus = new HashMap<String, TaskStatusInfo>();
+				HashMap<String, TaskStatusInfo> taskNodeStatus = jobID_node_taskStatus.get(jobID);
 				taskNodeStatus.put(node, new TaskStatusInfo());
 				jobID_node_taskStatus.put(jobID, taskNodeStatus);
 			}
 			
 			if(jobID_nodes_partitionsPath.get(jobID).get(node) == null) {
-				HashMap<String, ArrayList<String>> nodes_partitionsPath = new HashMap<String, ArrayList<String>>();
+				HashMap<String, ArrayList<String>> nodes_partitionsPath = jobID_nodes_partitionsPath.get(jobID);
 				nodes_partitionsPath.put(node, new ArrayList<String>());
 				jobID_nodes_partitionsPath.put(jobID, nodes_partitionsPath);
 			}
@@ -198,13 +198,13 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			
 			for (String assignedNode : nodeToChunks.keySet()) {
 				if(jobID_node_taskStatus.get(jobID).get(assignedNode) == null) {
-					HashMap<String, TaskStatusInfo> taskNodeStatus = new HashMap<String, TaskStatusInfo>();
+					HashMap<String, TaskStatusInfo> taskNodeStatus = jobID_node_taskStatus.get(jobID);
 					taskNodeStatus.put(assignedNode, new TaskStatusInfo());
 					jobID_node_taskStatus.put(jobID, taskNodeStatus);
 				}
 				
 				if(jobID_nodes_partitionsPath.get(jobID).get(assignedNode) == null) {
-					HashMap<String, ArrayList<String>> nodes_partitionsPath = new HashMap<String, ArrayList<String>>();
+					HashMap<String, ArrayList<String>> nodes_partitionsPath = jobID_nodes_partitionsPath.get(jobID);
 					nodes_partitionsPath.put(assignedNode, new ArrayList<String>());
 					jobID_nodes_partitionsPath.put(jobID, nodes_partitionsPath);
 				}
