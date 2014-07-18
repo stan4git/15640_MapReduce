@@ -30,24 +30,24 @@ import util.IOUtil;
 public class ReduceRunner implements Runnable {
 	
 	private static Reducer reducer;
-	// Task Tracker RMI info
+	/** Task Tracker RMI info */
 	private Integer taskTrackerRegPort;
 	private String taskTrackServiceName;
 	
 	private int jobID;
-	// the partition number
+	/** the partition number */
 	private int partitionNo;
-	// nodes - > partitions
+	/** nodes - > partitions */
 	private HashMap<String, ArrayList<String>> nodesWithPartitions;
-	// the reduce class name
+	/** the reduce class name */
 	private String className;
-	// the written path for the reducing phrase
+	/** the written path for the reducing phrase */
 	private String reduceResultPath;
-	// mapper result temporary path
+	/** mapper result temporary path */
 	private String mapResTemporaryPath;
-	// output file name 
+	/** output file name  */
 	private String outputFileName;
-	// DFSClient object
+	/** DFSClient object */
 	private DFSClient dfsClient;
 	
 	/**

@@ -17,14 +17,14 @@ import java.io.Serializable;
 public class RMIServiceInfo implements Serializable{
 
 	private static final long serialVersionUID = -6852568401367174398L;
-	// datanode's registry port and service name
+	/** datanode's registry port and service name */
 	private Integer dataNodeRegPort;
 	private String dataNodeService;
-	// partition number
+	/** partition number */
 	private Integer partitionNums;
-	// partition file path
+	/** partition file path */
 	private String partitionFilePath;
-	// task node's registry port and service name
+	/** task node's registry port and service name */
 	private Integer taskTrackerRegPort;
 	private String taskTrackServiceName;
 	

@@ -29,18 +29,18 @@ public class JobScheduler {
 
 	private static NameNodeInterface nameNode = null;
 
-	 //The maximum task numbers including mapper and reducer per node
+	 /** The maximum task numbers including mapper and reducer per node */
 	private static Integer maxTaskPerNode;
-	// the weight of local nodes and global nodes
+	/** the weight of local nodes and global nodes */
 	private static Double localWeight;
 	private static Double globalWeight;
 
-	/* These 3 contains NameNode's registry IP,registry port and service name */
+	/** These 3 contains NameNode's registry IP,registry port and service name */
 	private static String nameNodeIP;
 	private static Integer nameNodeRegPort;
 	private static String nameNodeService;
 
-	// default constructor
+	/** default constructor */
 	public JobScheduler(String nameNodeIPVal,Integer nameNodeRegPortVal,String nameNodeServiceVal,
 			Integer maxTaskPerNodeVal,Double localWeightVal,Double globalWeightVal) {
 		nameNodeIP = nameNodeIPVal;

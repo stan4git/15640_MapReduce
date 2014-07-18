@@ -41,66 +41,66 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	private static JobScheduler jobScheduler = null;
 	private static NameNodeInterface nameNode = null;
 	
-	// These 3 contains JobTracker's registry IP,registry port, service port and service name
+	/** These 3 contains JobTracker's registry IP,registry port, service port and service name*/
 	private static Integer jobTrackerPort;
 	private static Integer jobTrackerRegPort;
 	private static String jobTrackServiceName;
 	
-	// The maximum task numbers including mapper and reducer per node
+	/** The maximum task numbers including mapper and reducer per node */
 	private static Integer maxTaskPerNode;
 	// the weight of local nodes and global nodes
 	private static Double localWeight;
 	private static Double globalWeight;
 	
-	// These 3 contains NameNode's registry IP,registry port and service name
+	/** These 3 contains NameNode's registry IP,registry port and service name */
 	private static String nameNodeIP;
 	private static Integer nameNodeRegPort;
 	private static String nameNodeService;
 	
-	// These 2 contains TaksTracker's registry port and service name
+	/** These 2 contains TaksTracker's registry port and service name */
 	private static Integer taskTrackerRegPort;
 	private static String taskTrackServiceName;
 	
-	// The path for uploading the programmer's Mapper and Reducer
+	/** The path for uploading the programmer's Mapper and Reducer */
 	private static String jobUploadPath;
 	
-	// The number of partitions	
+	/** The number of partitions */
 	private static Integer partitionNums;
 	
-	// Create a thread pool
+	/** Create a thread pool */
 	private static ExecutorService executor = Executors.newCachedThreadPool();
 	
-	// Global Job ID
+	/** Global Job ID */
 	private static volatile Integer globaljobID = 0;
 	
-	// jobID -> All map tasks, jobID -> unfinished Map Tasks
-	// jobID -> All reduce Tasks, jobID -> unfinished reduce tasks
+	/** jobID -> All map tasks, jobID -> unfinished Map Tasks
+	 jobID -> All reduce Tasks, jobID -> unfinished reduce tasks */
 	public static ConcurrentHashMap<Integer, HashMap<String, TaskStatusInfo>> jobID_node_taskStatus = new ConcurrentHashMap<Integer, HashMap<String, TaskStatusInfo>>();
 	
-	// node -> status
+	/** node -> status */
 	public static HashMap<String, Boolean> node_status;
 	
-	// Each node contains total tasks
+	/** Each node contains total tasks */
 	public static ConcurrentHashMap<String, Integer> node_totalTasks = new ConcurrentHashMap<String, Integer>();
 	
-	// <jobID,<Do Job Node,<ChunkID,Chunk host Node>>>
+	/** <jobID,<Do Job Node,<ChunkID,Chunk host Node>>> */
 	public static ConcurrentHashMap<Integer, HashMap<String, HashMap<Integer, String>>> jobID_mapTasks = new ConcurrentHashMap<Integer, HashMap<String, HashMap<Integer, String>>>();
 	
-	// <jobID,<nodes with partition files, paths>>
+	/** <jobID,<nodes with partition files, paths>> */
 	public static ConcurrentHashMap<Integer, HashMap<String, ArrayList<String>>> jobID_nodes_partitionsPath = new ConcurrentHashMap<Integer, HashMap<String, ArrayList<String>>>();
 	
-	// jobID - > MapReduce Name and MapReduce Path
+	/** jobID - > MapReduce Name and MapReduce Path */
 	public static ConcurrentHashMap<Integer, KVPair> jobID_mapRedName = new ConcurrentHashMap<Integer, KVPair>();
 	public static ConcurrentHashMap<Integer, KVPair> jobID_mapRedPath = new ConcurrentHashMap<Integer, KVPair>();
-	// job's status
+	/** job's status */
 	public static ConcurrentHashMap<Integer, JobStatus> jobID_status = new ConcurrentHashMap<Integer, JobStatus>();
-	// jobId - > JobConfiguration Instance
+	/** jobId - > JobConfiguration Instance */
 	public static ConcurrentHashMap<Integer, JobConfiguration> jobID_configuration = new ConcurrentHashMap<Integer, JobConfiguration>();
-	// jobId - > map Failure times
+	/** jobId - > map Failure times */
 	public static ConcurrentHashMap<Integer, Integer> jobID_mapFailureTimes = new ConcurrentHashMap<Integer, Integer>();
-	// jobId - > reduce Failure times
+	/** jobId - > reduce Failure times */
 	public static ConcurrentHashMap<Integer, Integer> jobID_reduceFailureTimes = new ConcurrentHashMap<Integer, Integer>();
-	// The maximum failure tiems for each job
+	/** The maximum failure tiems for each job */
 	public static Integer jobMaxFailureThreshold;
 	
 	protected JobTracker() throws RemoteException {
@@ -168,11 +168,17 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		return jobID.toString();
 	}
 	
+	/**
+	 * set the node's status to unhealthy
+	 * redistribute the chunks on this node
+	 * update the distribution table
+	 * start a new TaskThread.
+	 * @param jobID
+	 * @param node
+	 * @param chunks
+	 * @throws RemoteException
+	 */
 	public static void handleMapperFailure (int jobID, String node, Set<Integer> chunks) throws RemoteException {
-		// step1: set the node's status to unhealthy
-		// step2: redistribute the chunks on this node
-		// setp3: update the distribution table
-		// step4: start a new TaskThread.
 		
 		nameNode.setNodeStatus(node,NodeStatus.DEAD);
 		
@@ -222,11 +228,17 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		return jobID_configuration.get(jobID).getOutputfile();
 	}
 	
+	/**
+	 * set the node's status to unhealthy
+	 * redistribute the chunks on this node
+	 * update the distribution table
+	 * start a new TaskThread 
+	 * @param jobID
+	 * @param partitionNo
+	 * @param node
+	 * @throws RemoteException
+	 */
 	public static void handleReducerFailure (int jobID, int partitionNo, String node) throws RemoteException {
-		// step1: set the node's status to unhealthy
-		// step2: redistribute the chunks on this node
-		// setp3: update the distribution table
-		// step4: start a new TaskThread.
 		
 		nameNode.setNodeStatus(node,NodeStatus.DEAD);
 		
@@ -442,6 +454,9 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		node_totalTasks.put(node, unfinishedMapTasks + unfinishedReduceTasks);
 	}
 	
+	/**
+	 * This method is used to transmit the HeartBeat
+	 */
 	private void transmitHeartBeat() {
 		//System.out.println("Sending task progress to JobTracker...");
 		Registry reigstry;
@@ -488,6 +503,9 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		}
 	}
 	
+	/**
+	 * This method is a heartBeat timer
+	 */
 	public void heartBeatTimer () {
 		TimerTask timerTask = new TimerTask() {
 

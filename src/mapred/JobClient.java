@@ -27,19 +27,19 @@ import util.PathConfiguration;
  */
 public class JobClient {
 
-	// 1. JobTracker's host IP address
+	/** JobTracker's host IP address */
 	private static String jobTrackerIP;
-	// 2. JobTracker's registry port
+	/** 2. JobTracker's registry port */
 	private static Integer jobTrackerRegPort;
-	// 3. JobTracker registry service name
+	/** 3. JobTracker registry service name */
 	private static String jobTrackServiceName;
-	// 4. RMI's Registry instance
+	/** 4. RMI's Registry instance */
 	private static Registry registry;
-	// 5. Maximum failure times
+	/** 5. Maximum failure times */
 	private static Integer jobMaxFailureThreshold;
-	// 6. Job Id that get from JobTracker
+	/** 6. Job Id that get from JobTracker */
 	private static Integer jobId;
-	// 7. actual failure time
+	/** 7. actual failure time */
 	private static Integer failureTimes = 1;
 	
 	/**
