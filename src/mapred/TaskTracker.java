@@ -12,8 +12,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
-import java.util.LinkedList;
-import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -97,7 +95,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	private static String node;
 	
 	//private static Queue<TaskInfo> mapTaskQueue = new LinkedList<TaskInfo>();
-	private static Queue<TaskInfo> reduceTaskQueue = new LinkedList<TaskInfo>();
+	//private static Queue<TaskInfo> reduceTaskQueue = new LinkedList<TaskInfo>();
 
 	// default constructor
 	protected TaskTracker() throws RemoteException {
