@@ -312,8 +312,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 		if (isSuccessful) {
 			TaskStatusInfo taskStatusInfo = TaskTracker.jobID_taskStatus
 					.get(jobID);
-			int curUnfinishedReduceTasks = taskStatusInfo
-					.getUnfinishedReduceTasks() - 1;
+			int curUnfinishedReduceTasks = taskStatusInfo.getUnfinishedReduceTasks() - 1;
 			taskStatusInfo.setUnfinishedReduceTasks(curUnfinishedReduceTasks);
 			TaskTracker.jobID_taskStatus.put(jobID, taskStatusInfo);
 

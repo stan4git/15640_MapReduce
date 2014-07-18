@@ -399,7 +399,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	
 	
 	@Override
-	public synchronized void notifyMapperFinish (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus, 
+	public void notifyMapperFinish (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus, 
 			ConcurrentHashMap<Integer, ArrayList<String>> jobID_parFilePath, int jobID) throws RemoteException {
 		
 		int unfinishedMapTasks = 0;
@@ -433,7 +433,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	}
 	
 	@Override
-	public synchronized void notifyReducerFinish (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus) {
+	public void notifyReducerFinish (String node, ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus) {
 		int unfinishedMapTasks = 0;
 		int unfinishedReduceTasks = 0;
 		
