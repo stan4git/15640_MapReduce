@@ -299,7 +299,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 			TaskTracker.jobID_taskStatus.put(jobID, taskStatusInfo);
 
 			if (taskStatusInfo.getTotalMapTasks()!= 0 && curUnfinishedMapTasks == 0) {
-				System.out.println("Host IP is: " + node + "has finished the JobID " + jobID + " 's mapper work, invoke the NotifyMapperFinsh method!");
+				System.out.println("Host IP is: " + node + " has finished the JobID " + jobID + "'s mapper work, will invoke the NotifyMapperFinsh method!");
 				jobTracker.notifyMapperFinish(node, jobID_taskStatus,jobID_parFilePath, jobID);
 			}
 		}
