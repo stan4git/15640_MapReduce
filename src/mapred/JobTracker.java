@@ -499,10 +499,6 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 							.getUnfinishedMapTasks();
 					unfinishedReduceTasks += taskStatusInfo
 							.getUnfinishedReduceTasks();
-
-					// if(isReducerJobFinished(jobID)) {
-					// terminateJob(jobID);
-					// }
 				}
 
 				node_totalTasks.put(node, unfinishedMapTasks

@@ -109,6 +109,7 @@ public class MapRunner implements Runnable{
 			}
 			// step5: notify task tracker to update task status
 			TaskTracker.updateFilePaths(jobID, filePaths);
+			System.out.println("JobID " + jobID + " , mapper number " + mapperNum + " and mapper name " + classname + " has finished!");
 			TaskTracker.updateMapStatus(jobID, true);
 			
 		} catch (ClassNotFoundException | NoSuchMethodException | SecurityException 
