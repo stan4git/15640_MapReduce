@@ -434,7 +434,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			
 			// step2: if the whole mapper process has finished, start reduce phase.
 			if(isMapperJobFinished(jobId) && !reduceWorkBeginning.get(jobId)) {
-				reduceWorkBeginning.put(jobID, true);
+				reduceWorkBeginning.put(jobId, true);
 				startReducePhase(jobId);
 			}
 		}
