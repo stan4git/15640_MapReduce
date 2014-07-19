@@ -11,7 +11,7 @@ public class WordCount {
 	public static void main(String[] args) {
 		JobConfiguration conf = new JobConfiguration();
 		conf.setInputfile("pg_01");
-		conf.setOutputfile("output");
+		conf.setOutputfile("WordCountOutput");
 		conf.setInputFormat(WordFormat.class);
 		conf.setOutputFormat(OutputFormat.class);
 		conf.setMapperClass(WordCountMapper.class);
