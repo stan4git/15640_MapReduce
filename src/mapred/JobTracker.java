@@ -184,7 +184,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	 * @param chunks
 	 * @throws RemoteException
 	 */
-	public static void handleMapperFailure (int jobID, String node, Set<Integer> chunks) throws RemoteException {
+	public synchronized static void handleMapperFailure (int jobID, String node, Set<Integer> chunks) throws RemoteException {
 		
 		nameNode.setNodeStatus(node,NodeStatus.DEAD);
 		
@@ -248,7 +248,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	 * @param node
 	 * @throws RemoteException
 	 */
-	public static void handleReducerFailure (int jobID, int partitionNo, String node) throws RemoteException {
+	public synchronized static void handleReducerFailure (int jobID, int partitionNo, String node) throws RemoteException {
 		
 		nameNode.setNodeStatus(node,NodeStatus.DEAD);
 		
@@ -561,7 +561,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	
 
 	@Override
-	public void updateJobStatus(Integer jobId, JobStatus jobStatus) {
+	public synchronized void updateJobStatus(Integer jobId, JobStatus jobStatus) {
 		jobID_status.put(jobId, jobStatus);
 	}
 	
@@ -595,7 +595,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	}
 
 	@Override
-	public void registerTaskTracker(String taskTrackerIP)
+	public synchronized void registerTaskTracker(String taskTrackerIP)
 			throws RemoteException {
 		node_totalTasks.put(taskTrackerIP,0);
 	}

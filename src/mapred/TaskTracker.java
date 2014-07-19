@@ -99,7 +99,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	}
 
 	@Override
-	public void registerMapperTask(int jobID, JobConfiguration jobConf,
+	public synchronized void registerMapperTask(int jobID, JobConfiguration jobConf,
 			HashMap<Integer, String> chunkSets) throws RemoteException {
 		System.out.println("This node need to handle the chunk number is: "
 				+ chunkSets.size());
@@ -204,7 +204,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	}
 
 	@Override
-	public void registerReduceTask(int jobID, int partitionNo,
+	public synchronized void registerReduceTask(int jobID, int partitionNo,
 			HashMap<String, ArrayList<String>> nodesWithPartitions,
 			int numOfPartitions) throws RemoteException {
 		// step1: Update task status
@@ -373,7 +373,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	 * @param tryNums
 	 * @throws RemoteException
 	 */
-	public static void handleDataNodeFailure(Integer jobID,
+	public synchronized static void handleDataNodeFailure(Integer jobID,
 			Integer numOfChunks, JobConfiguration jobConf,
 			ArrayList<KVPair> pairLists, String classname, Integer mapperNum,
 			RMIServiceInfo rmiServiceInfo, int tryNums) throws RemoteException {
@@ -419,7 +419,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	 * 
 	 * @param jobID
 	 */
-	public static void handleMapperNodeFailure(int jobID) {
+	public synchronized static void handleMapperNodeFailure(int jobID) {
 		try {
 			jobTracker.terminateJob(jobID);
 		} catch (RemoteException e) {
