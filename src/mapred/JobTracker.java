@@ -430,8 +430,10 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			unfinishedMapTasks += taskStatusInfo.getUnfinishedMapTasks();
 			unfinishedReduceTasks += taskStatusInfo.getUnfinishedReduceTasks();
 
+			System.err.println(reduceWorkBeginning.toString());
+			
 			// step2: if the whole mapper process has finished, start reduce phase.
-			if(isMapperJobFinished(jobId) && !reduceWorkBeginning.get(jobID)) {
+			if(isMapperJobFinished(jobId) && !reduceWorkBeginning.get(jobId)) {
 				reduceWorkBeginning.put(jobID, true);
 				startReducePhase(jobId);
 			}
