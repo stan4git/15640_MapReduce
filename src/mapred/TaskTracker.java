@@ -289,7 +289,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	 * @param isSuccessful
 	 * @throws RemoteException
 	 */
-	public static void updateMapStatus(Integer jobID, boolean isSuccessful)
+	public synchronized static void updateMapStatus(Integer jobID, boolean isSuccessful)
 			throws RemoteException {
 		if (isSuccessful) {
 			TaskStatusInfo taskStatusInfo = TaskTracker.jobID_taskStatus
@@ -311,7 +311,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	 * @param jobID
 	 * @param isSuccessful
 	 */
-	public static void updateReduceStatus(Integer jobID, boolean isSuccessful) {
+	public synchronized static void updateReduceStatus(Integer jobID, boolean isSuccessful) {
 		if (isSuccessful) {
 			TaskStatusInfo taskStatusInfo = TaskTracker.jobID_taskStatus
 					.get(jobID);
@@ -336,7 +336,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	 * @param jobID
 	 * @param filePaths
 	 */
-	public static void updateFilePaths(Integer jobID,
+	public synchronized static void updateFilePaths(Integer jobID,
 			ArrayList<String> filePaths) {
 		ArrayList<String> parFilePath = null;
 		if (!jobID_parFilePath.containsKey(jobID)) {
