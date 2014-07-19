@@ -138,7 +138,9 @@ public class TaskTracker extends UnicastRemoteObject implements
 		taskStatusInfo.setUnfinishedMapTasks(taskStatusInfo
 				.getUnfinishedMapTasks() + mapNums);
 		jobID_taskStatus.put(jobID, taskStatusInfo);
-
+//		
+//		System.err.println("************** jobID = " + jobID + temp + jobID_taskStatus.get(jobID).getTotalMapTasks() + 
+//				jobID_taskStatus.get(jobID).getUnfinishedMapTasks() + "***************");
 		// step3: download the Mapper class from the jobTracker
 		try {
 			localizeMapTask(jobID);
@@ -296,7 +298,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 			taskStatusInfo.setUnfinishedMapTasks(curUnfinishedMapTasks);
 			TaskTracker.jobID_taskStatus.put(jobID, taskStatusInfo);
 
-			if (curUnfinishedMapTasks == 0) {
+			if (taskStatusInfo.getTotalMapTasks()!= 0 && curUnfinishedMapTasks == 0) {
 				jobTracker.notifyMapperFinish(node, jobID_taskStatus,jobID_parFilePath, jobID);
 			}
 		}
@@ -427,9 +429,9 @@ public class TaskTracker extends UnicastRemoteObject implements
 	 * This method is used to clear some info when some job is down
 	 */
 	public void remove(int jobID) {
-		jobID_parFilePath.remove(jobID);
-		jobID_taskStatus.remove(jobID);
-		jobID_node_mapID.remove(jobID);
+//		jobID_parFilePath.remove(jobID);
+//		//jobID_taskStatus.remove(jobID);
+//		jobID_node_mapID.remove(jobID);
 	}
 
 	public static void main(String args[]) throws IOException {

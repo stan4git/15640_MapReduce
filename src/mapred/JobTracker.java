@@ -102,6 +102,8 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	public static ConcurrentHashMap<Integer, Integer> jobID_reduceFailureTimes = new ConcurrentHashMap<Integer, Integer>();
 	/** The maximum failure tiems for each job */
 	public static Integer jobMaxFailureThreshold;
+	/** This table is used to record which JobID has started the reduce work */
+	public static ConcurrentHashMap<Integer, Boolean> reduceWorkBeginning = new ConcurrentHashMap<Integer, Boolean>();
 	
 	protected JobTracker() throws RemoteException {
 		super();
@@ -146,6 +148,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		jobID_node_taskStatus.put(jobID, new HashMap<String, TaskStatusInfo>());
 		jobID_nodes_partitionsPath.put(jobID, new HashMap<String, ArrayList<String>>());
 		jobID_configuration.put(jobID, jobConf);
+		reduceWorkBeginning.put(jobID, false);
 		
 		// step 6: Send work to node 
 		for (String node : nodeToChunks.keySet()) {
@@ -162,8 +165,6 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			}
 			
 			System.out.println("choose node: " + node + " to run one or more Mapper tasks!");
-//			TaskThread mapTask = new TaskThread(node,jobID,jobConf,nodeToChunks.get(node),true,0,null,0,taskTrackerRegPort,taskTrackServiceName);
-//			executor.execute(mapTask);
 		}
 		
 		for (String node : nodeToChunks.keySet()) {
@@ -215,8 +216,6 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 				}
 				
 				System.out.println("choose node: " + assignedNode + " to run one or more Mapper tasks!");
-//				TaskThread mapTask = new TaskThread(assignedNode,jobID,jobID_configuration.get(jobID),nodeToChunks.get(assignedNode),true,0,null,0,taskTrackerRegPort,taskTrackServiceName);
-//				executor.execute(mapTask);
 			}
 			
 			for (String assignedNode : nodeToChunks.keySet()) {
@@ -269,7 +268,6 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			}
 			TaskThread reduceTask = new TaskThread(chosenReduceNodes.get(0), jobID, null, null, false, partitionNo, nodes_partitionsPath, partitionNums,taskTrackerRegPort,taskTrackServiceName);	
 			executor.execute(reduceTask);
-			
 			jobID_mapFailureTimes.put(jobID, failureTimes + 1);
 		} else {
 			jobID_status.put(jobID, JobStatus.FAIL);
@@ -311,7 +309,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	
 	@Override
 	public void startReducePhase (int jobID) throws RemoteException {
-		System.out.println("Start reduce job !!");
+		System.out.println("Start jobID's "+ jobID +" reduce job !!");
 		int numOfPartitions = partitionNums;
 		ArrayList<String> chosenReduceNodes = jobScheduler.pickBestNodesForReduce(numOfPartitions);
 		HashMap<String, ArrayList<String>> nodes_partitionsPath = jobID_nodes_partitionsPath.get(jobID);
@@ -343,31 +341,30 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	@Override
 	public void terminateJob(int jobID) {
 		
-		if(!jobID_node_taskStatus.containsKey(jobID)) {
-			return;
-		}
-		
-		for (String node : jobID_node_taskStatus.get(jobID).keySet()) {
-			try {
-				Registry registry = LocateRegistry.getRegistry(node, taskTrackerRegPort);
-				TaskTrackerInterface taskTracker = (TaskTrackerInterface) registry.lookup(taskTrackServiceName);
-				taskTracker.remove(jobID);
-			} catch (RemoteException e) {
-				e.printStackTrace();
-			} catch (NotBoundException e) {
-				e.printStackTrace();
-			} 
-		}			
-		
-
-		jobID_node_taskStatus.remove(jobID);
-		jobID_mapTasks.remove(jobID);
-		jobID_mapRedName.remove(jobID);
-		jobID_mapRedPath.remove(jobID);
-		jobID_mapFailureTimes.remove(jobID);
-		jobID_reduceFailureTimes.remove(jobID);
-		jobID_configuration.remove(jobID);
-		jobID_status.remove(jobID);
+//		if(!jobID_node_taskStatus.containsKey(jobID)) {
+//			return;
+//		}
+////		
+////		for (String node : jobID_node_taskStatus.get(jobID).keySet()) {
+////			try {
+////				Registry registry = LocateRegistry.getRegistry(node, taskTrackerRegPort);
+////				TaskTrackerInterface taskTracker = (TaskTrackerInterface) registry.lookup(taskTrackServiceName);
+////				taskTracker.remove(jobID);
+////			} catch (RemoteException e) {
+////				e.printStackTrace();
+////			} catch (NotBoundException e) {
+////				e.printStackTrace();
+////			} 
+////		}			
+//
+//		jobID_node_taskStatus.remove(jobID);
+//		jobID_mapTasks.remove(jobID);
+//		jobID_mapRedName.remove(jobID);
+//		jobID_mapRedPath.remove(jobID);
+//		jobID_mapFailureTimes.remove(jobID);
+//		jobID_reduceFailureTimes.remove(jobID);
+//		jobID_configuration.remove(jobID);
+//		jobID_status.remove(jobID);
 	}
 
 	@Override
@@ -434,7 +431,8 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			unfinishedReduceTasks += taskStatusInfo.getUnfinishedReduceTasks();
 
 			// step2: if the whole mapper process has finished, start reduce phase.
-			if(isMapperJobFinished(jobId)) {
+			if(isMapperJobFinished(jobId) && !reduceWorkBeginning.get(jobID)) {
+				reduceWorkBeginning.put(jobID, true);
 				startReducePhase(jobId);
 			}
 		}
@@ -455,6 +453,9 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			unfinishedMapTasks += taskStatusInfo.getUnfinishedMapTasks();
 			unfinishedReduceTasks += taskStatusInfo.getUnfinishedReduceTasks();
 			
+			if(jobID_status.get(jobID) != null && jobID_status.get(jobID).equals(JobStatus.SUCCESS)) {
+				continue;
+			}
 			if(isReducerJobFinished(jobID)) {
 				jobID_status.put(jobID, JobStatus.SUCCESS);
 				System.out.println("The Job which ID: " + jobID + " has been excuted successfully!");
@@ -553,7 +554,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		HashMap<String,TaskStatusInfo> node_status = jobID_node_taskStatus.get(jobID);
 		for(String nodeIP : node_status.keySet()) {
 			TaskStatusInfo taskStatusInfo = node_status.get(nodeIP);
-			if(taskStatusInfo.getUnfinishedReduceTasks() != 0) {
+			if(taskStatusInfo.getTotalReduceTasks() == 0 || taskStatusInfo.getUnfinishedReduceTasks() != 0) {
 				return false;
 			}
 		}

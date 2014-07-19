@@ -107,7 +107,7 @@ public class JobClient {
 			} else if(status == JobStatus.INPROGRESS) {
 				double mapperPercentage = jobtracker.getMapperProgress(jobId);
 				double reducePercentage = jobtracker.getReducerProgress(jobId);
-				if(new Double(mapperPercentage).equals(new Double(100)) && new Double(reducePercentage).equals(new Double(100))) {
+				if(new Double(mapperPercentage).equals(new Double(1)) && new Double(reducePercentage).equals(new Double(1))) {
 					System.out.println("Right now, the system is uploading the final files.......");
 				} else {
 					System.out.printf("Mapper: %.2f %%; Reducer: %.2f %% \n", mapperPercentage*100, reducePercentage*100);
