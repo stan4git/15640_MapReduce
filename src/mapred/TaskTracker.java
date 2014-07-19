@@ -320,7 +320,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 
 			if (taskStatusInfo.getTotalReduceTasks() != 0 && curUnfinishedReduceTasks == 0) {
 				try {
-					System.out.println("The node : " + node + " has finished the JobID's reduce work!");
+					System.out.println("The node : " + node + " has finished the JobID's " + jobID + " reduce work!");
 					jobTracker.notifyReducerFinish(node, jobID_taskStatus);
 				} catch (RemoteException e) {
 					e.printStackTrace();
