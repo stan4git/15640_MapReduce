@@ -22,17 +22,29 @@ import util.PathConfiguration;
 public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 
 	private static final long serialVersionUID = 455874693232909953L;
+	/**NameNode registry service port, read from dfs.conf*/
 	private static Integer nameNodeRegPort;
+	/**NameNode RMI service name, read from dfs.conf*/
 	private static String nameNodeService;
+	/**Number of replicas to have for each chunk, read from dfs.conf*/
 	private Integer replicaNum;
-	private static Registry nameNodeRegistry;
+	/**RMI service port of NameNode, read from dfs.conf*/
 	private static Integer nameNodePort;
+	/**Registry service of NameNode. Created during initialization.*/
+	private static Registry nameNodeRegistry;
+	/**A table that maintains available slots number on each DataNode.*/
 	private ConcurrentHashMap<String, Integer> dataNodeAvailableSlotList = new ConcurrentHashMap<String, Integer>();
+	/**A table that maintains status of each DataNode.*/
 	private ConcurrentHashMap<String, NodeStatus> dataNodeStatusList = new ConcurrentHashMap<String, NodeStatus>();
+	/**A table that maintains status of files on DFS.*/
 	private ConcurrentHashMap<String, FileStatus> fileStatusTable = new ConcurrentHashMap<String, FileStatus>();
+	/**A table that maintains distribution of file chunks on each DataNode.*/
 	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> fileDistributionTable = new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
+	/**A table that maintains file chunks on each DataNode.*/
 	private ConcurrentHashMap<String, Hashtable<String, HashSet<Integer>>> filesChunkOnNodesTable = new ConcurrentHashMap<String, Hashtable<String, HashSet<Integer>>>();
+	/**A table that maintains all the file chunks that are not confirmed delivered.*/
 	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> processingFileDistributionTable = new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
+	/**A flag used to shut down this NameNode.*/
 	private static boolean isRunning;
 
 	protected NameNode() throws RemoteException {

@@ -16,12 +16,19 @@ import util.*;
  * This is a monitor thread that updates status of all data nodes connected to name node.
  */
 public class NodeMonitor implements Runnable {
+	/**The master thread of NameNode. Passed when initializing this class.*/
 	private NameNode nameNodeInstance;
+	/**A flag used for shutting down this thread.*/
 	private boolean isRunning;
+	/**Connection cache pool for DataNodes.*/
 	private ConcurrentHashMap<String, DataNodeInterface> dataNodeServiceList;
+	/**Registry service port of DataNode, read from dfs.conf.*/
 	private int dataNodeRegPort;
+	/**RMI service name of DataNode, read from dfs.conf.*/
 	private String dataNodeService;
+	/**Heart beat threshold to determine a node is dead, read from dfs.conf.*/
 	private int heartbeatCheckThreshold;
+	/**Heart beat interval for DataNodes, read from dfs.conf.*/
 	private int heartbeatInterval;
 	
 	

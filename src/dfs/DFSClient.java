@@ -31,22 +31,37 @@ import util.StringHandling;
  */
 public class DFSClient extends UnicastRemoteObject implements DFSClientInterface {
 	private static final long serialVersionUID = -7835407889702758301L;
+	
+	/**DFSClient registry service port, read from dfs.conf*/
 	private int clientRegPort;
+	/**DFSClient RMI service port, read from dfs.conf*/
 	private int clientPort;
+	/**DFSClient RMI service name, read from dfs.conf*/
 	private String clientServiceName;
-	private int maxChunkSize;
-	private String nameNodeIP;
-	private int nameNodeRegPort;
-	private String nameNodeService;
-	private int dataNodeRegPort;
+	/**Maximum chunk slot in each DataNode, read from dfs.conf*/
+	private Integer dataNodeRegPort;
+	/**DataNOde RMI service name, read from dfs.conf*/
 	private String dataNodeService;
+	/**NameNode IP address, read from dfs.conf*/
+	private String nameNodeIP;
+	/**NameNode registry service port, read from dfs.conf*/
+	private Integer nameNodeRegPort;
+	/**NameNode RMI service name, read from dfs.conf*/
+	private String nameNodeService;
+	/**Maximum size of each chunk, read from dfs.conf*/
+	private int maxChunkSize;
+	/**Retry threshold for transferring chunks, read from dfs.conf*/
 	private int chunkTranferRetryThreshold;
+	/**Timeout threshold for DataNode's acknowledge, read from dfs.conf*/
 	private int ackTimeout;
+	/**NameNode RMI service remote object, created when initializing DataNode.*/
 	private Registry nameNodeRegistry;
+	/**RMI stub object. Cached once created.*/
 	private NameNodeInterface nameNode;
+	/**Connection cache pool of RMI services to DataNodes.*/
 	private ConcurrentHashMap<String, DataNodeInterface> dataNodeServiceList = new ConcurrentHashMap<String, DataNodeInterface>();
+	/**List of files, chunks and DataNode information to be dispatch that fetches from NameNode.*/
 	private ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>> dispatchList = new ConcurrentHashMap<String, Hashtable<Integer, HashSet<String>>>();
-	//private Registry clientRegistry;
 	
 	
 	public static void main(String[] args) {

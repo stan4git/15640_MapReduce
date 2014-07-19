@@ -24,25 +24,41 @@ import util.PathConfiguration;
 public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 
 	private static final long serialVersionUID = 7965875955130649094L;
-//	private Integer clientRegPort;
+	/**DFSClient RMI service name, read from dfs.conf*/
 	private String clientServiceName;
+	/**Maximum chunk slot in each DataNode, read from dfs.conf*/
 	private Integer maxChunkSlot;
+	/**Registry service port on DataNode, read from dfs.conf*/
 	private Integer dataNodeRegPort;
+	/**RMI service port on DataNode, read from dfs.conf*/
 	private Integer dataNodePort;
+	/**DataNOde RMI service name, read from dfs.conf*/
 	private String dataNodeService;
+	/**Storage path on DataNode, read from dfs.conf*/
 	private String dataNodePath;
+	/**Available chunk slots on DataNode, read from dfs.conf*/
 	private Integer availableChunkSlot;
+	/**NameNode IP address, read from dfs.conf*/
 	private String nameNodeIP;
+	/**NameNode registry service port, read from dfs.conf*/
 	private Integer nameNodeRegPort;
+	/**NameNode RMI service name, read from dfs.conf*/
 	private String nameNodeService;
+	/**NameNode RMI service remote object, created when initializing DataNode.*/
 	private Registry nameNodeRegistry;
+	/**RMI stub object. Cached once created.*/
 	private NameNodeInterface nameNode;
+	/**Current DataNode RMI service.*/
 	private static Registry dataNodeRegistry;
+	/**Connection cache pool of RMI services to other DataNodes.*/
 	private Hashtable<String, DataNodeInterface> dataNodeList = new Hashtable<String, DataNodeInterface>();
+	/**File list on this DataNode.*/
 	private ConcurrentHashMap<String, HashSet<Integer>> fileList = new ConcurrentHashMap<String, HashSet<Integer>>();
+	/**A flag that used to shut down this DataNode.*/
 	private boolean isRunning;
-	//private int ackTimeout;
+	/**Slots that are assigned but not necessarily occupied.*/
 	private int reservedSlot;
+	
 	
 	public static void main(String[] args) {
 		System.out.println("Starting data node server...");
