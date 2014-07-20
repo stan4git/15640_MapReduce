@@ -62,18 +62,9 @@ public class TaskThread implements Runnable {
 			taskTracker = (TaskTrackerInterface) registry.lookup(taskTrackServiceName);
 		} catch (RemoteException | NotBoundException e) {
 			if(isMapTask) {
-				try {
-//					JobTracker.handleMapperFailure(jobID, curNode, chunkSets.keySet());
-					JobTracker.handleNodeFailure(curNode);
-				} catch (RemoteException e1) {
-					e1.printStackTrace();
-				}
+				JobTracker.invokeFailureHandleMethod(curNode);
 			} else {
-				try {
-					JobTracker.handleNodeFailure(curNode);
-				} catch (RemoteException e1) {
-					e1.printStackTrace();
-				}
+				JobTracker.invokeFailureHandleMethod(curNode);
 			}
 			System.err.println("Cannot connect to the desired TaskTracker!!");
 			System.exit(-1);

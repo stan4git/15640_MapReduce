@@ -186,7 +186,13 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		return jobID.toString();
 	}
 	
-	public synchronized static void handleNodeFailure (String node) throws RemoteException {
+	/**
+	 * This method is used to handle the situation if some task node turns down,
+	 * the system need to recover all the mappers and reducers on the down node.
+	 * @param node
+	 * @throws RemoteException
+	 */
+	public synchronized void handleNodeFailure (String node) throws RemoteException {
 		
 		// step1 : set node as dead node
 		nameNode.setNodeStatus(node,NodeStatus.DEAD);
@@ -288,24 +294,6 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			System.out.println("Job terminated!");
 		}
 	}
-	
-	
-//	public synchronized static void handleMapperFailure (String node) throws RemoteException {
-//		
-//		nameNode.setNodeStatus(node,NodeStatus.DEAD);
-//		
-//		if(node_totalTasks.get(node) != null) {
-//			node_totalTasks.put(node,0);
-//		}
-//		
-//		for(int jobID : node_jobID_chunkIDs.get(node).keySet()) {
-//			if(jobID_node_taskStatus.get(jobID).get(node).getUnfinishedMapTasks() == 0) {
-//				continue;
-//			}
-//			HashSet<Integer> chunkIDs = node_jobID_chunkIDs.get(node).get(jobID);
-//			handleMapperFailure(jobID, node, chunkIDs);
-//		}
-//	}
 	
 	@Override
 	public String getOutputFileName(int jobID) {
@@ -705,6 +693,14 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	public synchronized void registerTaskTracker(String taskTrackerIP)
 			throws RemoteException {
 		node_totalTasks.put(taskTrackerIP,0);
+	}
+	
+	public synchronized static void invokeFailureHandleMethod(String node) {
+		try {
+			jobTracker.handleNodeFailure(node);
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
 	}
 
 }

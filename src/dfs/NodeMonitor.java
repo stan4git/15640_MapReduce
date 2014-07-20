@@ -10,6 +10,8 @@ import java.util.Hashtable;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
+import mapred.JobTracker;
+import mapred.JobTrackerInterface;
 import util.*;
 
 /**
@@ -30,11 +32,25 @@ public class NodeMonitor implements Runnable {
 	private int heartbeatCheckThreshold;
 	/**Heart beat interval for DataNodes, read from dfs.conf.*/
 	private int heartbeatInterval;
-	
+	/** */
+	private String jobTrackerIP;
+	/** */
+	private Integer jobTrackerRegPort;
+	/** */
+	private String jobTrackServiceName;
+	/** */
+	JobTrackerInterface jobTracker = null;
 	
 	public NodeMonitor(NameNode nameNodeInstance) {
 		this.nameNodeInstance = nameNodeInstance;
 		this.dataNodeServiceList = new ConcurrentHashMap<String, DataNodeInterface>();
+		Registry registry;
+		try {
+			registry = LocateRegistry.getRegistry(jobTrackerIP,jobTrackerRegPort);
+			jobTracker = (JobTrackerInterface) registry.lookup(jobTrackServiceName);
+		} catch (RemoteException | NotBoundException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	
@@ -42,6 +58,7 @@ public class NodeMonitor implements Runnable {
 		this.isRunning = true;
 		try {
 			IOUtil.readConf(PathConfiguration.DFSConfPath, this);
+			IOUtil.readConf(PathConfiguration.MapReducePath, this);
 			System.out.println("Monitoring...");
 		} catch (IOException e1) {
 			e1.printStackTrace();
@@ -80,6 +97,7 @@ public class NodeMonitor implements Runnable {
 				if (retryThreshold <= 0) {
 					System.err.println(dataNodeIP + " is down. Recovering data...");
 					try {
+						jobTracker.handleNodeFailure(dataNodeIP);
 						if(this.nameNodeInstance.getFilesChunkOnNodesTable().containsKey(dataNodeIP)){
 							ensureReplica(dataNodeIP, this.nameNodeInstance.getFilesChunkOnNodesTable().get(dataNodeIP));
 						}

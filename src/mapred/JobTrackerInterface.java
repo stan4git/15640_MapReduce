@@ -121,4 +121,11 @@ public interface JobTrackerInterface extends Remote {
 	 * @throws RemoteException
 	 */
 	public void registerTaskTracker(String taskTrackerIP) throws RemoteException;
+	/**
+	 * This method is used to handle the situation if some task node turns down,
+	 * the system need to recover all the mappers and reducers on the down node.
+	 * @param node
+	 * @throws RemoteException
+	 */
+	public void handleNodeFailure (String node) throws RemoteException;
 }
