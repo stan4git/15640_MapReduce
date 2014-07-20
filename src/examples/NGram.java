@@ -8,7 +8,7 @@ import mapred.*;
 public class NGram {
 	public static void main(String[] args) {
 		JobConfiguration conf = new JobConfiguration();
-		conf.setInputfile("pg_01");
+		conf.setInputfile("pg_02");
 		conf.setOutputfile("NGramOutput");
 		conf.setInputFormat(LineFormat.class);
 		conf.setOutputFormat(OutputFormat.class);
