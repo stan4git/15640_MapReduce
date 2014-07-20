@@ -309,7 +309,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	
 	@Override
 	public void startReducePhase (int jobID) throws RemoteException {
-		System.out.println("Start jobID's "+ jobID +" reduce job !!");
+		//System.out.println("Start jobID's "+ jobID +" reduce job !!");
 		int numOfPartitions = partitionNums;
 		ArrayList<String> chosenReduceNodes = jobScheduler.pickBestNodesForReduce(numOfPartitions);
 		HashMap<String, ArrayList<String>> nodes_partitionsPath = jobID_nodes_partitionsPath.get(jobID);
@@ -430,7 +430,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			unfinishedMapTasks += taskStatusInfo.getUnfinishedMapTasks();
 			unfinishedReduceTasks += taskStatusInfo.getUnfinishedReduceTasks();
 
-			System.err.println(reduceWorkBeginning.toString());
+			//System.err.println(reduceWorkBeginning.toString());
 			
 			// step2: if the whole mapper process has finished, start reduce phase.
 			if(isMapperJobFinished(jobId) && !reduceWorkBeginning.get(jobId)) {

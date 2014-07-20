@@ -322,6 +322,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 			if (taskStatusInfo.getTotalReduceTasks() != 0 && curUnfinishedReduceTasks == 0) {
 				try {
 					System.out.println("The node : " + node + " has finished the JobID's " + jobID + " reduce work!");
+					System.out.println("Waiting for uploading to DFS...");
 					jobTracker.notifyReducerFinish(node, jobID_taskStatus);
 				} catch (RemoteException e) {
 					e.printStackTrace();
