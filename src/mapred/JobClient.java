@@ -102,6 +102,7 @@ public class JobClient {
 				System.out.println("Your job has been executed successfully!");
 				System.out.println("Your jobId is "+jobId+" and your outputfile name is " + jobConf.getOutputfile());
 				System.out.println("The actual output format is job - [jobId]-[outputfilename]-[partitionNumber]_[chunkNum]");
+				System.out.println("Waiting for uploading to DFS...");
 				jobtracker.terminateJob(jobId);
 				break;
 			} else if(status == JobStatus.INPROGRESS) {
