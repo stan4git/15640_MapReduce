@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.concurrent.ConcurrentHashMap;
 
+import util.FunctionalUtil;
 import dfs.NameNodeInterface;
 
 /**
@@ -95,9 +96,10 @@ public class JobScheduler {
 
 			// step1 : select the best nodes of the replication
 			HashSet<String> nodes = chunkDistribution.get(chunkNum);
-			for (String node : nodes) {
+			HashSet<String> deepCopy = FunctionalUtil.deepCopyHashSet(nodes);
+			for (String node : deepCopy) {
 				if (!healthyNodes.contains(node)) {
-					healthyNodes.remove(node);
+					nodes.remove(node);
 				}
 			}
 			if (nodes.size() == 0) {
@@ -108,7 +110,7 @@ public class JobScheduler {
 
 			// step2 : select the best nodes from all the other nodes except the
 			// local nodes
-
+			
 			for (String node : nodes) {
 				if (healthyNodes.contains(node)) {
 					healthyNodes.remove(node);

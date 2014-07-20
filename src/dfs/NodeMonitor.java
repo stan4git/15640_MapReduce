@@ -82,38 +82,52 @@ public class NodeMonitor implements Runnable {
 				dataNodeService = getDataNodeService(dataNodeIP);
 				dataNodeService.heartbeat();
 				break;
-			} catch (Exception e2) {
-				retryThreshold--;
-				if (retryThreshold <= 0) {
-					System.err.println(dataNodeIP + " is down. Recovering data...");
-					 if(jobTracker == null) {
-						 try {
-								Registry registry = LocateRegistry.getRegistry(jobTrackerIP,jobTrackerRegPort);
-								jobTracker = (JobTrackerInterface) registry.lookup(jobTrackServiceName);
+				} catch (Exception e2) {
+					retryThreshold--;
+					if (retryThreshold <= 0) {
+						System.err.println(dataNodeIP
+								+ " is down. Recovering data...");
+						if (jobTracker == null) {
+							try {
+								Registry registry = LocateRegistry.getRegistry(
+										jobTrackerIP, jobTrackerRegPort);
+								jobTracker = (JobTrackerInterface) registry
+										.lookup(jobTrackServiceName);
 							} catch (RemoteException | NotBoundException e) {
 								e.printStackTrace();
 							}
-					 }
-					try {
-						jobTracker.handleNodeFailure(dataNodeIP);
-						if(this.nameNodeInstance.getFilesChunkOnNodesTable().containsKey(dataNodeIP)){
-							ensureReplica(dataNodeIP, this.nameNodeInstance.getFilesChunkOnNodesTable().get(dataNodeIP));
 						}
-					} catch (Exception e1) {
-						e1.printStackTrace();
-						System.err.println("Cannot recover data from " + dataNodeIP + "'s failure...");
+						try {
+							jobTracker.handleNodeFailure(dataNodeIP);
+							if (this.nameNodeInstance
+									.getFilesChunkOnNodesTable().containsKey(
+											dataNodeIP)) {
+								ensureReplica(dataNodeIP,
+										this.nameNodeInstance
+												.getFilesChunkOnNodesTable()
+												.get(dataNodeIP));
+							}
+						} catch (Exception e1) {
+							e1.printStackTrace();
+							System.err.println("Cannot recover data from "
+									+ dataNodeIP + "'s failure...");
+							return;
+						}
+
+						// clean up the dead node information
+						System.out.println("Cleaning up " + dataNodeIP
+								+ "'s information...");
+						this.nameNodeInstance.getDataNodeStatusList().remove(
+								dataNodeIP);
+						this.nameNodeInstance.getDataNodeAvailableSlotList()
+								.remove(dataNodeIP);
+						this.nameNodeInstance.getFilesChunkOnNodesTable()
+								.remove(dataNodeIP);
+						System.out.println(dataNodeIP
+								+ " has been removed from name node.");
 						return;
 					}
-					
-					//clean up the dead node information
-					System.out.println("Cleaning up " + dataNodeIP + "'s information...");
-					this.nameNodeInstance.getDataNodeStatusList().remove(dataNodeIP);
-					this.nameNodeInstance.getDataNodeAvailableSlotList().remove(dataNodeIP);
-					this.nameNodeInstance.getFilesChunkOnNodesTable().remove(dataNodeIP);
-					System.out.println(dataNodeIP + " has been removed from name node.");
-					return;
 				}
-			}
 			}
 		}
 	}
