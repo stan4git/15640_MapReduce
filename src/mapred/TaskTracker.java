@@ -409,7 +409,6 @@ public class TaskTracker extends UnicastRemoteObject implements
 			jobTracker.updateJobStatus(jobID, JobStatus.FAIL);
 			jobTracker.terminateJob(jobID);
 			System.out.println("Job terminated!");
-			System.exit(-1);
 		}
 
 	}
@@ -423,6 +422,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 	public synchronized static void handleMapperNodeFailure(int jobID) {
 		try {
 			jobTracker.terminateJob(jobID);
+			jobTracker.updateJobStatus(jobID, JobStatus.FAIL);
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		}

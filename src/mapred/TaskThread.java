@@ -63,13 +63,14 @@ public class TaskThread implements Runnable {
 		} catch (RemoteException | NotBoundException e) {
 			if(isMapTask) {
 				try {
-					JobTracker.handleMapperFailure(jobID, curNode, chunkSets.keySet());
+//					JobTracker.handleMapperFailure(jobID, curNode, chunkSets.keySet());
+					JobTracker.handleNodeFailure(curNode);
 				} catch (RemoteException e1) {
 					e1.printStackTrace();
 				}
 			} else {
 				try {
-					JobTracker.handleReducerFailure(jobID, partitionNo, curNode);
+					JobTracker.handleNodeFailure(curNode);
 				} catch (RemoteException e1) {
 					e1.printStackTrace();
 				}

@@ -104,6 +104,10 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	public static Integer jobMaxFailureThreshold;
 	/** This table is used to record which JobID has started the reduce work */
 	public static ConcurrentHashMap<Integer, Boolean> reduceWorkBeginning = new ConcurrentHashMap<Integer, Boolean>();
+	/** <node, <jobID, chunkIDs>> */
+	public static ConcurrentHashMap<String, HashMap<Integer, HashSet<Integer>>> node_jobID_chunkIDs = new ConcurrentHashMap<String, HashMap<Integer, HashSet<Integer>>>();
+	/** <node,<jobID,partitionNo>> */
+	public static ConcurrentHashMap<String,HashMap<Integer,HashSet<Integer>>> node_jobID_partitionNos = new ConcurrentHashMap<String,HashMap<Integer,HashSet<Integer>>>();
 	
 	protected JobTracker() throws RemoteException {
 		super();
@@ -164,6 +168,14 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 				jobID_nodes_partitionsPath.put(jobID, nodes_partitionsPath);
 			}
 			
+			// update the <node, <jobID, chunkIDs>> relationship
+			HashMap<Integer, HashSet<Integer>> jobID_chunkIDs = new HashMap<Integer, HashSet<Integer>>();
+			jobID_chunkIDs.put(jobID, new HashSet<Integer>());
+			for(int chunkID : nodeToChunks.get(node).keySet()) {
+				jobID_chunkIDs.get(jobID).add(chunkID);
+			}
+			node_jobID_chunkIDs.put(node, jobID_chunkIDs);
+			
 			System.out.println("choose node: " + node + " to run one or more Mapper tasks!");
 		}
 		
@@ -173,6 +185,38 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		}
 		return jobID.toString();
 	}
+	
+	public synchronized static void handleNodeFailure (String node) throws RemoteException {
+		
+		// step1 : set node as dead node
+		nameNode.setNodeStatus(node,NodeStatus.DEAD);
+		
+		if(node_totalTasks.get(node) != null) {
+			node_totalTasks.put(node,0);
+		}
+		
+		// step2 : handle failed mappers
+		for(int jobID : node_jobID_chunkIDs.get(node).keySet()) {
+			if(jobID_node_taskStatus.get(jobID).get(node).getUnfinishedMapTasks() == 0) {
+				continue;
+			}
+			HashSet<Integer> chunkIDs = node_jobID_chunkIDs.get(node).get(jobID);
+			handleMapperFailure(jobID, node, chunkIDs);
+		}
+		node_jobID_chunkIDs.put(node, new HashMap<Integer,HashSet<Integer>>());
+		
+		// step3 : handle failed reducers
+		for(int jobID : node_jobID_partitionNos.get(node).keySet()) {
+			if(jobID_node_taskStatus.get(jobID).get(node).getUnfinishedReduceTasks() == 0) {
+				continue;
+			}
+			for(int partitionNo : node_jobID_partitionNos.get(node).get(jobID)) {
+				handleReducerFailure(jobID, partitionNo);
+			}
+		}
+		node_jobID_partitionNos.put(node, new HashMap<Integer,HashSet<Integer>>());
+	}
+	
 	
 	/**
 	 * set the node's status to unhealthy
@@ -186,13 +230,8 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	 */
 	public synchronized static void handleMapperFailure (int jobID, String node, Set<Integer> chunks) throws RemoteException {
 		
-		nameNode.setNodeStatus(node,NodeStatus.DEAD);
-		
-		if(node_totalTasks.get(node) != null) {
-			node_totalTasks.put(node,0);
-		}
-		
 		int failureTimes = jobID_mapFailureTimes.get(jobID);
+		
 		if(failureTimes < jobMaxFailureThreshold) {
 			Hashtable<Integer,HashSet<String>> chunkDistribution = nameNode.getFileDistributionTable().get(jobID_configuration.get(jobID).getInputfile());
 			Hashtable<Integer,HashSet<String>> result = new Hashtable<Integer,HashSet<String>>();
@@ -202,7 +241,12 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			}
 			HashMap<String,HashMap<Integer,String>> nodeToChunks = jobScheduler.selectBestNodeToChunks(result);
 			
+			node_jobID_chunkIDs.put(node, new HashMap<Integer, HashSet<Integer>>());
+			jobID_node_taskStatus.get(jobID).put(node, new TaskStatusInfo());
+			jobID_nodes_partitionsPath.get(jobID).put(node, new ArrayList<String>());
+			
 			for (String assignedNode : nodeToChunks.keySet()) {
+				
 				if(jobID_node_taskStatus.get(jobID).get(assignedNode) == null) {
 					HashMap<String, TaskStatusInfo> taskNodeStatus = jobID_node_taskStatus.get(jobID);
 					taskNodeStatus.put(assignedNode, new TaskStatusInfo());
@@ -214,6 +258,18 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 					nodes_partitionsPath.put(assignedNode, new ArrayList<String>());
 					jobID_nodes_partitionsPath.put(jobID, nodes_partitionsPath);
 				}
+				
+				// update the <node, <jobID, chunkIDs>> relationship
+				if(node_jobID_chunkIDs.get(assignedNode) == null) {
+					node_jobID_chunkIDs.put(assignedNode, new HashMap<Integer, HashSet<Integer>>());
+				}
+				
+				HashSet<Integer> chunkIDs = new HashSet<Integer>();
+				for(int chunkID : nodeToChunks.get(assignedNode).keySet()) {
+					chunkIDs.add(chunkID);
+				}
+				
+				node_jobID_chunkIDs.get(assignedNode).put(jobID, chunkIDs);
 				
 				System.out.println("choose node: " + assignedNode + " to run one or more Mapper tasks!");
 			}
@@ -233,6 +289,24 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		}
 	}
 	
+	
+//	public synchronized static void handleMapperFailure (String node) throws RemoteException {
+//		
+//		nameNode.setNodeStatus(node,NodeStatus.DEAD);
+//		
+//		if(node_totalTasks.get(node) != null) {
+//			node_totalTasks.put(node,0);
+//		}
+//		
+//		for(int jobID : node_jobID_chunkIDs.get(node).keySet()) {
+//			if(jobID_node_taskStatus.get(jobID).get(node).getUnfinishedMapTasks() == 0) {
+//				continue;
+//			}
+//			HashSet<Integer> chunkIDs = node_jobID_chunkIDs.get(node).get(jobID);
+//			handleMapperFailure(jobID, node, chunkIDs);
+//		}
+//	}
+	
 	@Override
 	public String getOutputFileName(int jobID) {
 		return jobID_configuration.get(jobID).getOutputfile();
@@ -248,14 +322,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	 * @param node
 	 * @throws RemoteException
 	 */
-	public synchronized static void handleReducerFailure (int jobID, int partitionNo, String node) throws RemoteException {
-		
-		nameNode.setNodeStatus(node,NodeStatus.DEAD);
-		
-		if(node_totalTasks.get(node) != null) {
-			node_totalTasks.put(node,0);
-		}
-		
+	public synchronized static void handleReducerFailure (int jobID, int partitionNo) throws RemoteException {
 		
 		int failureTimes = jobID_mapFailureTimes.get(jobID);
 		if(failureTimes < jobMaxFailureThreshold) {
@@ -266,7 +333,24 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 				jobID_status.put(jobID, JobStatus.FAIL);
 				return;
 			}
-			TaskThread reduceTask = new TaskThread(chosenReduceNodes.get(0), jobID, null, null, false, partitionNo, nodes_partitionsPath, partitionNums,taskTrackerRegPort,taskTrackServiceName);	
+			
+			// update node_jobID_partitionNos start
+			String node = chosenReduceNodes.get(0);
+			if(node_jobID_partitionNos.get(node) == null) {
+				node_jobID_partitionNos.put(node, new HashMap<Integer,HashSet<Integer>>());
+			}
+			HashMap<Integer,HashSet<Integer>>  jobID_partitionNos = node_jobID_partitionNos.get(node);
+			HashSet<Integer> partitionNos = null;
+			if(jobID_partitionNos.get(jobID) == null) {
+				partitionNos = new HashSet<Integer>();
+			} else {
+				partitionNos = jobID_partitionNos.get(jobID);
+			}
+			partitionNos.add(partitionNo);
+			jobID_partitionNos.put(jobID, partitionNos);
+			node_jobID_partitionNos.put(node, jobID_partitionNos);
+			
+			TaskThread reduceTask = new TaskThread(node, jobID, null, null, false, partitionNo, nodes_partitionsPath, partitionNums,taskTrackerRegPort,taskTrackServiceName);	
 			executor.execute(reduceTask);
 			jobID_mapFailureTimes.put(jobID, failureTimes + 1);
 		} else {
@@ -318,6 +402,29 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			jobID_status.put(jobID, JobStatus.FAIL);
 			return;
 		}
+		
+		// update node_jobID_partitionNos beginning
+		HashMap<String,HashSet<Integer>> node_partitionNos = new HashMap<String,HashSet<Integer>>(); 
+		HashSet<Integer> partitions = null;
+		for(int i = 0; i < chosenReduceNodes.size(); i++) {
+			String node = chosenReduceNodes.get(i);
+			if(node_partitionNos.containsKey(node)) {
+				partitions = node_partitionNos.get(node);
+			} else {
+				partitions = new HashSet<Integer>();
+			}
+			partitions.add(i);
+			node_partitionNos.put(node, partitions);
+		}
+		
+		for(String node : node_partitionNos.keySet()) {
+			if(node_jobID_partitionNos.get(node) == null) {
+				node_jobID_partitionNos.put(node, new HashMap<Integer, HashSet<Integer>>());
+			}
+			node_jobID_partitionNos.get(node).put(jobID, node_partitionNos.get(node));
+		}
+		// update node_jobID_partitionNos end
+		
 		for(int i = 0; i < numOfPartitions; i++) {
 			TaskThread reduceTask = new TaskThread(chosenReduceNodes.get(i), jobID, null, null, false, i, nodes_partitionsPath, 1,taskTrackerRegPort,taskTrackServiceName);	
 			executor.execute(reduceTask);
