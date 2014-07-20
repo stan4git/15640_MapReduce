@@ -9,8 +9,6 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
-
-import mapred.JobTracker;
 import mapred.JobTrackerInterface;
 import util.*;
 
@@ -32,13 +30,13 @@ public class NodeMonitor implements Runnable {
 	private int heartbeatCheckThreshold;
 	/**Heart beat interval for DataNodes, read from dfs.conf.*/
 	private int heartbeatInterval;
-	/** */
+	/**JobTracker IP */
 	private String jobTrackerIP;
-	/** */
+	/**JobTracker Registry Port */
 	private Integer jobTrackerRegPort;
-	/** */
+	/**JobTracker service name */
 	private String jobTrackServiceName;
-	/** */
+	/**JobTrakcer instance */
 	JobTrackerInterface jobTracker = null;
 	
 	public NodeMonitor(NameNode nameNodeInstance) {
