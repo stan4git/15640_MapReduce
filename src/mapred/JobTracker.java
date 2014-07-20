@@ -552,7 +552,7 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		HashMap<String,TaskStatusInfo> node_status = jobID_node_taskStatus.get(jobID);
 		for(String nodeIP : node_status.keySet()) {
 			TaskStatusInfo taskStatusInfo = node_status.get(nodeIP);
-			if(taskStatusInfo.getTotalReduceTasks() == 0 || taskStatusInfo.getUnfinishedReduceTasks() != 0) {
+			if(taskStatusInfo.getUnfinishedReduceTasks() != 0) {
 				return false;
 			}
 		}
