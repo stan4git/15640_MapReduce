@@ -79,8 +79,8 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 			e.printStackTrace();
 			System.out.println("Server start failed. Shutting down...");
 			System.exit(-1);
-		
-		//Setup a monitor thread
+		}
+		// Setup a monitor thread
 		nameNode.init();
 
 		System.out.println("System is running...");
@@ -88,7 +88,6 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 
 		}
 		System.out.println("System is shuting down...");
-	}
 	}
 
 	/**

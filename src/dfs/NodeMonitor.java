@@ -37,18 +37,11 @@ public class NodeMonitor implements Runnable {
 	/**JobTracker service name */
 	private String jobTrackServiceName;
 	/**JobTrakcer instance */
-	JobTrackerInterface jobTracker = null;
+	public JobTrackerInterface jobTracker = null;
 	
 	public NodeMonitor(NameNode nameNodeInstance) {
 		this.nameNodeInstance = nameNodeInstance;
 		this.dataNodeServiceList = new ConcurrentHashMap<String, DataNodeInterface>();
-		Registry registry;
-		try {
-			registry = LocateRegistry.getRegistry(jobTrackerIP,jobTrackerRegPort);
-			jobTracker = (JobTrackerInterface) registry.lookup(jobTrackServiceName);
-		} catch (RemoteException | NotBoundException e) {
-			e.printStackTrace();
-		}
 	}
 	
 	
@@ -89,11 +82,18 @@ public class NodeMonitor implements Runnable {
 				dataNodeService = getDataNodeService(dataNodeIP);
 				dataNodeService.heartbeat();
 				break;
-//				this.nameNodeInstance.getDataNodeStatusList().put(dataNodeIP, NodeStatus.HEALTHY);
 			} catch (Exception e2) {
 				retryThreshold--;
 				if (retryThreshold <= 0) {
 					System.err.println(dataNodeIP + " is down. Recovering data...");
+					 if(jobTracker == null) {
+						 try {
+								Registry registry = LocateRegistry.getRegistry(jobTrackerIP,jobTrackerRegPort);
+								jobTracker = (JobTrackerInterface) registry.lookup(jobTrackServiceName);
+							} catch (RemoteException | NotBoundException e) {
+								e.printStackTrace();
+							}
+					 }
 					try {
 						jobTracker.handleNodeFailure(dataNodeIP);
 						if(this.nameNodeInstance.getFilesChunkOnNodesTable().containsKey(dataNodeIP)){
