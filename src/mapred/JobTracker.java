@@ -288,7 +288,8 @@ public class JobTracker extends UnicastRemoteObject implements
 
 			node_jobID_chunkIDs.put(node,
 					new HashMap<Integer, HashSet<Integer>>());
-			jobID_node_taskStatus.get(jobID).put(node, new TaskStatusInfo());
+			//jobID_node_taskStatus.get(jobID).put(node, new TaskStatusInfo());
+			jobID_node_taskStatus.get(jobID).remove(node);
 			jobID_nodes_partitionsPath.get(jobID).put(node,
 					new ArrayList<String>());
 
@@ -687,7 +688,8 @@ public class JobTracker extends UnicastRemoteObject implements
 				} catch (RemoteException | NotBoundException e) {
 //					retryThreshold--;
 //					if (retryThreshold <= 0) {
-//						node_totalTasks.put(node, 0);
+						node_totalTasks.put(node, 0);
+						e.printStackTrace();
 //						break;
 //					} else {
 //						continue;
@@ -719,8 +721,7 @@ public class JobTracker extends UnicastRemoteObject implements
 	 * @return boolean judge whether the map task is finished
 	 */
 	public boolean isMapperJobFinished(int jobID) {
-		HashMap<String, TaskStatusInfo> node_status = jobID_node_taskStatus
-				.get(jobID);
+		HashMap<String, TaskStatusInfo> node_status = jobID_node_taskStatus.get(jobID);
 		for (String nodeIP : node_status.keySet()) {
 			TaskStatusInfo taskStatusInfo = node_status.get(nodeIP);
 			if (taskStatusInfo.getTotalMapTasks() == 0
