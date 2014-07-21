@@ -652,9 +652,9 @@ public class JobTracker extends UnicastRemoteObject implements
 
 		
 		for (String node : node_totalTasks.keySet()) {
-			int retryThreshold = 3;
-			boolean success = false;
-			while (!success && retryThreshold > 0) {
+//			int retryThreshold = 3;
+//			boolean success = false;
+//			while (!success && retryThreshold > 0) {
 				try {
 					if (node_taskTrackers.containsKey(node)) {
 						taskTracker = node_taskTrackers.get(node);
@@ -683,16 +683,16 @@ public class JobTracker extends UnicastRemoteObject implements
 
 					node_totalTasks.put(node, unfinishedMapTasks
 							+ unfinishedReduceTasks);
-					success = true;
+//					success = true;
 				} catch (RemoteException | NotBoundException e) {
-					retryThreshold--;
-					if (retryThreshold <= 0) {
-						node_totalTasks.put(node, 0);
-						break;
-					} else {
-						continue;
-					}
-				}
+//					retryThreshold--;
+//					if (retryThreshold <= 0) {
+//						node_totalTasks.put(node, 0);
+//						break;
+//					} else {
+//						continue;
+//					}
+//				}
 			}
 		}
 	}
