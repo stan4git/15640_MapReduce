@@ -108,6 +108,8 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 	public static ConcurrentHashMap<String, HashMap<Integer, HashSet<Integer>>> node_jobID_chunkIDs = new ConcurrentHashMap<String, HashMap<Integer, HashSet<Integer>>>();
 	/** <node,<jobID,partitionNo>> */
 	public static ConcurrentHashMap<String,HashMap<Integer,HashSet<Integer>>> node_jobID_partitionNos = new ConcurrentHashMap<String,HashMap<Integer,HashSet<Integer>>>();
+	/** <node, <jobID, nextMapID>> */
+	public static ConcurrentHashMap<String,HashMap<Integer,Integer>> node_jobID_nextMapID = new ConcurrentHashMap<String,HashMap<Integer,Integer>>();
 	
 	protected JobTracker() throws RemoteException {
 		super();
@@ -175,6 +177,10 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 				jobID_chunkIDs.get(jobID).add(chunkID);
 			}
 			node_jobID_chunkIDs.put(node, jobID_chunkIDs);
+			
+			HashMap<Integer, Integer> jobID_nextMapID = new HashMap<Integer, Integer>();
+			jobID_nextMapID.put(jobID, 0);
+			node_jobID_nextMapID.put(node, jobID_nextMapID);
 			
 			System.out.println("choose node: " + node + " to run one or more Mapper tasks!");
 		}
@@ -706,6 +712,18 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	@Override
+	public synchronized void updateNextMapID (String node, int jobID, int value) throws RemoteException {
+		HashMap<Integer, Integer> jobID_nextMapID = new HashMap<Integer, Integer>();
+		jobID_nextMapID.put(jobID, value);
+		node_jobID_nextMapID.put(node, jobID_nextMapID);
+	}
+	
+	@Override
+	public synchronized int getNextMapID (String node, int jobID) throws RemoteException  {
+		return node_jobID_nextMapID.get(node).get(jobID);
 	}
 
 }

@@ -161,8 +161,10 @@ public class TaskTracker extends UnicastRemoteObject implements
 			RMIServiceInfo rmiServiceInfo = new RMIServiceInfo();
 			rmiServiceInfo.settingForMapper(dataNodeRegPort, dataNodeService,
 					partitionNums, partitionFilePath);
+			int nextMapID = jobTracker.getNextMapID(node, jobID);
 			startMapTask(jobID, chunksAndNodes.size(), jobConf, chunksAndNodes,
-					mapperName, mapperNum, rmiServiceInfo, 1);
+					mapperName, nextMapID, rmiServiceInfo, 1);
+			jobTracker.updateNextMapID(node, jobID, nextMapID + 1);
 		}
 	}
 
