@@ -355,7 +355,6 @@ public class JobTracker extends UnicastRemoteObject implements
 	 * 
 	 * @param jobID
 	 * @param partitionNo
-	 * @param node
 	 * @throws RemoteException
 	 */
 	public synchronized static void handleReducerFailure(int jobID,

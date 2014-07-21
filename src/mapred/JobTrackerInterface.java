@@ -141,7 +141,7 @@ public interface JobTrackerInterface extends Remote {
 	 * This method is used to get the next Global map index
 	 * @param node
 	 * @param jobID
-	 * @return
+	 * @return int
 	 * @throws RemoteException
 	 */
 	public int getNextMapID (String node, int jobID) throws RemoteException;
