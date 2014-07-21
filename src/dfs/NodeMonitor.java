@@ -103,7 +103,6 @@ public class NodeMonitor implements Runnable {
 						} catch (Exception e1) {
 //							e1.printStackTrace();
 							System.err.println("Cannot recover data from " + dataNodeIP + "'s failure...");
-							return;
 						}
 
 						// clean up the dead node information
