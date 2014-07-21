@@ -133,10 +133,8 @@ public class TaskTracker extends UnicastRemoteObject implements
 		} else {
 			taskStatusInfo = new TaskStatusInfo();
 		}
-		taskStatusInfo.setTotalMapTasks(taskStatusInfo.getTotalMapTasks()
-				+ mapNums);
-		taskStatusInfo.setUnfinishedMapTasks(taskStatusInfo
-				.getUnfinishedMapTasks() + mapNums);
+		taskStatusInfo.setTotalMapTasks(taskStatusInfo.getTotalMapTasks() + mapNums);
+		taskStatusInfo.setUnfinishedMapTasks(taskStatusInfo.getUnfinishedMapTasks() + mapNums);
 		jobID_taskStatus.put(jobID, taskStatusInfo);
 //		
 //		System.err.println("************** jobID = " + jobID + temp + jobID_taskStatus.get(jobID).getTotalMapTasks() + 
@@ -153,8 +151,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 			ArrayList<KVPair> chunksAndNodes = mappers.get(mapperNum);
 			String mapperName = null;
 			try {
-				mapperName = jobTracker.getMapperInfo(jobID).getKey()
-						.toString();
+				mapperName = jobTracker.getMapperInfo(jobID).getKey().toString();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -214,10 +211,8 @@ public class TaskTracker extends UnicastRemoteObject implements
 		} else {
 			taskStatusInfo = new TaskStatusInfo();
 		}
-		taskStatusInfo.setTotalReduceTasks(taskStatusInfo.getTotalReduceTasks()
-				+ numOfPartitions);
-		taskStatusInfo.setUnfinishedReduceTasks(taskStatusInfo
-				.getUnfinishedReduceTasks() + numOfPartitions);
+		taskStatusInfo.setTotalReduceTasks(taskStatusInfo.getTotalReduceTasks() + numOfPartitions);
+		taskStatusInfo.setUnfinishedReduceTasks(taskStatusInfo.getUnfinishedReduceTasks() + numOfPartitions);
 		jobID_taskStatus.put(jobID, taskStatusInfo);
 		// step2: download the Reducer class from the jobTracker
 		try {
@@ -233,8 +228,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 			e.printStackTrace();
 		}
 		RMIServiceInfo rmiServiceInfo = new RMIServiceInfo();
-		rmiServiceInfo.settingForReducer(taskTrackerRegPort,
-				taskTrackServiceName);
+		rmiServiceInfo.settingForReducer(taskTrackerRegPort, taskTrackServiceName);
 		String outputFileName = jobTracker.getOutputFileName(jobID);
 		
 		startReduceTask(jobID, partitionNo, nodesWithPartitions,

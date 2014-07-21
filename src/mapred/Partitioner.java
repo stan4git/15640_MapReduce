@@ -25,14 +25,13 @@ public class Partitioner {
 		StringBuffer[] partitions = new StringBuffer[partitionNum];
 
 		System.out.println("uniqueKeys: " + collection.size());
-
+		
 		for (int i = 0; i < partitionNum; i++) {
 			partitions[i] = new StringBuffer("");
 		}
 
 		for (KVPair kvPair : collection) {
-			hashcodes.put(kvPair.getKey(),
-					Math.abs((kvPair.getKey().toString().hashCode()) % partitionNum));
+			hashcodes.put(kvPair.getKey(),Math.abs((kvPair.getKey().toString().hashCode()) % partitionNum));
 		}
 
 		for (KVPair kvPair : collection) {

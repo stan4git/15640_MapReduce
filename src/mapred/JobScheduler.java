@@ -130,12 +130,12 @@ public class JobScheduler {
 						.get(bestLocalNode)) * localWeight;
 				double globalNodePoint = (maxTaskPerNode - JobTracker.node_totalTasks
 						.get(bestGlobalNode)) * globalWeight;
-				finalNode = localNodePoint >= globalNodePoint ? bestLocalNode
+				finalNode = (localNodePoint >= globalNodePoint) ? bestLocalNode
 						: bestGlobalNode;
 			}
 
 			if (bestLocalNode == null || bestGlobalNode == null) {
-				finalNode = bestLocalNode == null ? bestGlobalNode
+				finalNode = (bestLocalNode == null) ? bestGlobalNode
 						: bestLocalNode;
 			}
 
