@@ -249,9 +249,6 @@ public class JobTracker extends UnicastRemoteObject implements JobTrackerInterfa
 			
 			if(nodeToChunks == null) {
 				System.err.println("The system has no extra replica for this chunk! This job will be terminated!");
-				jobID_status.put(jobID, JobStatus.FAIL);
-				jobTracker.terminateJob(jobID);
-				System.out.println("Job terminated!");
 				return;
 			}
 			

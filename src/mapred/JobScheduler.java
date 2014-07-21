@@ -205,23 +205,28 @@ public class JobScheduler {
 		ArrayList<String> nodesForReduce = new ArrayList<String>();
 		HashSet<String> availableNodes = nameNode.getHealthyNodes();
 		int numOfChosen = 0;
-		ConcurrentHashMap<String, Integer> node_totalTasks = JobTracker.node_totalTasks;
 		
 		while (numOfChosen < numOfReducers) {
-			int minWorkLoad = maxTaskPerNode + 1;
-			String chosenReducer = null;
-			for (String node : availableNodes) {
-				int workLoad = node_totalTasks.get(node);
-				if (workLoad < minWorkLoad) {
-					minWorkLoad = workLoad;
-					chosenReducer = node;
-				}
-			}
-			if (minWorkLoad == maxTaskPerNode + 1) {
+//			ConcurrentHashMap<String, Integer> node_totalTasks = JobTracker.node_totalTasks;
+			String chosenReducer = chooseLightWorkloadNode(availableNodes);
+			
+//			int minWorkLoad = maxTaskPerNode + 1;
+//			for (String node : availableNodes) {
+//				int workLoad = node_totalTasks.get(node);
+//				if (workLoad < minWorkLoad) {
+//					minWorkLoad = workLoad;
+//					chosenReducer = node;
+//				}
+//			}
+//			if (minWorkLoad == maxTaskPerNode + 1) {
+//				return null;
+//			}
+			
+//			node_totalTasks.put(chosenReducer, node_totalTasks.get(chosenReducer) + 1);
+			JobTracker.node_totalTasks.put(chosenReducer, JobTracker.node_totalTasks.get(chosenReducer) + 1);
+			if(chosenReducer == null) {
 				return null;
 			}
-			
-			node_totalTasks.put(chosenReducer, node_totalTasks.get(chosenReducer) + 1);
 			nodesForReduce.add(chosenReducer);
 			numOfChosen++;
 		}
