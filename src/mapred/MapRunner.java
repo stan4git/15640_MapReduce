@@ -118,7 +118,7 @@ public class MapRunner implements Runnable{
 			try {
 				TaskTracker.handleDataNodeFailure(jobID, numOfChunks, jobConf, pairLists,classname,mapperNum, rmiServiceInfo,tryNums);
 			} catch (RemoteException e1) {
-				e1.printStackTrace();
+//				e1.printStackTrace();
 			}
 			System.err.println("Mapper fails while fetching chunks !!");
 			System.exit(-1);

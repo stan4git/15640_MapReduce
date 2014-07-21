@@ -52,7 +52,7 @@ public class NodeMonitor implements Runnable {
 			IOUtil.readConf(PathConfiguration.MapReducePath, this);
 			System.out.println("Monitoring...");
 		} catch (IOException e1) {
-			e1.printStackTrace();
+//			e1.printStackTrace();
 			System.err.println("Loading configuration failed.");
 			System.exit(-1);
 		}
@@ -92,7 +92,7 @@ public class NodeMonitor implements Runnable {
 								Registry registry = LocateRegistry.getRegistry(jobTrackerIP, jobTrackerRegPort);
 								jobTracker = (JobTrackerInterface) registry.lookup(jobTrackServiceName);
 							} catch (RemoteException | NotBoundException e) {
-								e.printStackTrace();
+//								e.printStackTrace();
 							}
 						}
 						try {
@@ -101,7 +101,7 @@ public class NodeMonitor implements Runnable {
 								ensureReplica(dataNodeIP, this.nameNodeInstance.getFilesChunkOnNodesTable().get(dataNodeIP));
 							}
 						} catch (Exception e1) {
-							e1.printStackTrace();
+//							e1.printStackTrace();
 							System.err.println("Cannot recover data from " + dataNodeIP + "'s failure...");
 							return;
 						}
@@ -132,7 +132,7 @@ public class NodeMonitor implements Runnable {
 				dataNodeService = getDataNodeService(dataNodeIP);
 				// System.out.println("Connected to " + dataNodeIP + ".");
 			} catch (Exception e) {
-				e.printStackTrace();
+//				e.printStackTrace();
 				System.err.println("Cannot connect to " + dataNodeIP + ".");
 				return;
 			}
@@ -145,7 +145,7 @@ public class NodeMonitor implements Runnable {
 				// System.out.println(dataNodeIP + "has " + nodeValue +
 				// " available slots...");
 			} catch (RemoteException e) {
-				e.printStackTrace();
+//				e.printStackTrace();
 				continue;
 			}
 			int nameNodeValue = nodeTuple.getValue();
@@ -185,7 +185,7 @@ public class NodeMonitor implements Runnable {
 					moveToNode = this.nameNodeInstance
 							.pickMostAvailableSlotDataNode(excludeList);
 				} catch (RemoteException e1) {
-					e1.printStackTrace();
+//					e1.printStackTrace();
 					System.out.println("Cannot find any available node...");
 					throw (new Exception());
 				}
@@ -225,7 +225,7 @@ public class NodeMonitor implements Runnable {
 							// done with the chunk moving
 							break;
 						} catch (RemoteException e) {
-							e.printStackTrace();
+//							e.printStackTrace();
 							continue;
 						}
 					}

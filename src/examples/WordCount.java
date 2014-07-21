@@ -22,7 +22,7 @@ public class WordCount {
 		try {
 			jobclient.runJob(conf);
 		} catch (IOException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		}
 	}
 

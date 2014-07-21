@@ -138,9 +138,9 @@ public class JobTracker extends UnicastRemoteObject implements
 				return "INPUTNOTFOUND";
 			}
 		} catch (RemoteException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (NotBoundException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 			return "FAIL";
 		}
 		// step 2: update the globaljobID
@@ -689,7 +689,7 @@ public class JobTracker extends UnicastRemoteObject implements
 //					retryThreshold--;
 //					if (retryThreshold <= 0) {
 						node_totalTasks.put(node, 0);
-						e.printStackTrace();
+//						e.printStackTrace();
 //						break;
 //					} else {
 //						continue;
@@ -785,9 +785,9 @@ public class JobTracker extends UnicastRemoteObject implements
 			// 4. Monitoring
 			jobTracker.heartBeatTimer();
 		} catch (RemoteException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (UnknownHostException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		}
 	}
 
@@ -801,7 +801,7 @@ public class JobTracker extends UnicastRemoteObject implements
 		try {
 			jobTracker.handleNodeFailure(node);
 		} catch (RemoteException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		}
 	}
 	

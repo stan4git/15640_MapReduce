@@ -51,7 +51,7 @@ public class JobScheduler {
 		try {
 			init();
 		} catch (IOException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		}
 	}
 
@@ -66,9 +66,9 @@ public class JobScheduler {
 			reigstry = LocateRegistry.getRegistry(nameNodeIP, nameNodeRegPort);
 			nameNode = (NameNodeInterface) reigstry.lookup(nameNodeService);
 		} catch (RemoteException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (NotBoundException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		}
 	}
 

@@ -74,13 +74,13 @@ public class TaskThread implements Runnable {
 			try {
 				taskTracker.registerMapperTask(jobID, jobConf, chunkSets);
 			} catch (IOException e) {
-				e.printStackTrace();
+//				e.printStackTrace();
 			}
 		} else {
 			try {
 				taskTracker.registerReduceTask(jobID, partitionNo, nodesWithPartitions, numOfPartitions);
 			} catch (IOException e) {
-				e.printStackTrace();
+//				e.printStackTrace();
 			}
 		}
 	}

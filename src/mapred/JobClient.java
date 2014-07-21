@@ -59,7 +59,7 @@ public class JobClient {
 			jobtracker = (JobTrackerInterface)registry.lookup(jobTrackServiceName);
 		} catch (RemoteException | NotBoundException e) {
 			System.err.println("Failure happened when looking up the service!");
-			e.printStackTrace();
+//			e.printStackTrace();
 			System.exit(-1);
 		}
 		
@@ -135,7 +135,7 @@ public class JobClient {
 				Thread.sleep(5000);
 			} catch (InterruptedException e) {
 				System.err.println("Exception happened when monitoring!");
-				e.printStackTrace();
+//				e.printStackTrace();
 			}
 		}
 	}

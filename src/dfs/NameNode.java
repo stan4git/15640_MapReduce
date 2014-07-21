@@ -61,7 +61,7 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 			IOUtil.readConf(PathConfiguration.DFSConfPath, nameNode);
 			System.out.println("Configuration data loaded successfully.");
 		} catch (IOException e1) {
-			e1.printStackTrace();
+//			e1.printStackTrace();
 			System.err
 					.println("Failed loading configurations. System shutting down...");
 			System.exit(-1);
@@ -76,7 +76,7 @@ public class NameNode extends UnicastRemoteObject implements NameNodeInterface {
 			System.out.println("Service \"" + nameNodeService
 					+ "\" has been set up on port: " + nameNodeRegPort + ".");
 		} catch (RemoteException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 			System.out.println("Server start failed. Shutting down...");
 			System.exit(-1);
 		}

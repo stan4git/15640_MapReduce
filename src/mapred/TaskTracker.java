@@ -143,7 +143,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 		try {
 			localizeMapTask(jobID);
 		} catch (IOException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		}
 
 		// step4: start different map workers according to the table
@@ -153,7 +153,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 			try {
 				mapperName = jobTracker.getMapperInfo(jobID).getKey().toString();
 			} catch (IOException e) {
-				e.printStackTrace();
+//				e.printStackTrace();
 			}
 			RMIServiceInfo rmiServiceInfo = new RMIServiceInfo();
 			rmiServiceInfo.settingForMapper(dataNodeRegPort, dataNodeService,
@@ -220,14 +220,14 @@ public class TaskTracker extends UnicastRemoteObject implements
 		try {
 			localizeReduceTask(jobID);
 		} catch (IOException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		}
 		// step3: start the reduce work
 		String reduceName = null;
 		try {
 			reduceName = jobTracker.getReducerInfo(jobID).getKey().toString();
 		} catch (IOException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		}
 		RMIServiceInfo rmiServiceInfo = new RMIServiceInfo();
 		rmiServiceInfo.settingForReducer(taskTrackerRegPort, taskTrackServiceName);
@@ -321,7 +321,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 					System.out.println("Waiting for uploading to DFS...");
 					jobTracker.notifyReducerFinish(node, jobID_taskStatus);
 				} catch (RemoteException e) {
-					e.printStackTrace();
+//					e.printStackTrace();
 				}
 			}
 		}
@@ -420,7 +420,7 @@ public class TaskTracker extends UnicastRemoteObject implements
 			jobTracker.terminateJob(jobID);
 			jobTracker.updateJobStatus(jobID, JobStatus.FAIL);
 		} catch (RemoteException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		}
 	}
 
@@ -452,11 +452,11 @@ public class TaskTracker extends UnicastRemoteObject implements
 				
 				dfsClient = new DFSClient(clientPortForTaskTrack,clientRegPortForTaskTrack);
 			} catch (RemoteException e) {
-				e.printStackTrace();
+//				e.printStackTrace();
 			} catch (NotBoundException e) {
-				e.printStackTrace();
+//				e.printStackTrace();
 			} catch (Exception e) {
-				e.printStackTrace();
+//				e.printStackTrace();
 			}
 
 			unexportObject(taskTracker, false);
@@ -470,9 +470,9 @@ public class TaskTracker extends UnicastRemoteObject implements
 			jobTracker.registerTaskTracker(node);
 			System.out.println("I'm the TaskTracker for node " + node);
 		} catch (RemoteException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		} catch (UnknownHostException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		}
 	}
 }

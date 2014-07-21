@@ -69,16 +69,16 @@ public class Merger {
 			}
 		
 			} catch (FileNotFoundException e) {
-				e.printStackTrace();
+//				e.printStackTrace();
 			} catch (IOException e) {
-				e.printStackTrace();
+//				e.printStackTrace();
 			} finally {
 				try {
 					br.close();
 					isr.close();
 					fis.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+//					e.printStackTrace();
 				}
 			}
 

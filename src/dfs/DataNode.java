@@ -66,7 +66,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 		try {
 			dataNode = new DataNode();
 		} catch (RemoteException e2) {
-			e2.printStackTrace();
+//			e2.printStackTrace();
 			System.exit(-1);
 		}
 		
@@ -76,7 +76,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 			IOUtil.readConf(PathConfiguration.DFSConfPath, dataNode);
 			System.out.println("Configuration data loaded successfully...");
 		} catch (IOException e1) {
-			e1.printStackTrace();
+//			e1.printStackTrace();
 			System.out.println("Loading configuration failed...");
 			System.exit(-1);
 		}
@@ -88,7 +88,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 			dataNodeRegistry = LocateRegistry.createRegistry(dataNode.dataNodeRegPort);
 			dataNodeRegistry.rebind(dataNode.dataNodeService, stub);
 		} catch (RemoteException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 			System.err.println("System initialization failed...");
 			System.exit(-1);
 		}
@@ -126,7 +126,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 			this.nameNode = (NameNodeInterface) this.nameNodeRegistry.lookup(this.nameNodeService);
 			this.nameNode.registerDataNode(InetAddress.getLocalHost().getHostAddress(), this.availableChunkSlot);
 		} catch (RemoteException | NotBoundException | UnknownHostException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 			System.out.println("Cannot connect to name node...");
 			System.exit(-1);
 		}
@@ -149,7 +149,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 			} catch (IOException e) {
 				this.availableChunkSlot++;
 				this.reservedSlot--;
-				e.printStackTrace();
+//				e.printStackTrace();
 				System.err.println("IO exception occuring when writing files...");
 				throw new RemoteException("IO exception occuring when writing files...");
 			}
@@ -161,7 +161,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 				client.sendChunkReceivedACK(InetAddress.getLocalHost().getHostAddress(), filename, chunkNum);	//send out ack to client
 				System.out.println("Client " + fromIP + " acknowledged.");
 			} catch (NotBoundException | UnknownHostException e) {
-				e.printStackTrace();
+//				e.printStackTrace();
 				System.err.println("Unable to connect to client server...");
 				try {
 					IOUtil.deleteFile(dataNodePath + filename + "_" + chunkNum);
@@ -210,7 +210,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 		try {
 			IOUtil.deleteFile(this.dataNodePath + filename + "_" + chunkNum);
 		} catch (IOException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 			System.out.println("Cannot remove " + filename + "_" + chunkNum + "...");
 			return;
 		}
@@ -225,7 +225,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 		try {
 			chunk = IOUtil.readFile(this.dataNodePath + filename + "_" + chunkNum);
 		} catch (IOException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 			System.out.println("Cannot fetch file " + filename + "_" + chunkNum + "...");
 			throw (new RemoteException());
 		}
@@ -255,7 +255,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 				DataNodeInterface dataNode = (DataNodeInterface) dataNodeRegistry.lookup(dataNodeService);
 				this.dataNodeList.put(fromIP, dataNode);
 			} catch (RemoteException | NotBoundException e) {
-				e.printStackTrace();
+//				e.printStackTrace();
 				System.out.println("Cannot connect to client " + fromIP);
 				throw (new RemoteException());
 			}
@@ -272,7 +272,7 @@ public class DataNode extends UnicastRemoteObject implements DataNodeInterface {
 		} catch (IOException e) {
 			availableChunkSlot++;
 			reservedSlot--;
-			e.printStackTrace();
+//			e.printStackTrace();
 			System.out.println("IO exception occurs when removing " + filename + "_" + chunkNum);
 			throw (new RemoteException());
 		}

@@ -70,7 +70,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		try {
 			client = new DFSClient();
 		} catch (Exception e1) {
-			e1.printStackTrace();
+//			e1.printStackTrace();
 			System.exit(-1);
 		}
 		
@@ -228,7 +228,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		try {
 			list = this.nameNode.getFileStatusTable();
 		} catch (RemoteException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 			System.out.println("Cannot get file list from name node.");
 			return;
 		}
@@ -251,7 +251,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		try {
 			list = this.nameNode.getDataNodeAvailableSlotList();
 		} catch (RemoteException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 			System.out.println("Cannot get available slot list from name node.");
 			return;
 		}
@@ -282,7 +282,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 			dispatchList.put(filename, tempList);
 			System.out.println("Dispatch list received.");
 		} catch (RemoteException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 			System.err.println("Exception occurs when fetching distribution table...");
 			return;
 		}
@@ -317,7 +317,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		try {
 			fileDistribution = this.nameNode.getFileDistributionTable();
 		} catch (RemoteException e2) {
-			e2.printStackTrace();
+//			e2.printStackTrace();
 			System.out.println("Exception occurs when fetching file.");
 			return;
 		}
@@ -361,7 +361,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		try {
 			fileDistribution = this.nameNode.getFileDistributionTable();
 		} catch (RemoteException e1) {
-			e1.printStackTrace();
+//			e1.printStackTrace();
 			System.out.println("Cannot remove file...");
 			return;
 		}
@@ -394,7 +394,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		try {
 			return IOUtil.calculateFileSplit(filePath, this.maxChunkSize);
 		} catch (IOException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 		}
 		return null;
 	}
@@ -418,7 +418,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 		try {
 			file = new RandomAccessFile(filePath, "r");
 		} catch (FileNotFoundException e1) {
-			e1.printStackTrace();
+//			e1.printStackTrace();
 			System.err.println("File not found.");
 			throw e1;
 		}
@@ -436,7 +436,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 					long startPos = splitStartPointOffset.get(chunkNum);
 					chunk = IOUtil.readChunk(file, startPos, chunkSize);
 				} catch (IOException e1) {
-					e1.printStackTrace();
+//					e1.printStackTrace();
 					System.err.println("IO exception occurs when fetching chunk" + chunkNum);
 					continue;
 				}
@@ -450,7 +450,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 						node = getDataNodeService(dataNodeIP);
 					} catch (RemoteException | NotBoundException e1) {
 						System.err.println("Cannot connect to " + dataNodeIP + ".");
-						e1.printStackTrace();
+//						e1.printStackTrace();
 						continue;
 					}	
 					
@@ -488,7 +488,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 							}
 						} catch (RemoteException | UnknownHostException e) {
 							retryThreshold--;
-							e.printStackTrace();
+//							e.printStackTrace();
 							System.err.println("Exception occurs when uploading file. Retrying for " + 
 									(this.chunkTranferRetryThreshold - retryThreshold) + " times...");
 						} catch (InterruptedException e) {
@@ -528,7 +528,7 @@ public class DFSClient extends UnicastRemoteObject implements DFSClientInterface
 			nameNode.fileDistributionConfirm(filename);		
 			System.out.println("Acknowledged name node " + nameNodeIP + "...");
 		} catch (RemoteException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 			System.out.println("Cannot acknowledge name node.");
 		}
 		return;

@@ -50,7 +50,7 @@ public class IOUtil {
 			try {
 				file.createNewFile();
 			} catch (IOException e) {
-				e.printStackTrace();
+//				e.printStackTrace();
 			}
 		}
 		FileOutputStream fos = null;
@@ -152,7 +152,7 @@ public class IOUtil {
 				out.append((char) b);
 			out.close();
 		} catch (IOException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 			throw e;
 		}
 	}
@@ -288,7 +288,7 @@ public class IOUtil {
 				fis.close();
 				ois.close();
 			} catch (IOException e) {
-				e.printStackTrace();
+//				e.printStackTrace();
 			}
 		}
 		return content;

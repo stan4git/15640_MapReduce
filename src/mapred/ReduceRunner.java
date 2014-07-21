@@ -106,9 +106,9 @@ public class ReduceRunner implements Runnable {
 						}
 					}
 				} catch (RemoteException e) {
-					e.printStackTrace();
+//					e.printStackTrace();
 				} catch (NotBoundException e) {
-					e.printStackTrace();
+//					e.printStackTrace();
 				} 
 			}
 			// step3 : sort the result and format it.
