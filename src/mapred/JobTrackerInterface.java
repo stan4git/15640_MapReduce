@@ -128,4 +128,9 @@ public interface JobTrackerInterface extends Remote {
 	 * @throws RemoteException
 	 */
 	public void handleNodeFailure (String node) throws RemoteException;
+
+	public void updateNextMapID (String node, int jobID, int value) throws RemoteException;
+
+	public int getNextMapID (String node, int jobID) throws RemoteException;
+	
 }
