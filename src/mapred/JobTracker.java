@@ -583,8 +583,7 @@ public class JobTracker extends UnicastRemoteObject implements
 		int unfinishedReduceTasks = 0;
 
 		// update jobID_nodes_partitionsPath
-		HashMap<String, ArrayList<String>> nodes_Paths = jobID_nodes_partitionsPath
-				.get(jobID);
+		HashMap<String, ArrayList<String>> nodes_Paths = jobID_nodes_partitionsPath.get(jobID);
 		nodes_Paths.get(node).addAll(jobID_parFilePath.get(jobID));
 		jobID_nodes_partitionsPath.put(jobID, nodes_Paths);
 
@@ -651,9 +650,10 @@ public class JobTracker extends UnicastRemoteObject implements
 		TaskTrackerInterface taskTracker = null;
 		ConcurrentHashMap<Integer, TaskStatusInfo> jobID_taskStatus = null;
 
-		int retryThreshold = 3;
-		boolean success = false;
+		
 		for (String node : node_totalTasks.keySet()) {
+			int retryThreshold = 3;
+			boolean success = false;
 			while (!success && retryThreshold > 0) {
 				try {
 					if (node_taskTrackers.containsKey(node)) {
